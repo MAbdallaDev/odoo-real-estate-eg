@@ -122,10 +122,12 @@ Order follows *How we work, per stage*: the plan is committed to `main` before a
 **Task 4 — Repo-level files.**
 1. `.gitattributes`: `* text=auto eol=lf`, plus `*.png binary`, `*.pdf binary`.
 2. `odoo.conf.example` (committed): `addons_path = odoo-src/odoo/addons,addons`,
-   `db_host = False`, `db_port = False`, `db_user = odoo19_real_estate`, `db_password = False` (comment points to
-   `~/.pgpass`), `admin_passwd` as an obvious placeholder, `http_port = 8069`,
-   `with_demo = False` (explicit, though it is already the 19.0 default), and `list_db`/`dbfilter`
-   left at defaults. Option names exactly as read in `config.py`.
+   `db_user = odoo19_real_estate`, `admin_passwd` as an obvious placeholder, `http_interface = 127.0.0.1`
+   (19.0 warns when it is unset), `http_port = 8019`,
+   `with_demo = False` (explicit, though it is already the 19.0 default). `db_host`, `db_port` and
+   `db_password` are left out: in 19.0 `False` for a non-boolean option logs a warning and is
+   skipped (`config.py`, config-file parsing), and the defaults already mean "local socket, password
+   from `~/.pgpass`". Option names exactly as read in `config.py`.
 3. `odoo.conf` (local, gitignored): copied from the example by `make setup`; never committed.
 4. `LICENSE`: the GNU LGPL v3 text, unmodified, from gnu.org.
 
@@ -229,7 +231,7 @@ Order follows *How we work, per stage*: the plan is committed to `main` before a
 13. **Hook drift.** Every pre-commit rev is pinned; `pre-commit autoupdate` only in a deliberate
     commit. The prettier hook fetches Node through pre-commit; the first run is slow.
 14. **pylint-odoo defaults expect an OCA author** — set in `.pylintrc`, not by adding OCA as author.
-15. **Port 8069 busy** — `make run` passes extra arguments through (`make run ARGS="--http-port 8070"`).
+15. **Port 8019 busy** — `make run` passes extra arguments through (`make run ARGS="--http-port 8029"`).
 16. **Branch protection order.** A required status check can only be selected after it has run once,
     and protection applied before the Stage 0 push would block it — hence Task 10's order.
 17. **Private data in a public repo.** Push history cannot be fully recalled. The Task 1 scan runs
@@ -261,7 +263,7 @@ None of N1–N4 is committed.
 make setup                       # clone, venv, requirements, odoo.conf, pre-commit install
 make test                        # fresh re_test, T1 runs, log clean, exit 0
 make lint                        # pre-commit run --all-files, green
-make run                         # http://localhost:8069 → Apps → install real_estate_eg; log clean
+make run                         # http://localhost:8019 → Apps → install real_estate_eg; log clean
 git check-ignore -v odoo.conf venv odoo-src docs/private docs/project-plan.ar.md   # all ignored
 git ls-files odoo.conf.example .gitattributes LICENSE                         # all tracked
 docker compose -f docker/docker-compose.ci.yml run --rm odoo ...              # CI test job, locally

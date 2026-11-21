@@ -1,0 +1,38 @@
+# Developer shortcuts. GNU make on Linux or WSL2; run from the repo root.
+# bash + pipefail so `odoo ... | tee log` still fails when Odoo fails.
+SHELL := /bin/bash
+.SHELLFLAGS := -o pipefail -ec
+
+PYTHON   := venv/bin/python
+ODOO     := $(PYTHON) odoo-src/odoo/odoo-bin -c odoo.conf
+MODULE   := real_estate_eg
+DB       ?= re_dev
+TEST_DB  ?= re_test
+TEST_LOG := odoo-test.log
+ARGS     ?=
+# Postgres role from odoo.conf, so dropdb connects as the same user as Odoo
+DB_USER   = $(shell sed -n 's/^db_user *= *//p' odoo.conf)
+
+.PHONY: help setup run test shell
+
+help: ## List targets
+	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-6s %s\n", $$1, $$2}'
+
+setup: ## Clone Odoo 19, create venv, install requirements, create odoo.conf
+	[ -d odoo-src/odoo ] || git clone --depth 1 --branch 19.0 https://github.com/odoo/odoo.git odoo-src/odoo
+	[ -d venv ] || python3 -m venv venv
+	venv/bin/pip install -r odoo-src/odoo/requirements.txt
+	[ -f odoo.conf ] || { cp odoo.conf.example odoo.conf; chmod 600 odoo.conf; echo "odoo.conf created: set admin_passwd in it"; }
+
+run: ## Start Odoo on database $(DB) (extra options: ARGS="...")
+	$(ODOO) -d $(DB) $(ARGS)
+
+test: ## Fresh $(TEST_DB), install the module, run its tests, check the log
+	dropdb -U $(DB_USER) --if-exists --force $(TEST_DB)
+	@echo "Installing $(MODULE) in a fresh $(TEST_DB) and running its tests (full log: $(TEST_LOG)) ..."
+	@status=0; $(ODOO) -d $(TEST_DB) -i $(MODULE) --test-tags /$(MODULE) --stop-after-init $(ARGS) > $(TEST_LOG) 2>&1 || status=$$?; \
+	grep -E 'odoo\.tests\.result|post-tests in' $(TEST_LOG) | tail -n 2 || true; \
+	scripts/check_odoo_log.sh $(TEST_LOG) && exit $$status
+
+shell: ## Odoo Python shell on database $(DB)
+	$(ODOO) shell -d $(DB) $(ARGS)
