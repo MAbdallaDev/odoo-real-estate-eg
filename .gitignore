@@ -1,0 +1,20 @@
+# Personal notes (career context, employer, local paths) — never pushed
+docs/private/
+
+# Arabic reading copies — local only, the repo is English
+*.ar.md
+
+# Odoo source clone and Python virtualenv — rebuilt, never committed
+odoo-src/
+venv/
+
+# Local Odoo config (holds machine-specific settings); odoo.conf.example is committed
+*.conf
+
+# Python / tooling caches
+__pycache__/
+*.py[co]
+.coverage
+htmlcov/
+*.log
+.ruff_cache/
