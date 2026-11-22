@@ -1,6 +1,6 @@
 {
     "name": "Real Estate Installments (Egypt)",
-    "summary": "Unit sales on installment plans and collections for Egyptian developers",
+    "summary": "Installment sales and collections for Egyptian real-estate developers",
     "version": "19.0.1.0.0",
     "category": "Real Estate",
     "license": "LGPL-3",

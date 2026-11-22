@@ -164,7 +164,7 @@ Order follows *How we work, per stage*: the plan is committed to `main` before a
    `oca-checks-odoo-module`, `oca-fix-manifest-website`, prettier with `@prettier/plugin-xml` for XML.
    `odoo-src/`, `venv/` and `docs/private/` are excluded.
 2. Config files the hooks read: `.ruff.toml`, `.pylintrc` (`load-plugins=pylint_odoo`,
-   `valid-odoo-versions=19.0`, the manifest author setting), `.prettierrc.yml`.
+   `valid-odoo-versions=19.0`, the manifest author setting), `prettier.config.cjs` (OCA's form: `require.resolve` finds the XML plugin in pre-commit's Node env; a `.prettierrc.yml` plugin entry cannot).
 3. `pre-commit run --all-files` green.
 
 **Task 8 — CI in Docker.**

@@ -13,7 +13,7 @@ ARGS     ?=
 # Postgres role from odoo.conf, so dropdb connects as the same user as Odoo
 DB_USER   = $(shell sed -n 's/^db_user *= *//p' odoo.conf)
 
-.PHONY: help setup run test shell
+.PHONY: help setup run test shell lint
 
 help: ## List targets
 	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-6s %s\n", $$1, $$2}'
@@ -21,8 +21,9 @@ help: ## List targets
 setup: ## Clone Odoo 19, create venv, install requirements, create odoo.conf
 	[ -d odoo-src/odoo ] || git clone --depth 1 --branch 19.0 https://github.com/odoo/odoo.git odoo-src/odoo
 	[ -d venv ] || python3 -m venv venv
-	venv/bin/pip install -r odoo-src/odoo/requirements.txt
+	venv/bin/pip install -r odoo-src/odoo/requirements.txt -r requirements-dev.txt
 	[ -f odoo.conf ] || { cp odoo.conf.example odoo.conf; chmod 600 odoo.conf; echo "odoo.conf created: set admin_passwd in it"; }
+	venv/bin/pre-commit install
 
 run: ## Start Odoo on database $(DB) (extra options: ARGS="...")
 	$(ODOO) -d $(DB) $(ARGS)
@@ -36,3 +37,6 @@ test: ## Fresh $(TEST_DB), install the module, run its tests, check the log
 
 shell: ## Odoo Python shell on database $(DB)
 	$(ODOO) shell -d $(DB) $(ARGS)
+
+lint: ## Run every pre-commit check on all files
+	venv/bin/pre-commit run --all-files
