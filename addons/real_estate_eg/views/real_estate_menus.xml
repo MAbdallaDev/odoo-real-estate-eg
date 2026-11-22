@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- BR-35: everyone in the rights matrix reaches the app; each table's ACL decides the rest. -->
+    <menuitem
+    id="real_estate_menu_root"
+    name="Real Estate"
+    sequence="40"
+    groups="group_real_estate_agent,group_real_estate_collections,account.group_account_invoice"
+  />
+    <menuitem
+    id="real_estate_project_menu"
+    name="Projects"
+    parent="real_estate_menu_root"
+    action="real_estate_project_action"
+    sequence="20"
+  />
+</odoo>

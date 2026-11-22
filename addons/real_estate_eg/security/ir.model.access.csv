@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_real_estate_project_agent,real.estate.project agent,model_real_estate_project,group_real_estate_agent,1,0,0,0
+access_real_estate_project_collections,real.estate.project collections,model_real_estate_project,group_real_estate_collections,1,0,0,0
+access_real_estate_project_manager,real.estate.project manager,model_real_estate_project,group_real_estate_manager,1,1,1,1
+access_real_estate_project_accountant,real.estate.project accountant,model_real_estate_project,account.group_account_invoice,1,0,0,0

@@ -9,6 +9,9 @@
     "depends": ["account", "mail"],
     "data": [
         "security/security.xml",
+        "security/ir.model.access.csv",
+        "views/real_estate_project_views.xml",
+        "views/real_estate_menus.xml",
     ],
     "installable": True,
     "application": True,
