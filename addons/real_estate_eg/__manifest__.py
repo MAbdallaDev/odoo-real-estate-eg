@@ -7,7 +7,9 @@
     "author": "Mostafa Abdallah",
     "website": "https://github.com/MAbdallaDev/odoo-real-estate-eg",
     "depends": ["account", "mail"],
-    "data": [],
+    "data": [
+        "security/security.xml",
+    ],
     "installable": True,
     "application": True,
 }
