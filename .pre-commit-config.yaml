@@ -1,0 +1,67 @@
+# Quality gates run on every commit (after `pre-commit install`) and in CI (`make lint`).
+# Hook versions are the ones OCA's addons-repo template pins for Odoo 19
+# (OCA/oca-addons-repo-template, src/.pre-commit-config.yaml.jinja, odoo_version < 20).
+# Change them only in a deliberate commit (`pre-commit autoupdate`).
+exclude: |
+  (?x)
+  # Not ours: Odoo source clone, virtualenv, private notes
+  ^odoo-src/|^venv/|^docs/private/|
+  # Legal text is never reformatted
+  (LICENSE.*|COPYING.*)
+default_language_version:
+  python: python3.12
+  node: "22.9.0"
+repos:
+  - repo: https://github.com/oca/maintainer-tools
+    rev: b8311a95009805a6e5593f0390f52c0fa350117f
+    hooks:
+      # Every manifest's "website" must be this repo's URL
+      - id: oca-fix-manifest-website
+        args: ["https://github.com/MAbdallaDev/odoo-real-estate-eg"]
+  - repo: https://github.com/OCA/odoo-pre-commit-hooks
+    rev: v0.1.7
+    hooks:
+      # Checks Odoo module files: XML, CSV and __manifest__.py
+      - id: oca-checks-odoo-module
+      # Checks translation files (.po/.pot)
+      - id: oca-checks-po
+        args: ["--disable=po-pretty-format"]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.0
+    hooks:
+      # Python linter (fixes what it can) and formatter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+  - repo: https://github.com/OCA/pylint-odoo
+    rev: v10.0.8
+    hooks:
+      # Odoo-specific Python and manifest checks, settings in .pylintrc
+      - id: pylint_odoo
+        args: ["--rcfile=.pylintrc"]
+  - repo: local
+    hooks:
+      # Formats XML (views, data), YAML and JSON. Markdown docs are prose and left alone.
+      - id: prettier
+        name: prettier (with plugin-xml)
+        entry: prettier
+        args: [--write, --list-different, --ignore-unknown]
+        types: [text]
+        files: \.(css|js|json|scss|xml|yaml|yml)$
+        language: node
+        additional_dependencies:
+          - "prettier@3.6.2"
+          - "@prettier/plugin-xml@3.4.2"
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: debug-statements
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: check-xml
+      - id: check-yaml
+      - id: mixed-line-ending
+        args: ["--fix=lf"]

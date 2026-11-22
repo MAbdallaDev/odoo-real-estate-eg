@@ -1,0 +1,46 @@
+# CI test stack: a throwaway Postgres + the official Odoo 19 image, with this
+# repo's addons mounted read-only. Used by GitHub Actions and by `make test-ci`.
+#
+#   docker compose -f docker/docker-compose.ci.yml run --rm odoo   # run the tests
+#   docker compose -f docker/docker-compose.ci.yml down -v         # remove the DB
+#
+# Images are pinned by digest (the exact image ID), so CI never changes Odoo or
+# Postgres version silently. To update: docker pull, then copy the new digest here.
+name: real-estate-eg-ci
+
+services:
+  db:
+    # postgres:16
+    image: postgres@sha256:c1b3783309b6499c795eed7c20135a1a4d25cae1b575c3d52c6f536129a1b109
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  odoo:
+    # odoo:19.0 (build 19.0-20261112; ships wkhtmltopdf 0.12.6.1 with patched Qt)
+    image: odoo@sha256:03a47921f9eef2c225ded1167fe7828465d2b3177883f30d173bb1c3c792949b
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Read by the image's /entrypoint.sh and passed to Odoo as --db_host/--db_user/--db_password
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      # The image's addons path is /mnt/extra-addons
+      - ../addons:/mnt/extra-addons:ro
+    # Same test run as `make test`. Demo data is already off by default in Odoo 19.
+    command:
+      - odoo
+      - --database=re_test
+      - --init=real_estate_eg
+      - --test-tags=/real_estate_eg
+      - --stop-after-init
+      - --http-interface=127.0.0.1

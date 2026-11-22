@@ -1,0 +1,32 @@
+# Ruff: Python linter + formatter. Odoo 19 supports Python 3.10+.
+target-version = "py310"
+line-length = 88
+
+[lint]
+# Default rules (pyflakes, pycodestyle errors) plus: bugbear, complexity,
+# long lines, import sorting, modern syntax
+extend-select = ["B", "C90", "E501", "I", "UP"]
+
+[lint.per-file-ignores]
+# __init__.py only imports submodules for their side effects
+"__init__.py" = ["F401", "I001"]
+# A manifest is a bare dict expression
+"__manifest__.py" = ["B018"]
+
+[lint.isort]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "odoo",
+  "odoo-addons",
+  "first-party",
+  "local-folder",
+]
+
+[lint.isort.sections]
+"odoo" = ["odoo"]
+"odoo-addons" = ["odoo.addons"]
+
+[lint.mccabe]
+max-complexity = 16
