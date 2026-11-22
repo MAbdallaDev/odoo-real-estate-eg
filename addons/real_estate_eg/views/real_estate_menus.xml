@@ -14,4 +14,11 @@
     action="real_estate_project_action"
     sequence="20"
   />
+    <menuitem
+    id="real_estate_unit_menu"
+    name="Units"
+    parent="real_estate_menu_root"
+    action="real_estate_unit_action"
+    sequence="30"
+  />
 </odoo>

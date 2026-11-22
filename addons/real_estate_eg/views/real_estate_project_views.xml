@@ -9,6 +9,7 @@
                 <field name="name" />
                 <field name="location" />
                 <field name="expected_delivery_date" />
+                <field name="unit_count" string="Units" />
                 <field name="company_id" groups="base.group_multi_company" />
             </list>
         </field>
@@ -40,6 +41,19 @@
                             <field name="active" invisible="1" />
                         </group>
                     </group>
+                    <notebook>
+                        <page string="Units" name="units">
+                            <field name="unit_ids" readonly="1">
+                                <list>
+                                    <field name="code" />
+                                    <field name="unit_type" />
+                                    <field name="area" />
+                                    <field name="list_price" />
+                                    <field name="currency_id" column_invisible="1" />
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>
