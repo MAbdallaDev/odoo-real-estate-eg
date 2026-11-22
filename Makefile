@@ -10,13 +10,15 @@ DB       ?= re_dev
 TEST_DB  ?= re_test
 TEST_LOG := odoo-test.log
 ARGS     ?=
+CI_COMPOSE := docker compose -f docker/docker-compose.ci.yml
+CI_LOG   := odoo-ci.log
 # Postgres role from odoo.conf, so dropdb connects as the same user as Odoo
 DB_USER   = $(shell sed -n 's/^db_user *= *//p' odoo.conf)
 
-.PHONY: help setup run test shell lint
+.PHONY: help setup run test test-ci shell lint
 
 help: ## List targets
-	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-6s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-8s %s\n", $$1, $$2}'
 
 setup: ## Clone Odoo 19, create venv, install requirements, create odoo.conf
 	[ -d odoo-src/odoo ] || git clone --depth 1 --branch 19.0 https://github.com/odoo/odoo.git odoo-src/odoo
@@ -34,6 +36,13 @@ test: ## Fresh $(TEST_DB), install the module, run its tests, check the log
 	@status=0; $(ODOO) -d $(TEST_DB) -i $(MODULE) --test-tags /$(MODULE) --stop-after-init $(ARGS) > $(TEST_LOG) 2>&1 || status=$$?; \
 	grep -E 'odoo\.tests\.result|post-tests in' $(TEST_LOG) | tail -n 2 || true; \
 	scripts/check_odoo_log.sh $(TEST_LOG) && exit $$status
+
+test-ci: ## Same test run as GitHub CI: Postgres + official Odoo 19 image in Docker
+	@echo "Running the tests in Docker (full log: $(CI_LOG)) ..."
+	@status=0; $(CI_COMPOSE) run --rm odoo > $(CI_LOG) 2>&1 || status=$$?; \
+	$(CI_COMPOSE) down -v --remove-orphans > /dev/null 2>&1 || true; \
+	grep -E 'odoo\.tests\.result|post-tests in' $(CI_LOG) | tail -n 2 || true; \
+	scripts/check_odoo_log.sh $(CI_LOG) && exit $$status
 
 shell: ## Odoo Python shell on database $(DB)
 	$(ODOO) shell -d $(DB) $(ARGS)
