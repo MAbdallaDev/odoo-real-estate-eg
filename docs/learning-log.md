@@ -38,7 +38,26 @@ Questions: [`design-notes/01-environment.md`](design-notes/01-environment.md#exp
 
 Questions: [`design-notes/02-core-models.md`](design-notes/02-core-models.md#explain-back-questions)
 
-*(to be answered)*
+1. The Python check runs before the database constraint and gives a better message: it shows
+   the existing contract's reference, while the database constraint does not. The database
+   constraint is the guard: when two users save a contract for the same unit at the same
+   moment, each Python check cannot see the other user's contract, because it is not saved
+   yet, so both pass. Only the unique index in Postgres sees both and refuses the second one.
+   The Python check uses `sudo()` because, from Story 06, an agent cannot see another agent's
+   contract, but the unit is still taken.
+2. The type of `list_price` is not the cause; the dependency is. With
+   `@api.depends("unit_id.list_price")`, Odoo recomputes `price` on every contract of the
+   unit when its list price changes, confirmed contracts included, so a price the customer
+   already signed would change. AC-01.2 proves the choice: a later list price change does
+   not reach an existing contract. AC-01.6 proves the other side: changing the unit on a
+   draft takes the new unit's price.
+3. An agent cannot confirm because of Python: `action_confirm()` calls `_check_manager()`,
+   which raises an `AccessError`; the button's `groups=` only hides it. A collections
+   officer cannot edit because of the access rights in `ir.model.access.csv`: read only, no
+   write, create or delete. An agent still sees other agents' contracts because there are no
+   record rules yet: the access rights give read on the whole table, so every row is
+   visible. Story 06 adds record rules (`ir.rule`): an agent sees only their own contracts,
+   and a user sees only their own company's records.
 
 ---
 
