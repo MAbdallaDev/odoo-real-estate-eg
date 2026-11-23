@@ -3,7 +3,7 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/02-core-models/intake.md`
 - **Branch:** `story/02-core-models`
-- **Status:** Done Criteria approved 2026-11-22; implemented, in review
+- **Status:** Done Criteria approved 2026-11-22; all met 2026-11-23 (22 tests pass locally and in CI); in review
 
 ---
 
@@ -329,32 +329,32 @@ gh run list --branch main --limit 1   # green after merge
 
 ## Done Criteria
 
-- [ ] **[AC-01.1](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.1: Given unit HNC-B07-0302 is available, when an agent creates a contract for it, then the contract is draft, gets a reference from the sequence, its price is 8,580,000 EGP, and the unit shows reserved.")** An agent creates a contract for available unit `HNC-B07-0302`: it is draft, gets a
+- [x] **[AC-01.1](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.1: Given unit HNC-B07-0302 is available, when an agent creates a contract for it, then the contract is draft, gets a reference from the sequence, its price is 8,580,000 EGP, and the unit shows reserved.")** An agent creates a contract for available unit `HNC-B07-0302`: it is draft, gets a
   sequence reference, its price is 8,580,000 EGP, and the unit shows **reserved**. *Proof:* T1.
-- [ ] **[AC-01.2](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.2: Given the unit's list price is then changed to 9,000,000, when the agent reopens the contract, then its price is still 8,580,000.")** After the unit's list price changes to 9,000,000, the contract's price is still
+- [x] **[AC-01.2](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.2: Given the unit's list price is then changed to 9,000,000, when the agent reopens the contract, then its price is still 8,580,000.")** After the unit's list price changes to 9,000,000, the contract's price is still
   8,580,000. *Proof:* T2.
-- [ ] **[AC-01.3](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.3: Given a unit already has a non-cancelled contract, when anyone creates a second contract for it, then it is refused with a message giving the existing contract's reference only.")** A second non-cancelled contract on the same unit is refused, by anyone and in any
+- [x] **[AC-01.3](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.3: Given a unit already has a non-cancelled contract, when anyone creates a second contract for it, then it is refused with a message giving the existing contract's reference only.")** A second non-cancelled contract on the same unit is refused, by anyone and in any
   order, with a message giving only the existing contract's reference; the database enforces it.
   *Proof:* T3, T4.
-- [ ] **[AC-01.4](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.4: Given a customer's national ID is 29901158800017 (born 15 Jan 1999), the system accepts it; given 19901158800017 (first digit 1), 29902308800017 (30 February) or 33001018800017 (born 1 Jan 2030, in the future), the system refuses it.")** National ID `29901158800017` is accepted; `19901158800017`, `29902308800017` and
+- [x] **[AC-01.4](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.4: Given a customer's national ID is 29901158800017 (born 15 Jan 1999), the system accepts it; given 19901158800017 (first digit 1), 29902308800017 (30 February) or 33001018800017 (born 1 Jan 2030, in the future), the system refuses it.")** National ID `29901158800017` is accepted; `19901158800017`, `29902308800017` and
   `33001018800017` are refused. *Proof:* T5.
-- [ ] **[AC-01.5](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.5: Given a draft contract, when the agent deletes it, then it is deleted and the unit is available. Given a confirmed contract, deleting it is refused.")** An agent deletes a draft contract and the unit is available again; deleting a
+- [x] **[AC-01.5](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.5: Given a draft contract, when the agent deletes it, then it is deleted and the unit is available. Given a confirmed contract, deleting it is refused.")** An agent deletes a draft contract and the unit is available again; deleting a
   confirmed contract is refused. *Proof:* T6.
-- [ ] **[AC-01.6](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.6: Given a draft contract for HNC-B07-0302 at 8,580,000, when the agent changes the unit to a 2-bedroom HNC unit, then the price becomes 6,500,000.")** Changing a draft contract's unit to a 2-bedroom HNC unit sets its price to
+- [x] **[AC-01.6](../../../../docs/business-requirements.md#us-01--create-a-contract-for-an-available-unit "AC-01.6: Given a draft contract for HNC-B07-0302 at 8,580,000, when the agent changes the unit to a 2-bedroom HNC unit, then the price becomes 6,500,000.")** Changing a draft contract's unit to a 2-bedroom HNC unit sets its price to
   6,500,000. *Proof:* T7.
-- [ ] **[AC-09.1](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.1: Given a draft contract, its agent can cancel it; the unit becomes available.")** An agent cancels their draft contract; the unit becomes available. *Proof:* T8.
-- [ ] **[AC-09.2](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.2: Given a confirmed contract, an agent cannot cancel it; a manager can, only with a reason.")** An agent cannot cancel a confirmed contract; a manager can, only with a reason.
+- [x] **[AC-09.1](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.1: Given a draft contract, its agent can cancel it; the unit becomes available.")** An agent cancels their draft contract; the unit becomes available. *Proof:* T8.
+- [x] **[AC-09.2](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.2: Given a confirmed contract, an agent cannot cancel it; a manager can, only with a reason.")** An agent cannot cancel a confirmed contract; a manager can, only with a reason.
   *Proof:* T9.
-- [ ] **[AC-09.5](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.5: A delivered contract cannot be cancelled.")** A delivered contract cannot be cancelled. *Proof:* T10.
-- [ ] **[AC-10.1](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.1: An agent cannot confirm a contract; a manager can.")** An agent cannot confirm a contract; a manager can. *Proof:* T11.
-- [ ] **[AC-10.2](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.2: Confirmation is refused if there is no schedule, if the schedule does not sum to the price, or if an individual customer lacks a national ID (Egyptian) or passport number (foreign). A company customer needs neither.")** *(identity part)* Confirmation is refused when an individual customer lacks a
+- [x] **[AC-09.5](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.5: A delivered contract cannot be cancelled.")** A delivered contract cannot be cancelled. *Proof:* T10.
+- [x] **[AC-10.1](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.1: An agent cannot confirm a contract; a manager can.")** An agent cannot confirm a contract; a manager can. *Proof:* T11.
+- [x] **[AC-10.2](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.2: Confirmation is refused if there is no schedule, if the schedule does not sum to the price, or if an individual customer lacks a national ID (Egyptian) or passport number (foreign). A company customer needs neither.")** *(identity part)* Confirmation is refused when an individual customer lacks a
   national ID (Egyptian) or passport number (foreign); a company customer needs neither. The
   schedule check is Story 03. *Proof:* T12.
-- [ ] **[AC-10.3](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.3: On confirmation the unit shows sold and every line already due is invoiced (BR-21).")** *(unit part)* On confirmation the unit shows **sold**. Invoicing is Story 04.
+- [x] **[AC-10.3](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.3: On confirmation the unit shows sold and every line already due is invoiced (BR-21).")** *(unit part)* On confirmation the unit shows **sold**. Invoicing is Story 04.
   *Proof:* T13.
-- [ ] **[AC-11.1](../../../../docs/business-requirements.md#us-11--record-delivery-of-the-unit "AC-11.1: Only a confirmed contract can be marked delivered, only by a manager.")** Only a confirmed contract can be marked delivered, and only by a manager.
+- [x] **[AC-11.1](../../../../docs/business-requirements.md#us-11--record-delivery-of-the-unit "AC-11.1: Only a confirmed contract can be marked delivered, only by a manager.")** Only a confirmed contract can be marked delivered, and only by a manager.
   *Proof:* T14.
-- [ ] **[AC-06.3](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.3: A collections officer sees all contracts but cannot edit price, plan or schedule.")** A collections officer sees all contracts but cannot edit price, plan or schedule —
+- [x] **[AC-06.3](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.3: A collections officer sees all contracts but cannot edit price, plan or schedule.")** A collections officer sees all contracts but cannot edit price, plan or schedule —
   enforced by access rights here (read-only ACL); record rules come in Story 06. *Proof:* T15.
-- [ ] **[AC-06.5](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.5: An accountant sees all contracts and schedules but cannot edit them.")** An accountant sees all contracts but cannot edit them (schedules are Story 03).
+- [x] **[AC-06.5](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.5: An accountant sees all contracts and schedules but cannot edit them.")** An accountant sees all contracts but cannot edit them (schedules are Story 03).
   *Proof:* T16.
