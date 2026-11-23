@@ -34,13 +34,21 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <!-- Deliver / Cancel buttons come in Steps 10-11. -->
+                    <!-- The Cancel button comes in Step 11. -->
                     <button
             name="action_confirm"
             type="object"
             string="Confirm"
             class="oe_highlight"
             invisible="state != 'draft'"
+            groups="real_estate_eg.group_real_estate_manager"
+          />
+                    <button
+            name="action_deliver"
+            type="object"
+            string="Deliver"
+            class="oe_highlight"
+            invisible="state != 'confirmed'"
             groups="real_estate_eg.group_real_estate_manager"
           />
                     <field
@@ -66,7 +74,11 @@
                 name="confirmation_date"
                 invisible="not confirmation_date"
               />
-                            <field name="delivery_date" invisible="not delivery_date" />
+                            <field
+                name="delivery_date"
+                invisible="state not in ('confirmed', 'delivered', 'closed')"
+                readonly="state != 'confirmed'"
+              />
                             <field name="price" />
                             <field name="currency_id" invisible="1" />
                             <field

@@ -58,7 +58,9 @@ class RealEstateContract(models.Model):
     # BR-07: set on the draft; checked and filled on confirmation (Step 9).
     date = fields.Date(string="Contract Date", tracking=True, copy=False)
     confirmation_date = fields.Date(readonly=True, copy=False)
-    delivery_date = fields.Date(readonly=True, copy=False, tracking=True)
+    # BR-11: the handover date; editable on a confirmed contract (form view),
+    # filled with today by action_deliver() when left empty.
+    delivery_date = fields.Date(copy=False, tracking=True)
     cancel_reason = fields.Text(readonly=True, copy=False)
     # BR-08: frozen at the unit's list price; depends on unit_id only.
     price = fields.Monetary(
@@ -193,6 +195,31 @@ class RealEstateContract(models.Model):
                     # BR-07: an empty contract date becomes the confirmation date.
                     "date": contract.date or today,
                 }
+            )
+        return True
+
+    def action_deliver(self):
+        """US-11 / BR-11: a manager records the handover of a confirmed contract.
+        Installments continue as scheduled; the maintenance deposit falling due
+        is Story 04."""
+        self._check_manager()
+        today = fields.Date.context_today(self)
+        for contract in self:
+            if contract.state != "confirmed":
+                raise UserError(
+                    self.env._("Only a confirmed contract can be marked delivered.")
+                )
+            if contract.delivery_date and contract.delivery_date > today:
+                raise UserError(
+                    self.env._("The delivery date cannot be in the future.")
+                )
+            if contract.delivery_date and contract.delivery_date < contract.date:
+                raise UserError(
+                    self.env._("The delivery date cannot be before the contract date.")
+                )
+        for contract in self:
+            contract.write(
+                {"state": "delivered", "delivery_date": contract.delivery_date or today}
             )
         return True
 

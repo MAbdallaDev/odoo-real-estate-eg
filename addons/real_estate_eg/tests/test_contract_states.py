@@ -73,3 +73,42 @@ class TestContractStates(RealEstateCommon):
         contract.with_user(self.manager).action_confirm()
         with self.assertRaisesRegex(UserError, "Only a draft"):
             contract.with_user(self.manager).action_confirm()
+
+    def test_ac_11_1_deliver_confirmed_by_manager_only(self):
+        """AC-11.1 / US-11, BR-11: only a confirmed contract can be marked
+        delivered, only by a manager; the date is recorded, the unit delivered."""
+        contract = self.create_contract()
+        with self.assertRaisesRegex(UserError, "Only a confirmed"):
+            contract.with_user(self.manager).action_deliver()  # still draft
+
+        contract.with_user(self.manager).action_confirm()
+        with self.assertRaises(AccessError):
+            contract.with_user(self.agent_a).action_deliver()
+        self.assertEqual(contract.state, "confirmed")
+
+        contract.with_user(self.manager).action_deliver()
+        self.assertEqual(contract.state, "delivered")
+        self.assertEqual(contract.delivery_date, fields.Date.context_today(contract))
+        self.assertEqual(self.unit_3br.state, "delivered")  # BR-03
+
+        with self.assertRaisesRegex(UserError, "Only a confirmed"):
+            contract.with_user(self.manager).action_deliver()  # no second time
+
+    def test_br_11_delivery_date(self):
+        """BR-11: a manager may record an earlier handover date, never a future one."""
+        contract = self.create_contract()
+        contract.with_user(self.agent_a).date = "2026-01-10"
+        contract.with_user(self.manager).action_confirm()
+        today = fields.Date.context_today(contract)
+
+        contract.with_user(self.manager).delivery_date = today + timedelta(days=1)
+        with self.assertRaisesRegex(UserError, "in the future"):
+            contract.with_user(self.manager).action_deliver()
+
+        contract.with_user(self.manager).delivery_date = "2026-01-09"
+        with self.assertRaisesRegex(UserError, "before the contract date"):
+            contract.with_user(self.manager).action_deliver()
+
+        contract.with_user(self.manager).delivery_date = "2026-02-01"
+        contract.with_user(self.manager).action_deliver()
+        self.assertEqual(str(contract.delivery_date), "2026-02-01")
