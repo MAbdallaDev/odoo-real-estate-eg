@@ -167,3 +167,54 @@ class RealEstateContract(models.Model):
                     "Only draft contracts can be deleted. Cancel the contract instead."
                 )
             )
+
+    # ------------------------------------------------------------------
+    # State actions (BR-09). Shape borrowed from sale.order.action_confirm().
+    # ------------------------------------------------------------------
+
+    def _check_manager(self):
+        """BR-10 / BR-11 / BR-32: some actions belong to the sales manager only."""
+        if not self.env.user.has_group("real_estate_eg.group_real_estate_manager"):
+            raise AccessError(self.env._("Only a sales manager can do this."))
+
+    def action_confirm(self):
+        """US-10 / BR-10: a manager approves the contract before it binds."""
+        self._check_manager()
+        for contract in self:
+            error = contract._confirmation_error_message()
+            if error:
+                raise UserError(error)
+        today = fields.Date.context_today(self)
+        for contract in self:
+            contract.write(
+                {
+                    "state": "confirmed",
+                    "confirmation_date": today,
+                    # BR-07: an empty contract date becomes the confirmation date.
+                    "date": contract.date or today,
+                }
+            )
+        return True
+
+    def _confirmation_error_message(self):
+        """Why this contract cannot be confirmed, or False. Same role as
+        sale.order._confirmation_error_message(); Story 03 adds the schedule
+        check (BR-10) here."""
+        self.ensure_one()
+        if self.state != "draft":
+            return self.env._("Only a draft contract can be confirmed.")
+        # BR-07: the contract date cannot be later than the confirmation day.
+        if self.date and self.date > fields.Date.context_today(self):
+            return self.env._(
+                "The contract date cannot be later than the confirmation date."
+            )
+        # BR-05: identity of an individual buyer; a company has no check in v1.
+        partner = self.partner_id
+        if not partner.is_company:
+            if not partner.nationality:
+                return self.env._("Set the customer's nationality first.")
+            if partner.nationality == "egyptian" and not partner.national_id:
+                return self.env._("An Egyptian customer needs a national ID.")
+            if partner.nationality == "foreign" and not partner.passport_number:
+                return self.env._("A foreign customer needs a passport number.")
+        return False

@@ -71,6 +71,10 @@ class RealEstateCommon(TransactionCase):
             {"name": "Fictional Buyer Company", "is_company": True}
         )
 
+    def make_unit(self, code):
+        """A free unit like the 2-bedroom one, for tests needing several."""
+        return self.unit_2br.copy({"code": code})
+
     def create_contract(self, user=None, unit=None, partner=None):
         """A draft contract created by `user` (default: agent A)."""
         user = user or self.agent_a

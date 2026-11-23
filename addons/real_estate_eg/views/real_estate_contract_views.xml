@@ -34,7 +34,15 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <!-- Confirm / Deliver / Cancel buttons come in Steps 9-11. -->
+                    <!-- Deliver / Cancel buttons come in Steps 10-11. -->
+                    <button
+            name="action_confirm"
+            type="object"
+            string="Confirm"
+            class="oe_highlight"
+            invisible="state != 'draft'"
+            groups="real_estate_eg.group_real_estate_manager"
+          />
                     <field
             name="state"
             widget="statusbar"
