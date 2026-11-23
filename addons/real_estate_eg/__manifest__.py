@@ -10,9 +10,11 @@
     "data": [
         "security/security.xml",
         "security/ir.model.access.csv",
+        "data/ir_sequence_data.xml",
         "views/real_estate_project_views.xml",
         "views/real_estate_unit_views.xml",
         "views/res_partner_views.xml",
+        "views/real_estate_contract_views.xml",
         "views/real_estate_menus.xml",
     ],
     "installable": True,

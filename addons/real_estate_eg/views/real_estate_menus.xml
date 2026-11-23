@@ -21,4 +21,11 @@
     action="real_estate_unit_action"
     sequence="30"
   />
+    <menuitem
+    id="real_estate_contract_menu"
+    name="Contracts"
+    parent="real_estate_menu_root"
+    action="real_estate_contract_action"
+    sequence="10"
+  />
 </odoo>

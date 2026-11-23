@@ -7,3 +7,7 @@ access_real_estate_unit_agent,real.estate.unit agent,model_real_estate_unit,grou
 access_real_estate_unit_collections,real.estate.unit collections,model_real_estate_unit,group_real_estate_collections,1,0,0,0
 access_real_estate_unit_manager,real.estate.unit manager,model_real_estate_unit,group_real_estate_manager,1,1,1,1
 access_real_estate_unit_accountant,real.estate.unit accountant,model_real_estate_unit,account.group_account_invoice,1,0,0,0
+access_real_estate_contract_agent,real.estate.contract agent,model_real_estate_contract,group_real_estate_agent,1,1,1,1
+access_real_estate_contract_collections,real.estate.contract collections,model_real_estate_contract,group_real_estate_collections,1,0,0,0
+access_real_estate_contract_manager,real.estate.contract manager,model_real_estate_contract,group_real_estate_manager,1,1,1,1
+access_real_estate_contract_accountant,real.estate.contract accountant,model_real_estate_contract,account.group_account_invoice,1,0,0,0

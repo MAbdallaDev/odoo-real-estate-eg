@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <!-- BR-07: contract reference, e.g. NH/2027/00042. Numbering restarts every year. -->
+    <record id="seq_real_estate_contract" model="ir.sequence">
+        <field name="name">Real Estate Contract</field>
+        <field name="code">real.estate.contract</field>
+        <field name="prefix">NH/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="use_date_range" eval="True" />
+        <field name="company_id" eval="False" />
+    </record>
+</odoo>
