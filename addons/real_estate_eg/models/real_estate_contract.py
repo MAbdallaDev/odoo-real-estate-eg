@@ -61,7 +61,7 @@ class RealEstateContract(models.Model):
     # BR-11: the handover date; editable on a confirmed contract (form view),
     # filled with today by action_deliver() when left empty.
     delivery_date = fields.Date(copy=False, tracking=True)
-    cancel_reason = fields.Text(readonly=True, copy=False)
+    cancel_reason = fields.Text(readonly=True, copy=False, tracking=True)
     # BR-08: frozen at the unit's list price; depends on unit_id only.
     price = fields.Monetary(
         compute="_compute_price", store=True, precompute=True, tracking=True
@@ -222,6 +222,49 @@ class RealEstateContract(models.Model):
                 {"state": "delivered", "delivery_date": contract.delivery_date or today}
             )
         return True
+
+    def action_cancel(self):
+        """US-09 / BR-32: a draft is cancelled at once by its agent or a
+        manager; a confirmed contract needs a manager and a written reason
+        (the cancel dialog); a delivered or closed one cannot be cancelled."""
+        if any(c.state in ("delivered", "closed") for c in self):
+            raise UserError(
+                self.env._("A delivered or closed contract cannot be cancelled.")
+            )
+        if any(c.state == "cancelled" for c in self):
+            raise UserError(self.env._("This contract is already cancelled."))
+        if any(c.state == "confirmed" for c in self):
+            self._check_manager()
+            self.ensure_one()
+            return {
+                "type": "ir.actions.act_window",
+                "name": self.env._("Cancel Contract"),
+                "res_model": "real.estate.contract.cancel",
+                "view_mode": "form",
+                "target": "new",
+                "context": {"default_contract_id": self.id},
+            }
+        # Drafts: their own agent, or a manager (record rules come in Story 06).
+        is_manager = self.env.user.has_group("real_estate_eg.group_real_estate_manager")
+        if not is_manager and any(c.user_id != self.env.user for c in self):
+            raise AccessError(
+                self.env._("Only the contract's agent or a manager can cancel it.")
+            )
+        self.write({"state": "cancelled"})
+        return True
+
+    def _cancel_with_reason(self, reason):
+        """BR-32: called by the cancel dialog for a confirmed contract.
+        Retention and refunds from real payments are Story 04."""
+        self.ensure_one()
+        self._check_manager()
+        if self.state != "confirmed":
+            raise UserError(
+                self.env._("Only a confirmed contract is cancelled this way.")
+            )
+        if not (reason or "").strip():
+            raise UserError(self.env._("A written reason is required."))
+        self.write({"state": "cancelled", "cancel_reason": reason.strip()})
 
     def _confirmation_error_message(self):
         """Why this contract cannot be confirmed, or False. Same role as

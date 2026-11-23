@@ -34,7 +34,6 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <!-- The Cancel button comes in Step 11. -->
                     <button
             name="action_confirm"
             type="object"
@@ -48,6 +47,21 @@
             type="object"
             string="Deliver"
             class="oe_highlight"
+            invisible="state != 'confirmed'"
+            groups="real_estate_eg.group_real_estate_manager"
+          />
+                    <!-- BR-32: anyone may try on a draft; only managers see it on a
+                         confirmed contract. The method checks again on the server. -->
+                    <button
+            name="action_cancel"
+            type="object"
+            string="Cancel"
+            invisible="state != 'draft'"
+          />
+                    <button
+            name="action_cancel"
+            type="object"
+            string="Cancel"
             invisible="state != 'confirmed'"
             groups="real_estate_eg.group_real_estate_manager"
           />

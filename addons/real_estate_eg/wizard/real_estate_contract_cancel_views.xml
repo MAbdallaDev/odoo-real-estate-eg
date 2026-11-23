@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="real_estate_contract_cancel_view_form" model="ir.ui.view">
+        <field name="name">real.estate.contract.cancel.form</field>
+        <field name="model">real.estate.contract.cancel</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="contract_id" />
+                    <field
+            name="reason"
+            placeholder="Why is this contract cancelled?"
+          />
+                </group>
+                <footer>
+                    <button
+            name="action_confirm_cancel"
+            type="object"
+            string="Cancel Contract"
+            class="btn-primary"
+          />
+                    <button string="Discard" special="cancel" class="btn-secondary" />
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

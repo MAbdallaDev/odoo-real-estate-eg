@@ -11,3 +11,4 @@ access_real_estate_contract_agent,real.estate.contract agent,model_real_estate_c
 access_real_estate_contract_collections,real.estate.contract collections,model_real_estate_contract,group_real_estate_collections,1,0,0,0
 access_real_estate_contract_manager,real.estate.contract manager,model_real_estate_contract,group_real_estate_manager,1,1,1,1
 access_real_estate_contract_accountant,real.estate.contract accountant,model_real_estate_contract,account.group_account_invoice,1,0,0,0
+access_real_estate_contract_cancel_manager,real.estate.contract.cancel manager,model_real_estate_contract_cancel,group_real_estate_manager,1,1,1,1

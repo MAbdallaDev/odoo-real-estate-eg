@@ -70,7 +70,7 @@ class TestContract(RealEstateCommon):
         contract even when the Python check is skipped, as in two saves at the
         same moment."""
         first = self.create_contract()
-        first.state = "cancelled"  # until Step 11 adds the cancel action
+        first.with_user(self.agent_a).action_cancel()
         self.create_contract(user=self.agent_b)
         self.env.flush_all()
         # The database logs the refused query as ERROR; mute it for the log check.
@@ -83,7 +83,7 @@ class TestContract(RealEstateCommon):
     def test_cancelled_contract_frees_unit_for_resale(self):
         """BR-04: a cancelled contract does not block the unit."""
         first = self.create_contract()
-        first.state = "cancelled"  # until Step 11 adds the cancel action
+        first.with_user(self.agent_a).action_cancel()
         self.assertEqual(self.unit_3br.state, "available")
         second = self.create_contract(user=self.agent_b)
         self.assertEqual(second.state, "draft")
@@ -97,7 +97,7 @@ class TestContract(RealEstateCommon):
         self.assertEqual(self.unit_3br.state, "available")
 
         confirmed = self.create_contract()
-        confirmed.state = "confirmed"  # until Step 9 adds the confirm action
+        confirmed.with_user(self.manager).action_confirm()
         for user in (self.agent_a, self.manager):
             with (
                 self.subTest(user=user.login),
@@ -109,11 +109,11 @@ class TestContract(RealEstateCommon):
         """BR-35: an agent edits a contract only while draft; a manager can
         edit it later, but nobody changes its unit once it is confirmed."""
         contract = self.create_contract()
-        contract.with_user(self.agent_a).date = "2027-01-10"  # draft: allowed
-        contract.state = "confirmed"  # until Step 9 adds the confirm action
+        contract.with_user(self.agent_a).date = "2026-01-10"  # draft: allowed
+        contract.with_user(self.manager).action_confirm()
 
         with self.assertRaises(AccessError):
-            contract.with_user(self.agent_a).date = "2027-01-11"
-        contract.with_user(self.manager).date = "2027-01-11"
+            contract.with_user(self.agent_a).date = "2026-01-11"
+        contract.with_user(self.manager).date = "2026-01-11"
         with self.assertRaisesRegex(UserError, "only on a draft"):
             contract.with_user(self.manager).unit_id = self.unit_2br

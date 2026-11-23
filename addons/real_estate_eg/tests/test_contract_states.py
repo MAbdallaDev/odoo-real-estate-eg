@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from odoo import fields
 from odoo.exceptions import AccessError, UserError
-from odoo.tests import tagged
+from odoo.tests import Form, tagged
 
 from .common import RealEstateCommon
 
@@ -112,3 +112,52 @@ class TestContractStates(RealEstateCommon):
         contract.with_user(self.manager).delivery_date = "2026-02-01"
         contract.with_user(self.manager).action_deliver()
         self.assertEqual(str(contract.delivery_date), "2026-02-01")
+
+    def test_ac_09_1_agent_cancels_draft(self):
+        """AC-09.1 / US-09, BR-32: its agent cancels a draft; the unit is free."""
+        contract = self.create_contract(user=self.agent_a)
+        with self.assertRaises(AccessError):  # not agent B's contract
+            contract.with_user(self.agent_b).action_cancel()
+
+        contract.with_user(self.agent_a).action_cancel()
+        self.assertEqual(contract.state, "cancelled")
+        self.assertEqual(self.unit_3br.state, "available")
+        with self.assertRaisesRegex(UserError, "already cancelled"):
+            contract.with_user(self.manager).action_cancel()  # BR-09: no way back
+
+    def test_ac_09_2_cancel_confirmed_manager_with_reason(self):
+        """AC-09.2 / BR-32: an agent cannot cancel a confirmed contract; a
+        manager can, only with a written reason, through the cancel dialog."""
+        contract = self.create_contract()
+        contract.with_user(self.manager).action_confirm()
+        with self.assertRaises(AccessError):
+            contract.with_user(self.agent_a).action_cancel()
+
+        action = contract.with_user(self.manager).action_cancel()
+        self.assertEqual(action["res_model"], "real.estate.contract.cancel")
+        self.assertEqual(contract.state, "confirmed")  # nothing changes yet
+
+        with self.assertRaisesRegex(UserError, "written reason"):
+            contract.with_user(self.manager)._cancel_with_reason("   ")
+
+        Wizard = self.env[action["res_model"]].with_user(self.manager)
+        dialog = Form(Wizard.with_context(**action["context"]))
+        dialog.reason = "Customer withdrew before the first installment."
+        dialog.save().action_confirm_cancel()
+        self.assertEqual(contract.state, "cancelled")
+        self.assertEqual(
+            contract.cancel_reason, "Customer withdrew before the first installment."
+        )
+        self.assertEqual(self.unit_3br.state, "available")
+
+    def test_ac_09_5_delivered_cannot_be_cancelled(self):
+        """AC-09.5 / BR-32: a delivered (or closed) contract cannot be cancelled."""
+        contract = self.create_contract()
+        contract.with_user(self.manager).action_confirm()
+        contract.with_user(self.manager).action_deliver()
+        with self.assertRaisesRegex(UserError, "delivered or closed"):
+            contract.with_user(self.manager).action_cancel()
+
+        contract.sudo().state = "closed"  # Story 04's nightly job, as superuser
+        with self.assertRaisesRegex(UserError, "delivered or closed"):
+            contract.with_user(self.manager).action_cancel()
