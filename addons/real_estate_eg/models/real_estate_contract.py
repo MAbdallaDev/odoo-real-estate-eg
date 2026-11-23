@@ -17,6 +17,9 @@ class RealEstateContract(models.Model):
     _inherit = ["mail.thread", "mail.activity.mixin"]  # chatter and activities
     _check_company_auto = True
     _order = "id desc"
+    # Anyone who can read a contract may log a note on it (as sale.order does):
+    # collections officers follow up payments without edit rights (BR-35).
+    _mail_post_access = "read"
 
     # BR-07: reference from a sequence, set in create().
     name = fields.Char(
