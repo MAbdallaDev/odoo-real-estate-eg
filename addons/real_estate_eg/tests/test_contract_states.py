@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from odoo import fields
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import Form, tagged
 
 from .common import RealEstateCommon
@@ -95,19 +95,17 @@ class TestContractStates(RealEstateCommon):
             contract.with_user(self.manager).action_deliver()  # no second time
 
     def test_br_11_delivery_date(self):
-        """BR-11: a manager may record an earlier handover date, never a future one."""
+        """BR-11: a manager may record an earlier handover date, never a future
+        one nor one before the contract date; checked on every save."""
         contract = self.create_contract()
         contract.with_user(self.agent_a).date = "2026-01-10"
         contract.with_user(self.manager).action_confirm()
         today = fields.Date.context_today(contract)
 
-        contract.with_user(self.manager).delivery_date = today + timedelta(days=1)
-        with self.assertRaisesRegex(UserError, "in the future"):
-            contract.with_user(self.manager).action_deliver()
-
-        contract.with_user(self.manager).delivery_date = "2026-01-09"
-        with self.assertRaisesRegex(UserError, "before the contract date"):
-            contract.with_user(self.manager).action_deliver()
+        with self.assertRaisesRegex(ValidationError, "in the future"):
+            contract.with_user(self.manager).delivery_date = today + timedelta(days=1)
+        with self.assertRaisesRegex(ValidationError, "before the contract date"):
+            contract.with_user(self.manager).delivery_date = "2026-01-09"
 
         contract.with_user(self.manager).delivery_date = "2026-02-01"
         contract.with_user(self.manager).action_deliver()

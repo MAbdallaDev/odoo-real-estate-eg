@@ -87,6 +87,21 @@ class RealEstateContract(models.Model):
         "This unit already has a contract that is not cancelled.",
     )
 
+    @api.constrains("delivery_date", "date")
+    def _check_delivery_date(self):
+        # BR-11: checked on every save, not only by action_deliver(), so a
+        # wrong date typed on the form is never stored.
+        today = fields.Date.context_today(self)
+        for contract in self.filtered("delivery_date"):
+            if contract.delivery_date > today:
+                raise ValidationError(
+                    self.env._("The delivery date cannot be in the future.")
+                )
+            if contract.date and contract.delivery_date < contract.date:
+                raise ValidationError(
+                    self.env._("The delivery date cannot be before the contract date.")
+                )
+
     @api.depends("unit_id")
     def _compute_price(self):
         # Not "unit_id.list_price": a later list price change must not reach
@@ -212,14 +227,7 @@ class RealEstateContract(models.Model):
                 raise UserError(
                     self.env._("Only a confirmed contract can be marked delivered.")
                 )
-            if contract.delivery_date and contract.delivery_date > today:
-                raise UserError(
-                    self.env._("The delivery date cannot be in the future.")
-                )
-            if contract.delivery_date and contract.delivery_date < contract.date:
-                raise UserError(
-                    self.env._("The delivery date cannot be before the contract date.")
-                )
+        # The date itself is checked by _check_delivery_date on save.
         for contract in self:
             contract.write(
                 {"state": "delivered", "delivery_date": contract.delivery_date or today}
