@@ -6,12 +6,14 @@ from .common import RealEstateCommon
 @tagged("post_install", "-at_install")
 class TestContract(RealEstateCommon):
     def test_ac_01_1_create_reserves_unit(self):
-        """AC-01.1 / US-01, BR-07, BR-08: draft, sequence reference, frozen price."""
+        """AC-01.1 / US-01, BR-03, BR-07, BR-08: draft, sequence reference,
+        frozen price, and the unit shows reserved."""
+        self.assertEqual(self.unit_3br.state, "available")
         contract = self.create_contract()
         self.assertEqual(contract.state, "draft")
         self.assertRegex(contract.name, r"^NH/\d{4}/\d{5}$")
         self.assertEqual(contract.price, 8_580_000)
-        # The unit showing "reserved" is added with the unit status (Step 6).
+        self.assertEqual(self.unit_3br.state, "reserved")
 
     def test_ac_01_2_price_frozen(self):
         """AC-01.2 / BR-08: a later list price change does not reach the contract."""

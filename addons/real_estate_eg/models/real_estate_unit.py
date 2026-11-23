@@ -36,6 +36,24 @@ class RealEstateUnit(models.Model):
         string="Price per m²", compute="_compute_price_per_sqm"
     )
     active = fields.Boolean(default=True)
+    contract_ids = fields.One2many(
+        "real.estate.contract", "unit_id", string="Contracts"
+    )
+    # BR-03: derived from the live contract, never typed by hand. Stored, so it
+    # can be searched and grouped; recomputed (as superuser) when a contract's
+    # state changes.
+    state = fields.Selection(
+        [
+            ("available", "Available"),
+            ("reserved", "Reserved"),
+            ("sold", "Sold"),
+            ("delivered", "Delivered"),
+        ],
+        string="Status",
+        compute="_compute_state",
+        store=True,
+        index=True,
+    )
     # The unit's company always follows its project's company.
     company_id = fields.Many2one(
         related="project_id.company_id", store=True, index=True
@@ -51,6 +69,19 @@ class RealEstateUnit(models.Model):
     _list_price_not_negative = models.Constraint(
         "CHECK (list_price >= 0)", "The list price cannot be negative."
     )
+
+    @api.depends("contract_ids.state")
+    def _compute_state(self):
+        # BR-03: the live contract is the one not cancelled (BR-04: at most one).
+        contract_to_unit_state = {
+            "draft": "reserved",
+            "confirmed": "sold",
+            "delivered": "delivered",
+            "closed": "delivered",
+        }
+        for unit in self:
+            live = unit.contract_ids.filtered(lambda c: c.state != "cancelled")[:1]
+            unit.state = contract_to_unit_state[live.state] if live else "available"
 
     @api.depends("list_price", "area")
     def _compute_price_per_sqm(self):

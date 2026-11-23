@@ -49,6 +49,7 @@
                                     <field name="unit_type" />
                                     <field name="area" />
                                     <field name="list_price" />
+                                    <field name="state" widget="badge" />
                                     <field name="currency_id" column_invisible="1" />
                                 </list>
                             </field>
