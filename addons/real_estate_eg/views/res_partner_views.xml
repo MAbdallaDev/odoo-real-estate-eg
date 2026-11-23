@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- BR-05: identity fields for individual buyers; companies have no identity check. -->
+    <record id="res_partner_view_form_inherit_real_estate" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.real.estate</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form" />
+        <field name="arch" type="xml">
+            <field name="vat" position="after">
+                <field name="nationality" invisible="is_company" />
+                <field
+          name="national_id"
+          invisible="is_company or nationality != 'egyptian'"
+        />
+                <field
+          name="passport_number"
+          invisible="is_company or nationality != 'foreign'"
+        />
+            </field>
+        </field>
+    </record>
+</odoo>
