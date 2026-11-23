@@ -13,6 +13,64 @@ class ResPartner(models.Model):
     national_id = fields.Char(string="National ID", copy=False)
     passport_number = fields.Char(copy=False)
 
+    # BR-46 in the database: one contact per national ID and per passport
+    # number, so two saves at the same moment cannot both pass. Empty values
+    # are left out of the index.
+    _national_id_unique = models.UniqueIndex(
+        "(national_id) WHERE national_id IS NOT NULL AND national_id != ''",
+        "This national ID already belongs to another contact.",
+    )
+    _passport_number_unique = models.UniqueIndex(
+        "(passport_number) WHERE passport_number IS NOT NULL AND passport_number != ''",
+        "This passport number already belongs to another contact.",
+    )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        self._check_identity_free(vals_list)
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if vals.get("national_id") or vals.get("passport_number"):
+            # One number written on several contacts would share it too.
+            self._check_identity_free([vals] * len(self))
+        return super().write(vals)
+
+    def _check_identity_free(self, vals_list):
+        """BR-46: a clear message naming the contact that already has the
+        number. It runs before the INSERT / UPDATE: after it, the unique index
+        would refuse first, with no contact name (an @api.constrains runs too
+        late). Same search as Odoo's duplicate tax ID warning
+        (_compute_same_vat_partner_id): sudo() and active_test=False, so a
+        contact in another company or an archived one still counts."""
+        Partner = self.with_context(active_test=False).sudo()
+        for field in ("national_id", "passport_number"):
+            numbers = [vals[field] for vals in vals_list if vals.get(field)]
+            if not numbers:
+                continue
+            if len(numbers) != len(set(numbers)):
+                raise ValidationError(
+                    self.env._("Two contacts cannot share one identity number.")
+                )
+            other = Partner.search(
+                [(field, "in", numbers), ("id", "not in", self.ids)], limit=1
+            )
+            if not other:
+                continue
+            if field == "national_id":
+                message = self.env._(
+                    "The national ID %(number)s already belongs to %(contact)s.",
+                    number=other.national_id,
+                    contact=other.display_name,
+                )
+            else:
+                message = self.env._(
+                    "The passport number %(number)s already belongs to %(contact)s.",
+                    number=other.passport_number,
+                    contact=other.display_name,
+                )
+            raise ValidationError(message)
+
     @api.constrains("national_id")
     def _check_national_id(self):
         for partner in self:

@@ -100,9 +100,10 @@ intake *(edit)*, `models/res_partner.py` *(edit)*, `tests/test_partner.py` *(edi
 [BR-05](../../../../docs/business-requirements.md#customers "BR-05: The customer is a contact (person or company). Each individual buyer has a nationality: Egyptian or foreign (a field on the contact — the address country does not say it). An Egyptian individual must have a national ID (الرقم القومي) before the contract can be confirmed; a foreign individual must have a passport number instead. A company buyer has no identity check in v1.").*
 1. Write [BR-46](../../../../docs/business-requirements.md#customers "BR-46: A national ID or passport number belongs to one contact only, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact.") in the Customers table of `docs/business-requirements.md` (and the local
    `.ar.md`), and in the intake's rule table.
-2. Python check in `@api.constrains('national_id', 'passport_number')`: search with
-   `with_context(active_test=False).sudo()` for another contact with the same number; raise
-   `ValidationError` naming that contact.
+2. Python check `_check_identity_free()`, called before `super()` in `create()` and `write()`
+   (an `@api.constrains` runs after the INSERT, so the index would refuse first with no name):
+   search with `with_context(active_test=False).sudo()` for another contact with the same
+   number; raise `ValidationError` naming that contact.
 3. Database: two `models.UniqueIndex` on `res.partner` — `(national_id) WHERE national_id IS NOT
    NULL AND national_id != ''`, same for `passport_number` — so two saves at the same moment still
    fail.
