@@ -3,7 +3,7 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/02-core-models/intake.md`
 - **Branch:** `story/02-core-models`
-- **Status:** awaiting maintainer approval of the Done Criteria
+- **Status:** Done Criteria approved 2026-11-22; implemented, in review
 
 ---
 
