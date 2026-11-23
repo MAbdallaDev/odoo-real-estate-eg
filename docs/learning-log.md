@@ -34,6 +34,31 @@ Questions: [`design-notes/01-environment.md`](design-notes/01-environment.md#exp
    without the pin CI could fail one day with no change in our code. We update the digest on
    purpose, in a commit.
 
+### Story 02 — Core models, views, states and access rights
+
+Questions: [`design-notes/02-core-models.md`](design-notes/02-core-models.md#explain-back-questions)
+
+1. The Python check runs before the database constraint and gives a better message: it shows
+   the existing contract's reference, while the database constraint does not. The database
+   constraint is the guard: when two users save a contract for the same unit at the same
+   moment, each Python check cannot see the other user's contract, because it is not saved
+   yet, so both pass. Only the unique index in Postgres sees both and refuses the second one.
+   The Python check uses `sudo()` because, from Story 06, an agent cannot see another agent's
+   contract, but the unit is still taken.
+2. The type of `list_price` is not the cause; the dependency is. With
+   `@api.depends("unit_id.list_price")`, Odoo recomputes `price` on every contract of the
+   unit when its list price changes, confirmed contracts included, so a price the customer
+   already signed would change. AC-01.2 proves the choice: a later list price change does
+   not reach an existing contract. AC-01.6 proves the other side: changing the unit on a
+   draft takes the new unit's price.
+3. An agent cannot confirm because of Python: `action_confirm()` calls `_check_manager()`,
+   which raises an `AccessError`; the button's `groups=` only hides it. A collections
+   officer cannot edit because of the access rights in `ir.model.access.csv`: read only, no
+   write, create or delete. An agent still sees other agents' contracts because there are no
+   record rules yet: the access rights give read on the whole table, so every row is
+   visible. Story 06 adds record rules (`ir.rule`): an agent sees only their own contracts,
+   and a user sees only their own company's records.
+
 ---
 
 ## Mistakes caught
@@ -44,3 +69,8 @@ Questions: [`design-notes/01-environment.md`](design-notes/01-environment.md#exp
 | 2026-11-22 | 01 | `http_interface` was not set. Odoo 19 warns that the default `0.0.0.0` (listen on every network) changes to `127.0.0.1` in Odoo 20. | The `make test` log check failed on the first run | `http_interface = 127.0.0.1` in `odoo.conf.example`; CI passes `--http-interface` |
 | 2026-11-22 | 01 | The prettier XML plugin was declared in `.prettierrc.yml`, where prettier 3 cannot load it from pre-commit's own Node environment. | `make lint` failed: `Cannot find package '@prettier/plugin-xml'` | Replaced by `prettier.config.cjs` with `require.resolve(...)`, as OCA's template does |
 | 2026-11-22 | 01 | A negative check (test import commented out on purpose) was staged and committed before being undone, so the committed module ran no test. | Reviewing the commit before pushing: `git show HEAD:addons/real_estate_eg/tests/__init__.py` | Undo, `make test`, then `git commit --amend` (not yet pushed). Rule: undo negative-check edits before `git add`. |
+| 2026-11-23 | 02 | The delivery date was checked only when Deliver was clicked, so a future date typed on the form stayed stored on a contract that was then cancelled instead of delivered. | The maintainer's walk-through: the data showed a cancelled contract with a delivery date in the future | `@api.constrains` on `delivery_date`: checked on every save; the stored value was cleared |
+| 2026-11-23 | 02 | The first read-only test (AC-06.3) only tried to edit a confirmed contract, which the Python edit guard already blocks, so it never tested the access rights. | Negative check N4: giving collections officers write rights did not make the test fail | A draft contract added to the test; N4 then failed on four points |
+| 2026-11-23 | 02 | The "two contracts for one unit in the same save" test used a unit that already had a contract, so it passed for the wrong reason. | Re-reading the test before committing | A fresh unit, and the test checks the exact message |
+| 2026-11-23 | 02 | Plan links to the business rules used `<a id>` anchors, which the review tool's file pane does not follow. | The maintainer clicked the links; a five-way link test showed only heading links work | Each id links to its heading (BR to its group, US and AC to their story), with the rule text as hover title |
+| 2026-11-23 | 02 | Two scripted text replacements did not apply after the formatter had re-wrapped the lines, so a test run checked the old code. | Reading the file after the run, before committing | Edited by hand and re-run. Rule: after a scripted edit, check the diff before trusting a test run. |

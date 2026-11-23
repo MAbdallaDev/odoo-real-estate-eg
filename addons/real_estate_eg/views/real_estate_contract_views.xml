@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="real_estate_contract_view_list" model="ir.ui.view">
+        <field name="name">real.estate.contract.list</field>
+        <field name="model">real.estate.contract</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancelled'">
+                <field name="name" decoration-bf="1" />
+                <field name="partner_id" />
+                <field name="unit_id" />
+                <field name="project_id" optional="show" />
+                <field name="user_id" widget="many2one_avatar_user" optional="show" />
+                <field name="date" optional="show" />
+                <field name="price" sum="Total" />
+                <field name="currency_id" column_invisible="1" />
+                <field
+          name="company_id"
+          groups="base.group_multi_company"
+          optional="hide"
+        />
+                <field
+          name="state"
+          widget="badge"
+          decoration-info="state == 'draft'"
+          decoration-success="state in ('confirmed', 'delivered', 'closed')"
+        />
+            </list>
+        </field>
+    </record>
+
+    <record id="real_estate_contract_view_form" model="ir.ui.view">
+        <field name="name">real.estate.contract.form</field>
+        <field name="model">real.estate.contract</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button
+            name="action_confirm"
+            type="object"
+            string="Confirm"
+            class="oe_highlight"
+            invisible="state != 'draft'"
+            groups="real_estate_eg.group_real_estate_manager"
+          />
+                    <button
+            name="action_deliver"
+            type="object"
+            string="Deliver"
+            class="oe_highlight"
+            invisible="state != 'confirmed'"
+            groups="real_estate_eg.group_real_estate_manager"
+          />
+                    <!-- BR-32: anyone may try on a draft; only managers see it on a
+                         confirmed contract. The method checks again on the server. -->
+                    <button
+            name="action_cancel"
+            type="object"
+            string="Cancel"
+            invisible="state != 'draft'"
+          />
+                    <button
+            name="action_cancel"
+            type="object"
+            string="Cancel"
+            invisible="state != 'confirmed'"
+            groups="real_estate_eg.group_real_estate_manager"
+          />
+                    <field
+            name="state"
+            widget="statusbar"
+            statusbar_visible="draft,confirmed,delivered,closed"
+          />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" /></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="state != 'draft'" />
+                            <field name="unit_id" readonly="state != 'draft'" />
+                            <field name="project_id" />
+                            <field name="user_id" readonly="state != 'draft'" />
+                        </group>
+                        <group>
+                            <field name="date" readonly="state != 'draft'" />
+                            <field
+                name="confirmation_date"
+                invisible="not confirmation_date"
+              />
+                            <field
+                name="delivery_date"
+                invisible="state not in ('confirmed', 'delivered', 'closed')"
+                readonly="state != 'confirmed'"
+              />
+                            <field name="price" />
+                            <field name="currency_id" invisible="1" />
+                            <field
+                name="company_id"
+                groups="base.group_multi_company"
+              />
+                        </group>
+                    </group>
+                    <group string="Cancellation" invisible="state != 'cancelled'">
+                        <field name="cancel_reason" />
+                    </group>
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <record id="real_estate_contract_view_search" model="ir.ui.view">
+        <field name="name">real.estate.contract.search</field>
+        <field name="model">real.estate.contract</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" />
+                <field name="partner_id" />
+                <field name="unit_id" />
+                <field name="project_id" />
+                <field name="user_id" />
+                <filter
+          name="my_contracts"
+          string="My Contracts"
+          domain="[('user_id', '=', uid)]"
+        />
+                <separator />
+                <filter
+          name="draft"
+          string="Draft"
+          domain="[('state', '=', 'draft')]"
+        />
+                <filter
+          name="confirmed"
+          string="Confirmed"
+          domain="[('state', '=', 'confirmed')]"
+        />
+                <filter
+          name="delivered"
+          string="Delivered"
+          domain="[('state', '=', 'delivered')]"
+        />
+                <filter
+          name="cancelled"
+          string="Cancelled"
+          domain="[('state', '=', 'cancelled')]"
+        />
+                <group>
+                    <filter
+            name="group_state"
+            string="Status"
+            context="{'group_by': 'state'}"
+          />
+                    <filter
+            name="group_project"
+            string="Project"
+            context="{'group_by': 'project_id'}"
+          />
+                    <filter
+            name="group_agent"
+            string="Sales Agent"
+            context="{'group_by': 'user_id'}"
+          />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="real_estate_contract_action" model="ir.actions.act_window">
+        <field name="name">Contracts</field>
+        <field name="res_model">real.estate.contract</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

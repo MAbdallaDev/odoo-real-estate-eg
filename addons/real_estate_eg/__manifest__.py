@@ -7,7 +7,17 @@
     "author": "Mostafa Abdallah",
     "website": "https://github.com/MAbdallaDev/odoo-real-estate-eg",
     "depends": ["account", "mail"],
-    "data": [],
+    "data": [
+        "security/security.xml",
+        "security/ir.model.access.csv",
+        "data/ir_sequence_data.xml",
+        "views/real_estate_project_views.xml",
+        "views/real_estate_unit_views.xml",
+        "views/res_partner_views.xml",
+        "views/real_estate_contract_views.xml",
+        "wizard/real_estate_contract_cancel_views.xml",
+        "views/real_estate_menus.xml",
+    ],
     "installable": True,
     "application": True,
 }

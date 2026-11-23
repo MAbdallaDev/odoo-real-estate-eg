@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="real_estate_unit_view_list" model="ir.ui.view">
+        <field name="name">real.estate.unit.list</field>
+        <field name="model">real.estate.unit</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="code" />
+                <field name="project_id" />
+                <field name="unit_type" />
+                <field name="bedrooms" optional="show" />
+                <field name="area" />
+                <field name="floor" optional="hide" />
+                <field name="list_price" />
+                <field name="price_per_sqm" optional="show" />
+                <field name="currency_id" column_invisible="1" />
+                <field name="company_id" groups="base.group_multi_company" />
+                <field
+          name="state"
+          widget="badge"
+          decoration-success="state == 'available'"
+          decoration-warning="state == 'reserved'"
+          decoration-info="state in ('sold', 'delivered')"
+        />
+            </list>
+        </field>
+    </record>
+
+    <record id="real_estate_unit_view_form" model="ir.ui.view">
+        <field name="name">real.estate.unit.form</field>
+        <field name="model">real.estate.unit</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="state" widget="statusbar" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="code" placeholder="e.g. HNC-B07-0302" /></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="project_id" />
+                            <field name="unit_type" />
+                            <field name="bedrooms" />
+                            <field name="floor" />
+                        </group>
+                        <group>
+                            <field name="area" />
+                            <field name="list_price" />
+                            <field name="price_per_sqm" />
+                            <field name="currency_id" invisible="1" />
+                            <field
+                name="company_id"
+                groups="base.group_multi_company"
+              />
+                            <field name="active" invisible="1" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="real_estate_unit_view_search" model="ir.ui.view">
+        <field name="name">real.estate.unit.search</field>
+        <field name="model">real.estate.unit</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="code" />
+                <field name="project_id" />
+                <filter
+          name="available"
+          string="Available"
+          domain="[('state', '=', 'available')]"
+        />
+                <filter
+          name="reserved"
+          string="Reserved"
+          domain="[('state', '=', 'reserved')]"
+        />
+                <filter name="sold" string="Sold" domain="[('state', '=', 'sold')]" />
+                <filter
+          name="delivered"
+          string="Delivered"
+          domain="[('state', '=', 'delivered')]"
+        />
+                <separator />
+                <filter
+          name="inactive"
+          string="Archived"
+          domain="[('active', '=', False)]"
+        />
+                <group>
+                    <filter
+            name="group_project"
+            string="Project"
+            context="{'group_by': 'project_id'}"
+          />
+                    <filter
+            name="group_type"
+            string="Type"
+            context="{'group_by': 'unit_type'}"
+          />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="real_estate_unit_action" model="ir.actions.act_window">
+        <field name="name">Units</field>
+        <field name="res_model">real.estate.unit</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

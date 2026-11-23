@@ -12,7 +12,7 @@ and be read first.
 | NN | File | Title | Tracker id | Depends on |
 |----|------|-------|------------|------------|
 | 01 | `01-env-skeleton/plan.md` | Environment and module skeleton | — | — |
-| 02 | `02-core-models/plan.md` *(not written yet)* | Core models, views, states and access rights | — | 01 |
+| 02 | `02-core-models/plan.md` | Core models, views, states and access rights | — | 01 |
 | 03 | `03-schedule-generator/plan.md` *(not written yet)* | Payment plan templates and the schedule generator | — | 02 |
 | 04 | `04-accounting-link/plan.md` *(not written yet)* | Accounting link: invoices, payment state, closing and cancellation money | — | 03 |
 | 05 | `05-late-fees/plan.md` *(not written yet)* | Overdue lines, late fees and the at-risk flag | — | 04 |

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- US-06 / BR-35: the module's roles. Record rules (who sees which rows) are Story 06. -->
+
+    <!-- One "Real Estate" picker in the user form, under the category the manifest created. -->
+    <record id="res_groups_privilege_real_estate" model="res.groups.privilege">
+        <field name="name">Real Estate</field>
+        <field name="sequence">50</field>
+        <field name="category_id" ref="base.module_category_real_estate" />
+    </record>
+
+    <!-- BR-35 sales agent: creates contracts and customers, edits own drafts. -->
+    <record id="group_real_estate_agent" model="res.groups">
+        <field name="name">Sales Agent</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_real_estate" />
+        <field
+      name="implied_ids"
+      eval="[(4, ref('base.group_user')), (4, ref('base.group_partner_manager'))]"
+    />
+        <field
+      name="comment"
+    >Creates contracts for available units and their customers.</field>
+    </record>
+
+    <!-- BR-35 collections officer: reads all contracts; no general invoicing rights. -->
+    <record id="group_real_estate_collections" model="res.groups">
+        <field name="name">Collections Officer</field>
+        <field name="sequence">20</field>
+        <field name="privilege_id" ref="res_groups_privilege_real_estate" />
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]" />
+        <field
+      name="comment"
+    >Reads all contracts and schedules; follows up payments.</field>
+    </record>
+
+    <!-- BR-35 sales manager: everything the other two do, plus confirm / deliver / cancel. -->
+    <record id="group_real_estate_manager" model="res.groups">
+        <field name="name">Sales Manager</field>
+        <field name="sequence">30</field>
+        <field name="privilege_id" ref="res_groups_privilege_real_estate" />
+        <field
+      name="implied_ids"
+      eval="[(4, ref('group_real_estate_agent')), (4, ref('group_real_estate_collections'))]"
+    />
+        <field
+      name="user_ids"
+      eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"
+    />
+        <field
+      name="comment"
+    >Sees and edits all contracts; confirms, delivers and cancels them.</field>
+    </record>
+</odoo>
