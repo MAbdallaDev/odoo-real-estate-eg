@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 # BR-09: the only states. Same shape as SALE_ORDER_STATE in sale/models/sale_order.py.
 CONTRACT_STATE = [
@@ -74,6 +75,13 @@ class RealEstateContract(models.Model):
         default="draft",
     )
 
+    # BR-04 in the database: at most one contract per unit that is not
+    # cancelled. Holds even when two users save at the same moment.
+    _unit_live_unique = models.UniqueIndex(
+        "(unit_id) WHERE state != 'cancelled'",
+        "This unit already has a contract that is not cancelled.",
+    )
+
     @api.depends("unit_id")
     def _compute_price(self):
         # Not "unit_id.list_price": a later list price change must not reach
@@ -81,8 +89,38 @@ class RealEstateContract(models.Model):
         for contract in self:
             contract.price = contract.unit_id.list_price
 
+    def _check_unit_free(self, unit_ids):
+        """BR-04 / AC-01.3: a clear message before the database refuses.
+
+        It names only the existing contract's reference (no customer, agent or
+        price). sudo(): from Story 06 an agent cannot see another agent's
+        contract, but the unit is still taken.
+        """
+        if len(unit_ids) != len(set(unit_ids)):
+            raise ValidationError(self.env._("Two contracts cannot share one unit."))
+        live = self.sudo().search(
+            [
+                ("unit_id", "in", unit_ids),
+                ("state", "!=", "cancelled"),
+                ("id", "not in", self.ids),
+            ],
+            limit=1,
+        )
+        if live:
+            raise ValidationError(
+                self.env._(
+                    "Unit %(unit)s already has contract %(reference)s.",
+                    unit=live.unit_id.code,
+                    reference=live.name,
+                )
+            )
+
     @api.model_create_multi
     def create(self, vals_list):
+        # BR-04: refuse a taken unit before drawing a reference (AC-01.3).
+        self._check_unit_free(
+            [vals["unit_id"] for vals in vals_list if vals.get("unit_id")]
+        )
         # Same pattern as sale.order.create(): draw the reference from the
         # sequence, dated by the contract date so the year matches it.
         for vals in vals_list:
@@ -95,3 +133,9 @@ class RealEstateContract(models.Model):
                     sequence_date=vals.get("date") or fields.Date.context_today(self),
                 ) or self.env._("New")
         return super().create(vals_list)
+
+    def write(self, vals):
+        if vals.get("unit_id"):
+            # Writing one unit on several contracts would share it too.
+            self._check_unit_free([vals["unit_id"]] * len(self))
+        return super().write(vals)
