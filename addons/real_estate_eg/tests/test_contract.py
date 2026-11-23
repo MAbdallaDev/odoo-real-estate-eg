@@ -1,6 +1,6 @@
 from psycopg2.errors import UniqueViolation
 
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
 from odoo.tools import mute_logger
 
@@ -88,3 +88,32 @@ class TestContract(RealEstateCommon):
         second = self.create_contract(user=self.agent_b)
         self.assertEqual(second.state, "draft")
         self.assertEqual(self.unit_3br.state, "reserved")
+
+    def test_ac_01_5_delete_draft_only(self):
+        """AC-01.5 / BR-13: a draft can be deleted and frees the unit; a
+        confirmed contract cannot be deleted, by anyone."""
+        draft = self.create_contract()
+        draft.with_user(self.agent_a).unlink()
+        self.assertEqual(self.unit_3br.state, "available")
+
+        confirmed = self.create_contract()
+        confirmed.state = "confirmed"  # until Step 9 adds the confirm action
+        for user in (self.agent_a, self.manager):
+            with (
+                self.subTest(user=user.login),
+                self.assertRaisesRegex(UserError, "Only draft contracts"),
+            ):
+                confirmed.with_user(user).unlink()
+
+    def test_br_35_agent_edits_only_drafts(self):
+        """BR-35: an agent edits a contract only while draft; a manager can
+        edit it later, but nobody changes its unit once it is confirmed."""
+        contract = self.create_contract()
+        contract.with_user(self.agent_a).date = "2027-01-10"  # draft: allowed
+        contract.state = "confirmed"  # until Step 9 adds the confirm action
+
+        with self.assertRaises(AccessError):
+            contract.with_user(self.agent_a).date = "2027-01-11"
+        contract.with_user(self.manager).date = "2027-01-11"
+        with self.assertRaisesRegex(UserError, "only on a draft"):
+            contract.with_user(self.manager).unit_id = self.unit_2br

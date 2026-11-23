@@ -1,5 +1,5 @@
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 # BR-09: the only states. Same shape as SALE_ORDER_STATE in sale/models/sale_order.py.
 CONTRACT_STATE = [
@@ -135,7 +135,35 @@ class RealEstateContract(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
+        not_draft = self.filtered(lambda c: c.state != "draft")
+        # BR-35: an agent edits a contract only while it is draft. A manager
+        # edits all; system jobs run as superuser (env.su).
+        if (
+            not_draft
+            and not self.env.su
+            and not self.env.user.has_group("real_estate_eg.group_real_estate_manager")
+        ):
+            raise AccessError(
+                self.env._(
+                    "Only a sales manager can change a contract that is not draft."
+                )
+            )
+        # BR-08 / BR-19: the unit, and so the price, is fixed once confirmed.
+        if "unit_id" in vals and not_draft:
+            raise UserError(
+                self.env._("The unit can be changed only on a draft contract.")
+            )
         if vals.get("unit_id"):
             # Writing one unit on several contracts would share it too.
             self._check_unit_free([vals["unit_id"]] * len(self))
         return super().write(vals)
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_draft(self):
+        # BR-13: same shape as sale.order's _unlink_except_draft_or_cancel.
+        if any(contract.state != "draft" for contract in self):
+            raise UserError(
+                self.env._(
+                    "Only draft contracts can be deleted. Cancel the contract instead."
+                )
+            )
