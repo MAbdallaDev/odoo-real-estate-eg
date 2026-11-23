@@ -13,6 +13,7 @@
         "data/ir_sequence_data.xml",
         "views/real_estate_project_views.xml",
         "views/real_estate_unit_views.xml",
+        "views/real_estate_plan_template_views.xml",
         "views/res_partner_views.xml",
         "views/real_estate_contract_views.xml",
         "wizard/real_estate_contract_cancel_views.xml",

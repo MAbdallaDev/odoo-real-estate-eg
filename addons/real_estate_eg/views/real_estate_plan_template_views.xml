@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="real_estate_plan_template_view_list" model="ir.ui.view">
+        <field name="name">real.estate.plan.template.list</field>
+        <field name="model">real.estate.plan.template</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="code" />
+                <field name="name" />
+                <field name="down_payment_percent" />
+                <field name="installment_count" />
+                <field name="frequency" />
+                <field name="first_installment_months" optional="show" />
+                <field name="maintenance_percent" />
+                <field name="maintenance_due" />
+                <field name="company_id" groups="base.group_multi_company" />
+            </list>
+        </field>
+    </record>
+
+    <record id="real_estate_plan_template_view_form" model="ir.ui.view">
+        <field name="name">real.estate.plan.template.form</field>
+        <field name="model">real.estate.plan.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field
+                name="name"
+                placeholder="e.g. Standard 8 years"
+              /></h1>
+                    </div>
+                    <group>
+                        <!-- BR-14: what a plan defines. -->
+                        <group string="Price">
+                            <field name="code" placeholder="e.g. NH-STD-8Q" />
+                            <field name="down_payment_percent" />
+                            <field name="installment_count" />
+                            <field
+                name="frequency"
+                required="installment_count > 0"
+                invisible="installment_count == 0"
+              />
+                            <field
+                name="first_installment_months"
+                invisible="installment_count == 0"
+              />
+                        </group>
+                        <!-- BR-18: the deposit is not part of the price. -->
+                        <group string="Maintenance Deposit">
+                            <field name="maintenance_percent" />
+                            <field name="maintenance_due" />
+                            <field
+                name="company_id"
+                groups="base.group_multi_company"
+              />
+                            <field name="active" invisible="1" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="real_estate_plan_template_view_search" model="ir.ui.view">
+        <field name="name">real.estate.plan.template.search</field>
+        <field name="model">real.estate.plan.template</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" />
+                <field name="code" />
+                <filter
+          name="inactive"
+          string="Archived"
+          domain="[('active', '=', False)]"
+        />
+            </search>
+        </field>
+    </record>
+
+    <record id="real_estate_plan_template_action" model="ir.actions.act_window">
+        <field name="name">Payment Plans</field>
+        <field name="res_model">real.estate.plan.template</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

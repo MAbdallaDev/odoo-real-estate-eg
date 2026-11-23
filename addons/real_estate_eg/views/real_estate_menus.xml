@@ -28,4 +28,19 @@
     action="real_estate_contract_action"
     sequence="10"
   />
+    <!-- BR-14: plans are set up by the sales manager; agents only pick one. -->
+    <menuitem
+    id="real_estate_config_menu"
+    name="Configuration"
+    parent="real_estate_menu_root"
+    sequence="90"
+    groups="group_real_estate_manager"
+  />
+    <menuitem
+    id="real_estate_plan_template_menu"
+    name="Payment Plans"
+    parent="real_estate_config_menu"
+    action="real_estate_plan_template_action"
+    sequence="10"
+  />
 </odoo>
