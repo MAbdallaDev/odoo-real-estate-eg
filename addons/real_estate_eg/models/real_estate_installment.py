@@ -1,4 +1,4 @@
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import UserError
 
 # §5.3: a schedule line is a down payment, an installment or the maintenance
@@ -34,6 +34,23 @@ class RealEstateInstallment(models.Model):
     )
     currency_id = fields.Many2one(related="contract_id.currency_id")
 
+    # BR-22 / BR-25: one customer invoice per line, linked once. Only accounting
+    # users see the link; everyone else reads the line's own state (Step 4).
+    invoice_id = fields.Many2one(
+        "account.move",
+        readonly=True,
+        copy=False,
+        index="btree_not_null",
+        groups="account.group_account_invoice",
+    )
+    invoice_date = fields.Date(related="invoice_id.invoice_date", store=True)
+    # BR-26: nothing is late for the time before the line was invoiced.
+    date_effective_due = fields.Date(
+        string="Effective Due Date",
+        compute="_compute_date_effective_due",
+        store=True,
+    )
+
     # BR-16: amounts are whole EGP and never 0 or less (a 0 line is left out).
     _amount_positive = models.Constraint(
         "CHECK (amount > 0)", "A schedule line must have an amount above 0."
@@ -47,6 +64,102 @@ class RealEstateInstallment(models.Model):
             if line.line_type == "installment":
                 label = self.env._("Installment %(number)s", number=line.number)
             line.name = label
+
+    @api.depends("date_due", "invoice_date")
+    def _compute_date_effective_due(self):
+        for line in self:
+            dates = [d for d in (line.date_due, line.invoice_date) if d]
+            line.date_effective_due = max(dates) if dates else False
+
+    # ------------------------------------------------------------------
+    # BR-22 / BR-23 / BR-25 / BR-43 / BR-44: invoicing
+    # ------------------------------------------------------------------
+
+    def _line_product_and_account(self):
+        """The product and the liability account for this line's type."""
+        self.ensure_one()
+        company = self.company_id
+        if self.line_type == "maintenance":
+            # BR-23: held money for the compound, not revenue.
+            product = self.env.ref("real_estate_eg.product_maintenance_deposit")
+            account = company.re_maintenance_account_id
+            setting = self.env._("Maintenance Deposits")
+        else:
+            # BR-43: customer advances, not revenue, before and after delivery.
+            xmlid = (
+                "real_estate_eg.product_down_payment"
+                if self.line_type == "down_payment"
+                else "real_estate_eg.product_installment"
+            )
+            product = self.env.ref(xmlid)
+            account = company.re_advance_account_id
+            setting = self.env._("Customer Advances")
+        if not account:
+            raise UserError(
+                self.env._(
+                    "Set the %(setting)s account in Settings > Real Estate first.",
+                    setting=setting,
+                )
+            )
+        return product, account
+
+    def _invoice_vals(self, invoice_date):
+        """Values of this line's customer invoice."""
+        self.ensure_one()
+        product, account = self._line_product_and_account()
+        contract = self.contract_id
+        return {
+            "move_type": "out_invoice",
+            "company_id": self.company_id.id,
+            "partner_id": contract.partner_id.id,
+            "invoice_date": invoice_date,
+            # BR-26: the invoice falls due on the later of the two dates.
+            "invoice_date_due": max(self.date_due or invoice_date, invoice_date),
+            # No payment term: the due date above is the only one.
+            "invoice_payment_term_id": False,
+            "invoice_origin": contract.name,
+            "invoice_line_ids": [
+                Command.create(
+                    {
+                        "product_id": product.id,
+                        "name": f"{contract.name} - {self.name}",
+                        "quantity": 1,
+                        "price_unit": self.amount,
+                        "account_id": account.id,
+                        # BR-44: no tax, even if the product, the account or
+                        # the company has a default sales tax.
+                        "tax_ids": [Command.clear()],
+                    }
+                )
+            ],
+        }
+
+    def _create_invoices(self, invoice_date):
+        """Post one customer invoice per line that has none yet and link it.
+
+        Runs as superuser: the sales manager and the nightly job have no
+        accounting rights, and BR-19 locks the line once it is confirmed."""
+        lines = self.sudo().filtered(lambda line: not line.invoice_id)  # BR-25
+        if not lines:
+            return self.env["account.move"]
+        # BR-22: no line is invoiced before its contract is confirmed.
+        if any(
+            line.contract_id.state not in ("confirmed", "delivered") for line in lines
+        ):
+            raise UserError(
+                self.env._("Only lines of a confirmed contract can be invoiced.")
+            )
+        moves = self.env["account.move"]
+        # Each company's invoices go to that company's sales journal.
+        for company, company_lines in lines.grouped("company_id").items():
+            vals_list = [line._invoice_vals(invoice_date) for line in company_lines]
+            Move = self.env["account.move"].sudo().with_company(company)
+            company_moves = Move.create(vals_list)
+            company_moves.action_post()
+            for line, move in zip(company_lines, company_moves, strict=True):
+                line.invoice_id = move
+            moves |= company_moves
+        return moves
 
     # ------------------------------------------------------------------
     # BR-19: a schedule changes only while its contract is draft.
