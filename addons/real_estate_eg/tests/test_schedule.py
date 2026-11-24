@@ -1,5 +1,6 @@
 from datetime import date
 
+from odoo import fields
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 
@@ -32,6 +33,8 @@ class TestSchedule(RealEstateCommon):
         self.assertEqual(lines[0].name, "Down Payment")
 
         contract.with_user(self.manager).action_confirm()
+        # BR-07: the empty contract date became the confirmation date.
+        self.assertEqual(contract.date, fields.Date.context_today(contract))
         for user in (self.agent_a, self.manager):
             with self.subTest(user=user.login):
                 with self.assertRaises(UserError):

@@ -96,7 +96,7 @@ class TestContract(RealEstateCommon):
         draft.with_user(self.agent_a).unlink()
         self.assertEqual(self.unit_3br.state, "available")
 
-        confirmed = self.create_contract()
+        confirmed = self.add_schedule(self.create_contract())
         confirmed.with_user(self.manager).action_confirm()
         for user in (self.agent_a, self.manager):
             with (
@@ -107,13 +107,17 @@ class TestContract(RealEstateCommon):
 
     def test_br_35_agent_edits_only_drafts(self):
         """BR-35: an agent edits a contract only while draft; a manager can
-        edit it later, but nobody changes its unit once it is confirmed."""
+        edit it later, but nobody changes its unit or its date once it is
+        confirmed (BR-07, BR-19: the schedule's dates come from it)."""
         contract = self.create_contract()
         contract.with_user(self.agent_a).date = "2026-01-10"  # draft: allowed
+        self.add_schedule(contract)
         contract.with_user(self.manager).action_confirm()
 
         with self.assertRaises(AccessError):
             contract.with_user(self.agent_a).date = "2026-01-11"
-        contract.with_user(self.manager).date = "2026-01-11"
+        with self.assertRaisesRegex(UserError, "only on a draft"):
+            contract.with_user(self.manager).date = "2026-01-11"
+        contract.with_user(self.manager).date = "2026-01-10"  # same date: fine
         with self.assertRaisesRegex(UserError, "only on a draft"):
             contract.with_user(self.manager).unit_id = self.unit_2br

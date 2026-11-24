@@ -117,6 +117,16 @@ class RealEstateCommon(TransactionCase):
             wizard.plan_id = plan
         wizard.record.action_generate()
 
+    @classmethod
+    def add_schedule(cls, contract, day="2026-01-10"):
+        """BR-10: confirmation needs a schedule. Sets a past contract date if
+        empty, then generates NH-STD-8Q as the contract's own agent."""
+        agent_contract = contract.with_user(contract.user_id)
+        if not contract.date:
+            agent_contract.date = day
+        agent_contract._generate_schedule(cls.plan_std)
+        return contract
+
     def make_unit(self, code):
         """A free unit like the 2-bedroom one, for tests needing several."""
         return self.unit_2br.copy({"code": code})

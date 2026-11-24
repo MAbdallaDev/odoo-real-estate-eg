@@ -199,6 +199,18 @@ class RealEstateContract(models.Model):
             raise UserError(
                 self.env._("The unit can be changed only on a draft contract.")
             )
+        # BR-07 / BR-19: the contract date is set on the draft. Once confirmed,
+        # the schedule's dates are counted from it, so it is locked too, for
+        # everyone but the superuser (the form view alone would not stop an
+        # import or an API call).
+        if "date" in vals and not_draft and not self.env.su:
+            new_date = fields.Date.to_date(vals["date"])
+            if any(contract.date != new_date for contract in not_draft):
+                raise UserError(
+                    self.env._(
+                        "The contract date can be changed only on a draft contract."
+                    )
+                )
         if vals.get("unit_id"):
             # Writing one unit on several contracts would share it too.
             self._check_unit_free([vals["unit_id"]] * len(self))
@@ -394,8 +406,8 @@ class RealEstateContract(models.Model):
 
     def _confirmation_error_message(self):
         """Why this contract cannot be confirmed, or False. Same role as
-        sale.order._confirmation_error_message(); Story 03 adds the schedule
-        check (BR-10) here."""
+        sale.order._confirmation_error_message(). The schedule check comes
+        last, so a wrong date or identity is reported first."""
         self.ensure_one()
         if self.state != "draft":
             return self.env._("Only a draft contract can be confirmed.")
@@ -413,4 +425,14 @@ class RealEstateContract(models.Model):
                 return self.env._("An Egyptian customer needs a national ID.")
             if partner.nationality == "foreign" and not partner.passport_number:
                 return self.env._("A foreign customer needs a passport number.")
+        # BR-10: a schedule whose down payment + installments equal the price
+        # exactly (the maintenance deposit is not part of it, BR-18).
+        if not self.installment_ids:
+            return self.env._("Generate the schedule first.")
+        if self.currency_id.compare_amounts(self.schedule_total, self.price) != 0:
+            return self.env._(
+                "The schedule adds up to %(total)s, not the contract price %(price)s.",
+                total=self.schedule_total,
+                price=self.price,
+            )
         return False

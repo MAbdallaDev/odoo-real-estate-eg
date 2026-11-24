@@ -198,7 +198,8 @@ failing.
 *(edit)*, Story 02 state tests *(edit)*). *[BR-10](../../../../docs/business-requirements.md#contracts "BR-10: Only a sales manager can confirm a contract. Confirmation requires: a generated schedule whose down payment plus installments equal the contract price exactly, and the customer identity in BR-05."), [AC-10.2](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.2: Confirmation is refused if there is no schedule, if the schedule does not sum to the price, or if an individual customer lacks a national ID (Egyptian) or passport number (foreign). A company customer needs neither.") (schedule part).*
 1. `_confirmation_error_message()`: no lines → "Generate the schedule first"; `schedule_total`
    ≠ price (`currency_id.compare_amounts`) → refused with both amounts.
-2. Story 02 tests that confirm a contract generate a schedule first, with the Step 6 helper.
+2. Story 02 tests that confirm a contract generate a schedule first, with a new `common.py`
+   helper `add_schedule()`. The check runs last, so a wrong date or identity is reported first.
 3. T13. Negative check N3. *Check:* `make test`.
 
 **Step 8 — Read-only roles see the schedule** (`tests/test_access.py` *(edit)*). *[BR-35](../../../../docs/business-requirements.md#visibility "BR-35: A sales agent sees only contracts where they are the agent, and their schedules, and edits them only while draft. A sales manager sees and edits all contracts, bills late fees and records cheques. A collections officer reads all contracts and schedules, bills late fees and records cheques, but cannot change prices, plans or schedules; billing goes through the module's own action, so the officer needs no general invoicing rights. An accountant reads all contracts and schedules and edits none. Agents see the cheques on their own contracts."),
@@ -246,6 +247,14 @@ answers in `docs/learning-log.md`.
 14. **Existing duplicates** in a database block the index on update — hence the `re_dev`
     clean-up in the prerequisites.
 15. **Log check.** A missing ACL on a new model or wizard logs a warning and fails `make test`.
+16. **[BR-07](../../../../docs/business-requirements.md#contracts "BR-07: A contract links one customer, one unit, one sales agent and one payment plan, and gets a reference from a sequence, e.g. NH/2027/00042. Its contract date is set on the draft and cannot be later than the day it is confirmed; if left empty, it becomes the confirmation date.") empty date vs [BR-17](../../../../docs/business-requirements.md#payment-plans-and-the-schedule "BR-17: Due dates are always computed from the contract date — installment k is due offset + (k−1) × step months after it — never from the previous due date. A date past the end of a short month moves to that month's last day, without drift: a plan anchored on 31 January falls due on 28 Feb, 31 Mar, 30 Apr, 31 May.").** Generation needs a contract date, and confirmation needs a
+    schedule, so in practice the date is always set before confirming; BR-07's "empty date becomes
+    the confirmation date" is reached only by lines made outside the generator (T16 checks it).
+17. **Contract date after confirmation.** The form already made it read-only, but Story 02's
+    `write()` let a manager change it through an import or the API, so a confirmed schedule's dates
+    could drift from it. Decided 2026-11-24 (maintainer): `write()` refuses a new date on a contract
+    that is not draft, for everyone but the superuser, as for the unit ([BR-07](../../../../docs/business-requirements.md#contracts "BR-07: A contract links one customer, one unit, one sales agent and one payment plan, and gets a reference from a sequence, e.g. NH/2027/00042. Its contract date is set on the draft and cannot be later than the day it is confirmed; if left empty, it becomes the confirmation date."), [BR-19](../../../../docs/business-requirements.md#payment-plans-and-the-schedule "BR-19: The schedule can be regenerated only while the contract is draft. Once confirmed, amounts and dates are locked.")).
+    `test_br_35_agent_edits_only_drafts` checks it; negative check N7.
 
 ## Test Plan
 
@@ -280,6 +289,7 @@ runs `with_user()` an agent, manager, collections or Invoicing user.
 - N3: remove the schedule check from confirmation → T13 fails.
 - N5: skip the BR-19 lock → T16 fails.
 - N6: skip the draft check in `_check_schedule_draft()` → T11 fails.
+- N7: let a manager change the date of a confirmed contract → `test_br_35_agent_edits_only_drafts` fails.
 - N4: drop `sudo()` / `active_test=False` from the [BR-46](../../../../docs/business-requirements.md#customers "BR-46: A national ID or passport number belongs to one contact only, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact.") search → T1 (other company / archived) fails.
 
 ## Verification Steps

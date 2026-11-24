@@ -20,6 +20,7 @@ class TestReadOnlyRoles(RealEstateCommon):
                 "user_id": cls.agent_a.id,
             }
         )
+        cls.add_schedule(cls.contract)
         cls.contract.with_user(cls.manager).action_confirm()
         # A draft too: there the Step 8 guard does not apply, so only the
         # access rights stop an edit.
