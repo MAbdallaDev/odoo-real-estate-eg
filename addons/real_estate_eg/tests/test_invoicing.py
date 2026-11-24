@@ -40,6 +40,15 @@ class TestInvoicing(RealEstateCommon):
         """Example A, confirmed on its contract date 10 Jan 2027."""
         return self._confirmed(self.add_schedule(self.create_contract(), "2027-01-10"))
 
+    def _example_c(self):
+        """Example C as a draft: office 3,660,000 on NH-BIZ-5M, dated 31 Jan 2027."""
+        office = self.make_unit("CBP-A02-0105")
+        office.list_price = 3_660_000
+        contract = self.create_contract(unit=office)
+        contract.date = "2027-01-31"
+        contract._generate_schedule(self.plan_biz)
+        return contract
+
     @staticmethod
     def _line(contract, line_type):
         return contract.installment_ids.filtered(lambda x: x.line_type == line_type)
@@ -88,12 +97,7 @@ class TestInvoicing(RealEstateCommon):
     def test_ac_03_3_maintenance_liability(self):
         """AC-03.3 / BR-23: Example C's deposit due at signing posts to the
         maintenance deposits liability account."""
-        office = self.make_unit("CBP-A02-0105")
-        office.list_price = 3_660_000
-        contract = self.create_contract(unit=office)
-        contract.date = "2027-01-31"
-        contract._generate_schedule(self.plan_biz)
-        self._confirmed(contract)
+        contract = self._confirmed(self._example_c())
         line = self._line(contract, "maintenance")
         invoice = self._invoice(line)
 
@@ -130,12 +134,63 @@ class TestInvoicing(RealEstateCommon):
     def test_invoice_needs_confirmed_contract_and_account(self):
         """BR-22: a draft line is never invoiced; a missing account is named."""
         contract = self.add_schedule(self.create_contract())
-        line = contract.installment_ids[:1]
         with self.assertRaisesRegex(UserError, "confirmed contract"):
-            line._create_invoices(fields.Date.today())
+            contract.installment_ids[:1]._create_invoices(fields.Date.today())
 
+        # The deposit due at delivery is not invoiced at confirmation (no date).
         self._confirmed(contract)
-        self.env.company.re_advance_account_id = False
-        with self.assertRaisesRegex(UserError, "Customer Advances"):
-            line._create_invoices(fields.Date.today())
-        self.assertFalse(line.sudo().invoice_id)
+        deposit = self._line(contract, "maintenance")
+        self.env.company.re_maintenance_account_id = False
+        with self.assertRaisesRegex(UserError, "Maintenance Deposits"):
+            deposit._create_invoices(fields.Date.today())
+        self.assertFalse(deposit.sudo().invoice_id)
+
+    # ------------------------------------------------------------------
+    # Step 3: confirmation invoices every line already due.
+    # ------------------------------------------------------------------
+
+    def _invoiced(self, contract):
+        """Lines that have an invoice, read as superuser (invoice_id is an
+        accounting field)."""
+        return contract.installment_ids.sudo().filtered("invoice_id")
+
+    def test_ac_03_1_invoice_at_confirmation(self):
+        """AC-03.1 / AC-10.3 / BR-21: confirming invoices the lines already due,
+        done by a sales manager who has no accounting rights."""
+        self.assertFalse(self.manager.has_group("account.group_account_invoice"))
+
+        # Example A confirmed on 10 Jan 2027: only the down payment is due;
+        # the deposit due at delivery has no date yet.
+        with freeze_time("2027-01-10"):
+            contract_a = self._example_a()
+        invoiced = self._invoiced(contract_a)
+        self.assertEqual(invoiced.mapped("line_type"), ["down_payment"])
+        self.assertEqual(invoiced.invoice_id.amount_total, 858_000)
+
+        # Example C confirmed on 31 Jan 2027: down payment and deposit at signing.
+        with freeze_time("2027-01-31"):
+            contract_c = self._confirmed(self._example_c())
+        invoiced = self._invoiced(contract_c)
+        self.assertEqual(invoiced.mapped("line_type"), ["down_payment", "maintenance"])
+        self.assertEqual(invoiced.invoice_id.mapped("amount_total"), [732_000, 366_000])
+
+        # A contract dated a year back, confirmed on 10 Jan 2028: the down
+        # payment and installments 1-4 are already due. BR-26: their invoices
+        # fall due on the confirmation day, so nothing is late before it.
+        with freeze_time("2028-01-10"):
+            unit = self.make_unit("HNC-B07-0303")
+            late = self.add_schedule(self.create_contract(unit=unit), "2027-01-10")
+            self._confirmed(late)
+        invoiced = self._invoiced(late)
+        self.assertEqual(invoiced.mapped("number"), [0, 1, 2, 3, 4])
+        for line in invoiced:
+            self.assertEqual(str(line.invoice_id.invoice_date_due), "2028-01-10")
+            self.assertEqual(str(line.date_effective_due), "2028-01-10")
+
+    def test_confirmation_needs_accounts(self):
+        """BR-43 / BR-23: no confirmation, and so no invoice, without the accounts."""
+        self.env.company.re_maintenance_account_id = False
+        contract = self.add_schedule(self.create_contract())
+        with self.assertRaisesRegex(UserError, "Settings > Real Estate"):
+            contract.with_user(self.manager).action_confirm()
+        self.assertEqual(contract.state, "draft")

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
@@ -273,6 +275,9 @@ class RealEstateContract(models.Model):
                     "date": contract.date or today,
                 }
             )
+        # BR-21: every line already due is invoiced at once (the down payment,
+        # a deposit due at signing, installments of a backdated contract).
+        self._invoice_due_lines(today)
         return True
 
     def action_deliver(self):
@@ -437,4 +442,34 @@ class RealEstateContract(models.Model):
                 total=self.schedule_total,
                 price=self.price,
             )
+        # BR-43 / BR-23: checked here so nothing binds before it can be invoiced.
+        company = self.company_id
+        if not company.re_advance_account_id or not company.re_maintenance_account_id:
+            return self.env._(
+                "Set the Customer Advances and Maintenance Deposits accounts "
+                "in Settings > Real Estate first."
+            )
         return False
+
+    def _invoice_due_lines(self, today):
+        """BR-21 / BR-22: invoice every line of these contracts that is due by
+        today + the company's lead days and has no invoice yet (BR-25).
+        Draft and cancelled contracts are never invoiced."""
+        lines = (
+            self.env["real.estate.installment"]
+            .sudo()
+            .search(
+                [
+                    ("contract_id", "in", self.ids),
+                    ("contract_id.state", "in", ("confirmed", "delivered")),
+                    ("date_due", "!=", False),
+                    ("invoice_id", "=", False),
+                ],
+                order="date_due, id",
+            )
+        )
+        due = lines.filtered(
+            lambda line: line.date_due
+            <= today + timedelta(days=line.company_id.re_invoice_lead_days)
+        )
+        return due._create_invoices(today)
