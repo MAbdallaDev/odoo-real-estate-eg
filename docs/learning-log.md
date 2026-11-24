@@ -63,7 +63,22 @@ Questions: [`design-notes/02-core-models.md`](design-notes/02-core-models.md#exp
 
 Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-generator.md#explain-back-questions)
 
-*To be answered by the maintainer before Story 04 starts.*
+1. `round()` rounds a .5 to the even number: `round(858000.5)` gives 858,000, but the rule
+   wants 858,001. A float cannot store some decimals exactly: `1310730 * 0.35` is
+   `458755.49999999994`, so it rounds to 458,755 instead of 458,756. `Decimal` keeps the exact
+   digits and `ROUND_HALF_UP` always rounds .5 up. The last installment makes the schedule sum
+   exactly to the price because it is not rounded: it is the rest (price − down payment) minus
+   the other installments, `rest − installment × (N − 1)`.
+2. If we chain from the previous due date, a short month changes the day for all the next
+   installments. 31 Jan 2027 + 1 month gives 28 Feb 2027, because February has no 31st, so
+   we use the last day of the month. Chaining from 28 Feb gives 28 Mar, 28 Apr, 28 May: the
+   wrong day for every month after February. From the contract date, each installment is
+   31 Jan + k months, so we get 31 Mar, 30 Apr, 31 May.
+3. `@api.constrains` runs after the INSERT. The unique index refused the INSERT first, so the
+   Python check never ran and the user saw a database error without the contact's name. Now
+   the check runs before `super().create()`. The unique index still catches two customers
+   created at the same time, which the Python check cannot see. `sudo()` lets the search see
+   contacts of other companies, and `active_test=False` makes it find archived contacts too.
 
 ---
 
