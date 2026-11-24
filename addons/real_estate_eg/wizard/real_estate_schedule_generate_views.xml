@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="real_estate_schedule_generate_view_form" model="ir.ui.view">
+        <field name="name">real.estate.schedule.generate.form</field>
+        <field name="model">real.estate.schedule.generate</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="contract_id" />
+                    <field name="company_id" invisible="1" />
+                    <field name="plan_id" options="{'no_create': True}" />
+                </group>
+                <p class="text-muted">
+                    Any schedule already on this contract is replaced.
+                </p>
+                <footer>
+                    <button
+            name="action_generate"
+            type="object"
+            string="Generate"
+            class="btn-primary"
+          />
+                    <button string="Discard" special="cancel" class="btn-secondary" />
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

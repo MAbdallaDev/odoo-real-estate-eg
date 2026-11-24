@@ -61,6 +61,7 @@ committed without a check.*
 | BR-19 | The schedule can be regenerated only while the contract is draft. Once confirmed, amounts and dates are locked. |
 | BR-20 | A plan with 0 installments and 100% down payment is valid (a cash sale). |
 | BR-45 | All money arithmetic rounds **half up** with exact decimal arithmetic (`Decimal`, or Odoo's `float_round`, which corrects binary-float error) — never plain `float`. Several test values sit exactly on a rounding tie (e.g. 3,619.695). |
+| BR-46 | A **national ID** or **passport number** belongs to **one contact only**, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact, so the agent can use the existing customer. *(Added 2026-11-23 from the Story 02 review.)* |
 
 ### Acceptance criteria (from the business document)
 

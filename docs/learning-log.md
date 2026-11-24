@@ -59,6 +59,27 @@ Questions: [`design-notes/02-core-models.md`](design-notes/02-core-models.md#exp
    visible. Story 06 adds record rules (`ir.rule`): an agent sees only their own contracts,
    and a user sees only their own company's records.
 
+### Story 03 — Payment plan templates and the schedule generator
+
+Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-generator.md#explain-back-questions)
+
+1. `round()` rounds a .5 to the even number: `round(858000.5)` gives 858,000, but the rule
+   wants 858,001. A float cannot store some decimals exactly: `1310730 * 0.35` is
+   `458755.49999999994`, so it rounds to 458,755 instead of 458,756. `Decimal` keeps the exact
+   digits and `ROUND_HALF_UP` always rounds .5 up. The last installment makes the schedule sum
+   exactly to the price because it is not rounded: it is the rest (price − down payment) minus
+   the other installments, `rest − installment × (N − 1)`.
+2. If we chain from the previous due date, a short month changes the day for all the next
+   installments. 31 Jan 2027 + 1 month gives 28 Feb 2027, because February has no 31st, so
+   we use the last day of the month. Chaining from 28 Feb gives 28 Mar, 28 Apr, 28 May: the
+   wrong day for every month after February. From the contract date, each installment is
+   31 Jan + k months, so we get 31 Mar, 30 Apr, 31 May.
+3. `@api.constrains` runs after the INSERT. The unique index refused the INSERT first, so the
+   Python check never ran and the user saw a database error without the contact's name. Now
+   the check runs before `super().create()`. The unique index still catches two customers
+   created at the same time, which the Python check cannot see. `sudo()` lets the search see
+   contacts of other companies, and `active_test=False` makes it find archived contacts too.
+
 ---
 
 ## Mistakes caught
@@ -74,3 +95,9 @@ Questions: [`design-notes/02-core-models.md`](design-notes/02-core-models.md#exp
 | 2026-11-23 | 02 | The "two contracts for one unit in the same save" test used a unit that already had a contract, so it passed for the wrong reason. | Re-reading the test before committing | A fresh unit, and the test checks the exact message |
 | 2026-11-23 | 02 | Plan links to the business rules used `<a id>` anchors, which the review tool's file pane does not follow. | The maintainer clicked the links; a five-way link test showed only heading links work | Each id links to its heading (BR to its group, US and AC to their story), with the rule text as hover title |
 | 2026-11-23 | 02 | Two scripted text replacements did not apply after the formatter had re-wrapped the lines, so a test run checked the old code. | Reading the file after the run, before committing | Edited by hand and re-run. Rule: after a scripted edit, check the diff before trusting a test run. |
+| 2026-11-24 | 03 | The BR-46 check was first an `@api.constrains`. It runs after the INSERT, so the new unique index refused the duplicate first, without naming the existing contact. | The first test run: a raw `UniqueViolation` instead of the expected `ValidationError` | The check moved before `super()` in `create()` / `write()`, as Story 02's unit check |
+| 2026-11-24 | 03 | A new test file was not imported in `tests/__init__.py`, so its five tests never ran and the suite looked green. | The test count stayed at 26 instead of 31 | Import added. Rule: after adding a test file, check the count goes up. |
+| 2026-11-24 | 03 | The stale-schedule check deleted a contract's lines on confirmation: filling an empty contract date (BR-07) looked like a date change. | T16 failed with `MissingError` on the deleted lines | Only a change from a date already set drops the schedule; T11 checks the lines survive confirmation |
+| 2026-11-24 | 03 | Story 02 left the contract date writable by a manager after confirmation (only the form hid it), so a confirmed schedule's dates could drift from it. | The maintainer asked why the plan said "a manager can still change it" when the form was read-only | `write()` refuses a new date outside draft; Story 02's test now expects the refusal (N7) |
+| 2026-11-24 | 01 | `make shell` never worked: `odoo-bin` needs its subcommand first, but the Makefile put `shell` after `-c odoo.conf`. | The maintainer ran `make shell` for the first time | The target calls `odoo-bin shell -c odoo.conf` |
+| 2026-11-24 | 03 | The AI ran `make test` while the maintainer's own run was going: same database, port and log file, so one run showed a stale result. | Timestamps: the failing run had ended before the fix was saved | Rule: one test run at a time; wait for the maintainer's run to finish |

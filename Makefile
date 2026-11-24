@@ -4,7 +4,8 @@ SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -ec
 
 PYTHON   := venv/bin/python
-ODOO     := $(PYTHON) odoo-src/odoo/odoo-bin -c odoo.conf
+ODOO_BIN := $(PYTHON) odoo-src/odoo/odoo-bin
+ODOO     := $(ODOO_BIN) -c odoo.conf
 MODULE   := real_estate_eg
 DB       ?= re_dev
 TEST_DB  ?= re_test
@@ -44,8 +45,9 @@ test-ci: ## Same test run as GitHub CI: Postgres + official Odoo 19 image in Doc
 	grep -E 'odoo\.tests\.result|post-tests in' $(CI_LOG) | tail -n 2 || true; \
 	scripts/check_odoo_log.sh $(CI_LOG) && exit $$status
 
+# "shell" is an odoo-bin subcommand: it must come before -c, so $(ODOO) is not used here.
 shell: ## Odoo Python shell on database $(DB)
-	$(ODOO) shell -d $(DB) $(ARGS)
+	$(ODOO_BIN) shell -c odoo.conf -d $(DB) $(ARGS)
 
 lint: ## Run every pre-commit check on all files
 	venv/bin/pre-commit run --all-files

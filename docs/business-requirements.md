@@ -64,6 +64,7 @@ customer advances; v1 records no sales revenue.
 |---|---|
 | BR-05 | The customer is a contact (person or company). Each individual buyer has a **nationality: Egyptian or foreign** (a field on the contact — the address country does not say it). An Egyptian individual must have a **national ID (الرقم القومي)** before the contract can be confirmed; a foreign individual must have a passport number instead. A company buyer has no identity check in v1. |
 | BR-06 | A national ID is valid only if it has 14 digits, its first digit is 2 (born 1900–1999) or 3 (born 2000–2099), and digits 2–7 form a real date of birth (YYMMDD) that is not in the future. |
+| BR-46 | A **national ID** or **passport number** belongs to **one contact only**, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact, so the agent can use the existing customer. *(Added 2026-11-23 from the Story 02 review.)* |
 
 #### Contracts
 
@@ -154,7 +155,7 @@ examples come from Chapter 6.
 #### US-01 — Create a contract for an available unit
 *As a **sales agent**, I want to create a contract for an available unit and a customer, so that the
 unit is held for that customer while the deal is finalised.*
-Rules: BR-01–BR-09, BR-13
+Rules: BR-01–BR-09, BR-13, BR-46
 
 - **AC-01.1** Given unit `HNC-B07-0302` is available, when an agent creates a contract for it, then
   the contract is draft, gets a reference from the sequence, its price is 8,580,000 EGP, and the unit

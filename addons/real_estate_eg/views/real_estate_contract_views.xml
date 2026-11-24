@@ -42,6 +42,14 @@
             invisible="state != 'draft'"
             groups="real_estate_eg.group_real_estate_manager"
           />
+                    <!-- US-02 / BR-19: generate or regenerate while draft. -->
+                    <button
+            name="action_generate_schedule"
+            type="object"
+            string="Generate Schedule"
+            invisible="state != 'draft'"
+            groups="real_estate_eg.group_real_estate_agent"
+          />
                     <button
             name="action_deliver"
             type="object"
@@ -94,6 +102,7 @@
                 readonly="state != 'confirmed'"
               />
                             <field name="price" />
+                            <field name="plan_id" />
                             <field name="currency_id" invisible="1" />
                             <field
                 name="company_id"
@@ -101,6 +110,24 @@
               />
                         </group>
                     </group>
+                    <notebook>
+                        <!-- US-02: the schedule is generated, never typed (BR-19). -->
+                        <page string="Schedule" name="schedule">
+                            <field name="installment_ids" readonly="1">
+                                <list>
+                                    <field name="name" />
+                                    <field name="line_type" optional="hide" />
+                                    <field name="date_due" />
+                                    <field name="amount" />
+                                    <field name="currency_id" column_invisible="1" />
+                                </list>
+                            </field>
+                            <!-- BR-18: the deposit is not part of the total. -->
+                            <group class="oe_subtotal_footer">
+                                <field name="schedule_total" />
+                            </group>
+                        </page>
+                    </notebook>
                     <group string="Cancellation" invisible="state != 'cancelled'">
                         <field name="cancel_reason" />
                     </group>

@@ -1,5 +1,8 @@
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
+
+from ..tools.schedule import compute_schedule
+from .real_estate_plan_template import FREQUENCY_MONTHS
 
 # BR-09: the only states. Same shape as SALE_ORDER_STATE in sale/models/sale_order.py.
 CONTRACT_STATE = [
@@ -69,6 +72,20 @@ class RealEstateContract(models.Model):
     price = fields.Monetary(
         compute="_compute_price", store=True, precompute=True, tracking=True
     )
+    # BR-07: the payment plan. Set by the generate wizard (Step 6), not typed.
+    plan_id = fields.Many2one(
+        "real.estate.plan.template",
+        string="Payment Plan",
+        readonly=True,
+        tracking=True,
+        check_company=True,
+    )
+    # US-02: the schedule. Same shape as sale.order.order_line.
+    installment_ids = fields.One2many(
+        "real.estate.installment", "contract_id", string="Schedule", copy=False
+    )
+    # BR-10 / BR-18: down payment + installments; the deposit is not in the price.
+    schedule_total = fields.Monetary(compute="_compute_schedule_total")
     state = fields.Selection(
         CONTRACT_STATE,
         string="Status",
@@ -108,6 +125,15 @@ class RealEstateContract(models.Model):
         # existing contracts (AC-01.2). A new unit re-takes its price (AC-01.6).
         for contract in self:
             contract.price = contract.unit_id.list_price
+
+    @api.depends("installment_ids.amount", "installment_ids.line_type")
+    def _compute_schedule_total(self):
+        for contract in self:
+            contract.schedule_total = sum(
+                line.amount
+                for line in contract.installment_ids
+                if line.line_type != "maintenance"
+            )
 
     def _check_unit_free(self, unit_ids):
         """BR-04 / AC-01.3: a clear message before the database refuses.
@@ -173,10 +199,43 @@ class RealEstateContract(models.Model):
             raise UserError(
                 self.env._("The unit can be changed only on a draft contract.")
             )
+        # BR-07 / BR-19: the contract date is set on the draft. Once confirmed,
+        # the schedule's dates are counted from it, so it is locked too, for
+        # everyone but the superuser (the form view alone would not stop an
+        # import or an API call).
+        if "date" in vals and not_draft and not self.env.su:
+            new_date = fields.Date.to_date(vals["date"])
+            if any(contract.date != new_date for contract in not_draft):
+                raise UserError(
+                    self.env._(
+                        "The contract date can be changed only on a draft contract."
+                    )
+                )
         if vals.get("unit_id"):
             # Writing one unit on several contracts would share it too.
             self._check_unit_free([vals["unit_id"]] * len(self))
+        self._drop_stale_schedule(vals)
         return super().write(vals)
+
+    def _drop_stale_schedule(self, vals):
+        """A new unit (so a new price) or a new contract date makes a draft's
+        schedule wrong (BR-16, BR-17): its lines are deleted and the schedule
+        must be generated again. Only a real change counts: confirmation
+        writes the same date again and must keep the lines."""
+        if "installment_ids" in vals:
+            return
+        new_date = fields.Date.to_date(vals["date"]) if "date" in vals else None
+        stale = self.filtered(
+            lambda c: c.state == "draft"
+            and c.installment_ids
+            and (
+                ("unit_id" in vals and vals["unit_id"] != c.unit_id.id)
+                # A generated schedule always has a date; confirmation filling
+                # an empty date (BR-07) is not a change of schedule.
+                or ("date" in vals and c.date and new_date != c.date)
+            )
+        )
+        stale.installment_ids.unlink()
 
     @api.ondelete(at_uninstall=False)
     def _unlink_except_draft(self):
@@ -264,6 +323,76 @@ class RealEstateContract(models.Model):
         self.write({"state": "cancelled"})
         return True
 
+    # ------------------------------------------------------------------
+    # US-02: generate the schedule from a plan (BR-14 to BR-20).
+    # ------------------------------------------------------------------
+
+    def action_generate_schedule(self):
+        """Open the dialog to pick a plan; the button shows on drafts only."""
+        self.ensure_one()
+        # BR-35 / AC-06.3: read-only roles are refused here, not in the dialog.
+        self.check_access("write")
+        self._check_schedule_draft()
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Generate Schedule"),
+            "res_model": "real.estate.schedule.generate",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_contract_id": self.id,
+                "default_plan_id": self.plan_id.id,
+            },
+        }
+
+    def _check_schedule_draft(self):
+        # BR-19: a schedule is (re)generated only while the contract is draft.
+        if self.state != "draft":
+            raise UserError(
+                self.env._("The schedule can be generated only on a draft contract.")
+            )
+
+    def _generate_schedule(self, plan):
+        """US-02: replace the schedule with lines from `plan`. The amounts and
+        dates come from compute_schedule(), the maintainer's pure function."""
+        self.ensure_one()
+        self._check_schedule_draft()
+        # BR-17: every due date is counted from the contract date.
+        if not self.date:
+            raise UserError(
+                self.env._("Set the contract date before generating the schedule.")
+            )
+        lines = compute_schedule(
+            price=self.price,
+            contract_date=self.date,
+            down_payment_percent=plan.down_payment_percent,
+            installment_count=plan.installment_count,
+            step_months=FREQUENCY_MONTHS.get(plan.frequency, 0),
+            first_installment_months=plan.first_installment_months,
+            maintenance_percent=plan.maintenance_percent,
+            maintenance_at_signing=plan.maintenance_due == "signing",
+        )
+        # Only a tiny price with many installments can leave the last one at
+        # 0 or less (rounded-up lines eat the remainder).
+        if any(line["amount"] <= 0 for line in lines):
+            raise UserError(
+                self.env._(
+                    "The price %(price)s is too small for plan %(plan)s.",
+                    price=self.price,
+                    plan=plan.code,
+                )
+            )
+        self.installment_ids.unlink()
+        self.write(
+            {
+                "plan_id": plan.id,
+                "installment_ids": [
+                    Command.create(dict(line, sequence=index))
+                    for index, line in enumerate(lines, start=1)
+                ],
+            }
+        )
+
     def _cancel_with_reason(self, reason):
         """BR-32: called by the cancel dialog for a confirmed contract.
         Retention and refunds from real payments are Story 04."""
@@ -279,8 +408,8 @@ class RealEstateContract(models.Model):
 
     def _confirmation_error_message(self):
         """Why this contract cannot be confirmed, or False. Same role as
-        sale.order._confirmation_error_message(); Story 03 adds the schedule
-        check (BR-10) here."""
+        sale.order._confirmation_error_message(). The schedule check comes
+        last, so a wrong date or identity is reported first."""
         self.ensure_one()
         if self.state != "draft":
             return self.env._("Only a draft contract can be confirmed.")
@@ -298,4 +427,14 @@ class RealEstateContract(models.Model):
                 return self.env._("An Egyptian customer needs a national ID.")
             if partner.nationality == "foreign" and not partner.passport_number:
                 return self.env._("A foreign customer needs a passport number.")
+        # BR-10: a schedule whose down payment + installments equal the price
+        # exactly (the maintenance deposit is not part of it, BR-18).
+        if not self.installment_ids:
+            return self.env._("Generate the schedule first.")
+        if self.currency_id.compare_amounts(self.schedule_total, self.price) != 0:
+            return self.env._(
+                "The schedule adds up to %(total)s, not the contract price %(price)s.",
+                total=self.schedule_total,
+                price=self.price,
+            )
         return False
