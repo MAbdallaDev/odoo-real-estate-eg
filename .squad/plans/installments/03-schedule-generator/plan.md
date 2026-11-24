@@ -172,6 +172,10 @@ docstring only, body `raise NotImplementedError`; `tests/test_schedule_math.py`)
 on the last installment, every date = contract date + (offset + (k−1) × step) months. The AI gives
 hints only when asked. *Check:* T4–T8 green; then the AI reviews the code (and runs negative
 checks N1, N2).
+*As done (2026-11-24):* at the maintainer's choice the AI gave a skeleton (imports, loop, line
+dicts, the `relativedelta` call); the maintainer wrote the six arithmetic lines (half up, down
+payment, installment, last-line remainder, months for installment k, deposit). N1 and N2 seen
+failing.
 
 **Step 6 — Generate wizard** (contract model *(edit)*, `wizard/real_estate_schedule_generate.py`,
 `wizard/real_estate_schedule_generate_views.xml`, `wizard/__init__.py`, ACL row, contract form
