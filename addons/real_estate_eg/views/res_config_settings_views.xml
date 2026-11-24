@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.real_estate_eg</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app
+          data-string="Real Estate"
+          string="Real Estate"
+          name="real_estate_eg"
+        >
+                    <block title="Accounting" name="real_estate_accounting">
+                        <!-- BR-43: down payment and installments are customer advances. -->
+                        <setting
+              string="Customer Advances"
+              company_dependent="1"
+              help="Liability account for down payment and installment invoices."
+            >
+                            <field name="re_advance_account_id" />
+                        </setting>
+                        <!-- BR-23: the maintenance deposit is held money, not revenue. -->
+                        <setting
+              string="Maintenance Deposits"
+              company_dependent="1"
+              help="Liability account for maintenance deposit invoices."
+            >
+                            <field name="re_maintenance_account_id" />
+                        </setting>
+                        <!-- BR-22: invoice each line N days before its due date. -->
+                        <setting
+              string="Invoice Lead Days"
+              company_dependent="1"
+              help="Invoice a schedule line this many days before it is due."
+            >
+                            <field name="re_invoice_lead_days" />
+                        </setting>
+                        <!-- BR-33: kept from paid down payment and installments on cancellation. -->
+                        <setting
+              string="Cancellation Retention"
+              company_dependent="1"
+              help="Percent of the paid down payment and installments kept when a confirmed contract is cancelled."
+            >
+                            <field name="re_retention_percent" />
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <!-- One service product per schedule line type. BR-44: no customer taxes. -->
+    <record id="product_down_payment" model="product.product">
+        <field name="name">Down Payment</field>
+        <field name="type">service</field>
+        <field name="sale_ok" eval="False" />
+        <field name="purchase_ok" eval="False" />
+        <field name="taxes_id" eval="[Command.clear()]" />
+    </record>
+    <record id="product_installment" model="product.product">
+        <field name="name">Installment</field>
+        <field name="type">service</field>
+        <field name="sale_ok" eval="False" />
+        <field name="purchase_ok" eval="False" />
+        <field name="taxes_id" eval="[Command.clear()]" />
+    </record>
+    <record id="product_maintenance_deposit" model="product.product">
+        <field name="name">Maintenance Deposit</field>
+        <field name="type">service</field>
+        <field name="sale_ok" eval="False" />
+        <field name="purchase_ok" eval="False" />
+        <field name="taxes_id" eval="[Command.clear()]" />
+    </record>
+</odoo>
