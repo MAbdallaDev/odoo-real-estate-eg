@@ -12,11 +12,11 @@ quarterly or monthly installments, a maintenance deposit at delivery, and late f
 anything overdue. Odoo has no concept of any of this, so every implementation partner
 rebuilds it. This module does it once, on top of standard Odoo accounting.
 
-> **Status: Story 02 of 10 — core models, states and access rights.** Projects, units and
-> contracts with their screens; a contract moves draft → confirmed → delivered or is
-> cancelled, a unit can never be sold twice, and every role has its access rights, all
-> tested as real users. Business features land one reviewed pull request at a time; see
-> [Roadmap](#roadmap).
+> **Status: Story 03 of 10 — payment plans and the schedule generator.** Projects, units and
+> contracts with their states and access rights; payment plan templates; a contract's
+> schedule (down payment, installments, maintenance deposit) generated in whole pounds that sum
+> exactly to the price, and required before a manager confirms. Business features land one
+> reviewed pull request at a time; see [Roadmap](#roadmap).
 
 ## What v1 will do
 
@@ -101,8 +101,8 @@ gitignored and rebuilt, never copied. `odoo.conf` is created from
 | # | Story | Status |
 |---|---|---|
 | 01 | Environment and module skeleton | done |
-| 02 | Core models, views, states and access rights | in review |
-| 03 | Payment plan templates and the schedule generator | planned |
+| 02 | Core models, views, states and access rights | done |
+| 03 | Payment plan templates and the schedule generator | in review |
 | 04 | Accounting link: invoices, payment state, closing and cancellation money | planned |
 | 05 | Overdue lines, late fees and the at-risk flag | planned |
 | 06 | Record rules: agents see their own contracts; multi-company | planned |

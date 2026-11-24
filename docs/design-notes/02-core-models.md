@@ -130,7 +130,8 @@ test what its name says.
 
 - **Duplicate national IDs.** Two contacts can carry the same national ID; no rule forbids
   it. A national ID belongs to one person, so a uniqueness rule (per company?) is likely
-  wanted, but it is a business decision and a new `BR`, not a Story 02 change.
+  wanted, but it is a business decision and a new `BR`, not a Story 02 change. *Resolved in
+  Story 03: BR-46, unique across all contacts.*
 - **Sequence gaps.** The reference sequence uses Postgres sequences: a cancelled transaction
   still consumes its number, so references can have gaps. Accepted, as in core Odoo; a
   gap-free sequence would serialise every contract creation.

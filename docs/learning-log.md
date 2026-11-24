@@ -59,6 +59,12 @@ Questions: [`design-notes/02-core-models.md`](design-notes/02-core-models.md#exp
    visible. Story 06 adds record rules (`ir.rule`): an agent sees only their own contracts,
    and a user sees only their own company's records.
 
+### Story 03 — Payment plan templates and the schedule generator
+
+Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-generator.md#explain-back-questions)
+
+*To be answered by the maintainer before Story 04 starts.*
+
 ---
 
 ## Mistakes caught
@@ -74,3 +80,9 @@ Questions: [`design-notes/02-core-models.md`](design-notes/02-core-models.md#exp
 | 2026-11-23 | 02 | The "two contracts for one unit in the same save" test used a unit that already had a contract, so it passed for the wrong reason. | Re-reading the test before committing | A fresh unit, and the test checks the exact message |
 | 2026-11-23 | 02 | Plan links to the business rules used `<a id>` anchors, which the review tool's file pane does not follow. | The maintainer clicked the links; a five-way link test showed only heading links work | Each id links to its heading (BR to its group, US and AC to their story), with the rule text as hover title |
 | 2026-11-23 | 02 | Two scripted text replacements did not apply after the formatter had re-wrapped the lines, so a test run checked the old code. | Reading the file after the run, before committing | Edited by hand and re-run. Rule: after a scripted edit, check the diff before trusting a test run. |
+| 2026-11-24 | 03 | The BR-46 check was first an `@api.constrains`. It runs after the INSERT, so the new unique index refused the duplicate first, without naming the existing contact. | The first test run: a raw `UniqueViolation` instead of the expected `ValidationError` | The check moved before `super()` in `create()` / `write()`, as Story 02's unit check |
+| 2026-11-24 | 03 | A new test file was not imported in `tests/__init__.py`, so its five tests never ran and the suite looked green. | The test count stayed at 26 instead of 31 | Import added. Rule: after adding a test file, check the count goes up. |
+| 2026-11-24 | 03 | The stale-schedule check deleted a contract's lines on confirmation: filling an empty contract date (BR-07) looked like a date change. | T16 failed with `MissingError` on the deleted lines | Only a change from a date already set drops the schedule; T11 checks the lines survive confirmation |
+| 2026-11-24 | 03 | Story 02 left the contract date writable by a manager after confirmation (only the form hid it), so a confirmed schedule's dates could drift from it. | The maintainer asked why the plan said "a manager can still change it" when the form was read-only | `write()` refuses a new date outside draft; Story 02's test now expects the refusal (N7) |
+| 2026-11-24 | 01 | `make shell` never worked: `odoo-bin` needs its subcommand first, but the Makefile put `shell` after `-c odoo.conf`. | The maintainer ran `make shell` for the first time | The target calls `odoo-bin shell -c odoo.conf` |
+| 2026-11-24 | 03 | The AI ran `make test` while the maintainer's own run was going: same database, port and log file, so one run showed a stale result. | Timestamps: the failing run had ended before the fix was saved | Rule: one test run at a time; wait for the maintainer's run to finish |

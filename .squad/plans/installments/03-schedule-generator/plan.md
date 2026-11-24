@@ -3,7 +3,7 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/03-schedule-generator/intake.md`
 - **Branch:** `story/03-schedule-generator`
-- **Status:** Done Criteria approved 2026-11-23; in progress
+- **Status:** Done Criteria approved 2026-11-23; all met 2026-11-24 (37 tests pass locally and in CI); in review
 
 ---
 
@@ -309,18 +309,18 @@ gh run list --branch main --limit 1   # green after merge
 
 ## Done Criteria
 
-- [ ] **[AC-02.1](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.1: Given a contract at 8,580,000 on 10 Jan 2027 with plan NH-STD-8Q, when the agent generates the schedule, then there is a down payment of 858,000 due 10 Jan 2027, 31 installments of 241,313 and a last installment of 241,297, quarterly from 10 Apr 2027 to 10 Jan 2035, and a maintenance deposit of 686,400 with no due date (due at delivery).")** Contract at 8,580,000 dated 10 Jan 2027 on `NH-STD-8Q`: down payment
+- [x] **[AC-02.1](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.1: Given a contract at 8,580,000 on 10 Jan 2027 with plan NH-STD-8Q, when the agent generates the schedule, then there is a down payment of 858,000 due 10 Jan 2027, 31 installments of 241,313 and a last installment of 241,297, quarterly from 10 Apr 2027 to 10 Jan 2035, and a maintenance deposit of 686,400 with no due date (due at delivery).")** Contract at 8,580,000 dated 10 Jan 2027 on `NH-STD-8Q`: down payment
   858,000 due 10 Jan 2027; 31 installments of 241,313 and a last one of 241,297, quarterly from
   10 Apr 2027 to 10 Jan 2035; maintenance deposit 686,400 with no due date. *Proof:* T4, T9.
-- [ ] **[AC-02.2](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.2: Given any price and plan, down payment + installments = the contract price exactly. Tested with 6,712,345 on NH-STD-8Q: down payment 671,235, 31 × 188,785, last 188,775.")** Down payment + installments = the contract price exactly; 6,712,345 on
+- [x] **[AC-02.2](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.2: Given any price and plan, down payment + installments = the contract price exactly. Tested with 6,712,345 on NH-STD-8Q: down payment 671,235, 31 × 188,785, last 188,775.")** Down payment + installments = the contract price exactly; 6,712,345 on
   `NH-STD-8Q` gives 671,235, 31 × 188,785 and a last 188,775. *Proof:* T5.
-- [ ] **[AC-02.3](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.3: Given plan NH-BIZ-5M on a contract dated 31 Jan 2027, the first four installments are due 28 Feb, 31 Mar, 30 Apr and 31 May 2027.")** `NH-BIZ-5M` on 31 Jan 2027: first four installments due 28 Feb, 31 Mar,
+- [x] **[AC-02.3](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.3: Given plan NH-BIZ-5M on a contract dated 31 Jan 2027, the first four installments are due 28 Feb, 31 Mar, 30 Apr and 31 May 2027.")** `NH-BIZ-5M` on 31 Jan 2027: first four installments due 28 Feb, 31 Mar,
   30 Apr, 31 May 2027. *Proof:* T6.
-- [ ] **[AC-02.4](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.4: Given plan NH-CASH, the schedule is one down payment of the full price and no installments.")** `NH-CASH`: one down payment of the full price, no installments.
+- [x] **[AC-02.4](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.4: Given plan NH-CASH, the schedule is one down payment of the full price and no installments.")** `NH-CASH`: one down payment of the full price, no installments.
   *Proof:* T7, T10.
-- [ ] **[AC-02.5](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.5: Given a draft contract with a schedule, when the agent regenerates it with another plan, then the old lines are replaced. Given a confirmed contract, regeneration is refused.")** Regenerating a draft's schedule with another plan replaces the old lines;
+- [x] **[AC-02.5](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "AC-02.5: Given a draft contract with a schedule, when the agent regenerates it with another plan, then the old lines are replaced. Given a confirmed contract, regeneration is refused.")** Regenerating a draft's schedule with another plan replaces the old lines;
   on a confirmed contract it is refused. *Proof:* T11.
-- [ ] **[AC-10.2](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.2: Confirmation is refused if there is no schedule, if the schedule does not sum to the price, or if an individual customer lacks a national ID (Egyptian) or passport number (foreign). A company customer needs neither.")** *(schedule part)* Confirmation is refused with no schedule or a schedule
+- [x] **[AC-10.2](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.2: Confirmation is refused if there is no schedule, if the schedule does not sum to the price, or if an individual customer lacks a national ID (Egyptian) or passport number (foreign). A company customer needs neither.")** *(schedule part)* Confirmation is refused with no schedule or a schedule
   that does not sum to the price. *Proof:* T13.
-- [ ] **[BR-46](../../../../docs/business-requirements.md#customers "BR-46: A national ID or passport number belongs to one contact only, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact.")** A national ID or passport number already on another contact (any company,
+- [x] **[BR-46](../../../../docs/business-requirements.md#customers "BR-46: A national ID or passport number belongs to one contact only, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact.")** A national ID or passport number already on another contact (any company,
   archived included) is refused, and the message names that contact. *Proof:* T1.
