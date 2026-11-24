@@ -1,6 +1,6 @@
-from odoo.tests import TransactionCase, new_test_user
+from odoo.tests import Form, TransactionCase, new_test_user
 
-# Fixtures from docs/business-requirements.md §6.1, §6.2 and §6.6 (example A).
+# Fixtures from docs/business-requirements.md §6.1, §6.2, §6.3 and §6.6 (example A).
 GROUP = "real_estate_eg.group_real_estate_"
 
 
@@ -70,6 +70,52 @@ class RealEstateCommon(TransactionCase):
         cls.customer_company = Partner.create(
             {"name": "Fictional Buyer Company", "is_company": True}
         )
+
+        # §6.3 payment plans used by the schedule tests.
+        Plan = cls.env["real.estate.plan.template"]
+        cls.plan_std = Plan.create(
+            {
+                "name": "Standard 8 years",
+                "code": "NH-STD-8Q",
+                "down_payment_percent": 10,
+                "installment_count": 32,
+                "frequency": "quarterly",
+                "first_installment_months": 3,
+                "maintenance_percent": 8,
+                "maintenance_due": "delivery",
+            }
+        )
+        cls.plan_biz = Plan.create(
+            {
+                "name": "Business 5 years",
+                "code": "NH-BIZ-5M",
+                "down_payment_percent": 20,
+                "installment_count": 60,
+                "frequency": "monthly",
+                "first_installment_months": 1,
+                "maintenance_percent": 10,
+                "maintenance_due": "signing",
+            }
+        )
+        cls.plan_cash = Plan.create(
+            {
+                "name": "Cash",
+                "code": "NH-CASH",
+                "down_payment_percent": 100,
+                "installment_count": 0,
+                "maintenance_percent": 8,
+                "maintenance_due": "delivery",
+            }
+        )
+
+    def generate_schedule(self, contract, plan, user=None):
+        """Generate through the dialog, as `user` (default: agent A) does in the UI."""
+        user = user or self.agent_a
+        action = contract.with_user(user).action_generate_schedule()
+        Wizard = self.env[action["res_model"]].with_user(user)
+        with Form(Wizard.with_context(**action["context"])) as wizard:
+            wizard.plan_id = plan
+        wizard.record.action_generate()
 
     def make_unit(self, code):
         """A free unit like the 2-bedroom one, for tests needing several."""

@@ -190,14 +190,15 @@ failing.
 3. "Generate Schedule" button on draft contracts, group agent.
 4. A stale schedule is dropped: changing the unit (so the price) or the contract date of a draft
    that has lines deletes them, so it must be generated again.
-5. T9–T12. *Check:* `make test`; generate Example A on `re_dev` and read the lines.
+5. `common.py` gets the §6.3 plan fixtures and a `generate_schedule()` helper that drives the
+   dialog with `Form`. T9–T12, T17.
+*Check:* `make test`; generate Example A on `re_dev` and read the lines.
 
 **Step 7 — Confirmation needs the schedule** (contract model *(edit)*, `tests/common.py`
 *(edit)*, Story 02 state tests *(edit)*). *[BR-10](../../../../docs/business-requirements.md#contracts "BR-10: Only a sales manager can confirm a contract. Confirmation requires: a generated schedule whose down payment plus installments equal the contract price exactly, and the customer identity in BR-05."), [AC-10.2](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.2: Confirmation is refused if there is no schedule, if the schedule does not sum to the price, or if an individual customer lacks a national ID (Egyptian) or passport number (foreign). A company customer needs neither.") (schedule part).*
 1. `_confirmation_error_message()`: no lines → "Generate the schedule first"; `schedule_total`
    ≠ price (`currency_id.compare_amounts`) → refused with both amounts.
-2. `common.py` gets a plan fixture (§6.3 `NH-STD-8Q`) and a helper that generates before
-   confirming; Story 02 tests that confirm use it.
+2. Story 02 tests that confirm a contract generate a schedule first, with the Step 6 helper.
 3. T13. Negative check N3. *Check:* `make test`.
 
 **Step 8 — Read-only roles see the schedule** (`tests/test_access.py` *(edit)*). *[BR-35](../../../../docs/business-requirements.md#visibility "BR-35: A sales agent sees only contracts where they are the agent, and their schedules, and edits them only while draft. A sales manager sees and edits all contracts, bills late fees and records cheques. A collections officer reads all contracts and schedules, bills late fees and records cheques, but cannot change prices, plans or schedules; billing goes through the module's own action, so the officer needs no general invoicing rights. An accountant reads all contracts and schedules and edits none. Agents see the cheques on their own contracts."),
@@ -269,6 +270,7 @@ runs `with_user()` an agent, manager, collections or Invoicing user.
 | T13 | `test_contract_states.py` — `test_ac_10_2_schedule_required` (no schedule; a schedule not summing to the price; a full one passes) | [AC-10.2](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.2: Confirmation is refused if there is no schedule, if the schedule does not sum to the price, or if an individual customer lacks a national ID (Egyptian) or passport number (foreign). A company customer needs neither.") |
 | T14 | `test_access.py` — `test_ac_06_3_collections_reads_cannot_edit`, `test_ac_06_5_accountant_reads_cannot_edit` *(edit)*: schedule lines, plans, wizard | [AC-06.3](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.3: A collections officer sees all contracts but cannot edit price, plan or schedule."), [AC-06.5](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.5: An accountant sees all contracts and schedules but cannot edit them.") |
 | T16 | `test_schedule.py` — `test_br_19_schedule_lines_locked` (lines made by hand: total leaves the deposit out; after confirmation agent and manager cannot create / write / delete a line; superuser can) | [BR-19](../../../../docs/business-requirements.md#payment-plans-and-the-schedule "BR-19: The schedule can be regenerated only while the contract is draft. Once confirmed, amounts and dates are locked.") |
+| T17 | `test_schedule.py` — `test_generate_refusals` (no contract date; 2,065 on `NH-BIZ-5M` leaves a last installment of 0) | edges 4, 8 |
 | T15 | `make test`, `make lint`, `make test-ci`, CI on the PR and on `main` | gates stay green |
 
 **Negative checks** (seen failing once, then undone before `git add`; results in the design note):
@@ -277,13 +279,14 @@ runs `with_user()` an agent, manager, collections or Invoicing user.
 - N2: compute each date from the previous one → T6 fails.
 - N3: remove the schedule check from confirmation → T13 fails.
 - N5: skip the BR-19 lock → T16 fails.
+- N6: skip the draft check in `_check_schedule_draft()` → T11 fails.
 - N4: drop `sudo()` / `active_test=False` from the [BR-46](../../../../docs/business-requirements.md#customers "BR-46: A national ID or passport number belongs to one contact only, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact.") search → T1 (other company / archived) fails.
 
 ## Verification Steps
 
 ```bash
 git switch main && git pull --rebase && git switch -c story/03-schedule-generator
-make test        # T1–T14 and T16 pass, log clean
+make test        # T1–T14, T16, T17 pass, log clean
 make lint        # pre-commit green
 make test-ci     # same tests in the CI Docker stack
 make run ARGS="-u real_estate_eg"   # Step 9 walk-through on re_dev; log clean

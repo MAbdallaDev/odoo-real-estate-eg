@@ -17,6 +17,7 @@
         "views/res_partner_views.xml",
         "views/real_estate_contract_views.xml",
         "wizard/real_estate_contract_cancel_views.xml",
+        "wizard/real_estate_schedule_generate_views.xml",
         "views/real_estate_menus.xml",
     ],
     "installable": True,

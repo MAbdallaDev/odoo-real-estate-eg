@@ -42,6 +42,14 @@
             invisible="state != 'draft'"
             groups="real_estate_eg.group_real_estate_manager"
           />
+                    <!-- US-02 / BR-19: generate or regenerate while draft. -->
+                    <button
+            name="action_generate_schedule"
+            type="object"
+            string="Generate Schedule"
+            invisible="state != 'draft'"
+            groups="real_estate_eg.group_real_estate_agent"
+          />
                     <button
             name="action_deliver"
             type="object"

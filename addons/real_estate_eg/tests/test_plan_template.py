@@ -10,11 +10,12 @@ from .common import RealEstateCommon
 @tagged("post_install", "-at_install")
 class TestPlanTemplate(RealEstateCommon):
     def _create_plan(self, user=None, **values):
-        """Plan NH-STD-8Q from §6.3, created by `user` (default: manager),
+        """A plan like NH-STD-8Q from §6.3 (own code: common.py has the real one),
+        created by `user` (default: manager),
         with `values` overriding its fields."""
         vals = {
             "name": "Standard 8 years",
-            "code": "NH-STD-8Q",
+            "code": "NH-TEST-8Q",
             "down_payment_percent": 10,
             "installment_count": 32,
             "frequency": "quarterly",
@@ -32,7 +33,7 @@ class TestPlanTemplate(RealEstateCommon):
         self.assertEqual(plan.installment_count, 32)
         for user in (self.agent_a, self.collections, self.accountant):
             with self.subTest(user=user.login):
-                self.assertEqual(plan.with_user(user).code, "NH-STD-8Q")
+                self.assertEqual(plan.with_user(user).code, "NH-TEST-8Q")
                 with self.assertRaises(AccessError):
                     self._create_plan(user=user, code="NH-OTHER")
 
@@ -56,7 +57,7 @@ class TestPlanTemplate(RealEstateCommon):
         mixes that cannot add up to the price are refused."""
         cash = self._create_plan(
             name="Cash",
-            code="NH-CASH",
+            code="NH-TEST-CASH",
             down_payment_percent=100,
             installment_count=0,
             frequency=False,

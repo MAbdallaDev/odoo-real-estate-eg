@@ -1,5 +1,8 @@
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
+
+from ..tools.schedule import compute_schedule
+from .real_estate_plan_template import FREQUENCY_MONTHS
 
 # BR-09: the only states. Same shape as SALE_ORDER_STATE in sale/models/sale_order.py.
 CONTRACT_STATE = [
@@ -199,7 +202,28 @@ class RealEstateContract(models.Model):
         if vals.get("unit_id"):
             # Writing one unit on several contracts would share it too.
             self._check_unit_free([vals["unit_id"]] * len(self))
+        self._drop_stale_schedule(vals)
         return super().write(vals)
+
+    def _drop_stale_schedule(self, vals):
+        """A new unit (so a new price) or a new contract date makes a draft's
+        schedule wrong (BR-16, BR-17): its lines are deleted and the schedule
+        must be generated again. Only a real change counts: confirmation
+        writes the same date again and must keep the lines."""
+        if "installment_ids" in vals:
+            return
+        new_date = fields.Date.to_date(vals["date"]) if "date" in vals else None
+        stale = self.filtered(
+            lambda c: c.state == "draft"
+            and c.installment_ids
+            and (
+                ("unit_id" in vals and vals["unit_id"] != c.unit_id.id)
+                # A generated schedule always has a date; confirmation filling
+                # an empty date (BR-07) is not a change of schedule.
+                or ("date" in vals and c.date and new_date != c.date)
+            )
+        )
+        stale.installment_ids.unlink()
 
     @api.ondelete(at_uninstall=False)
     def _unlink_except_draft(self):
@@ -286,6 +310,74 @@ class RealEstateContract(models.Model):
             )
         self.write({"state": "cancelled"})
         return True
+
+    # ------------------------------------------------------------------
+    # US-02: generate the schedule from a plan (BR-14 to BR-20).
+    # ------------------------------------------------------------------
+
+    def action_generate_schedule(self):
+        """Open the dialog to pick a plan; the button shows on drafts only."""
+        self.ensure_one()
+        self._check_schedule_draft()
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Generate Schedule"),
+            "res_model": "real.estate.schedule.generate",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_contract_id": self.id,
+                "default_plan_id": self.plan_id.id,
+            },
+        }
+
+    def _check_schedule_draft(self):
+        # BR-19: a schedule is (re)generated only while the contract is draft.
+        if self.state != "draft":
+            raise UserError(
+                self.env._("The schedule can be generated only on a draft contract.")
+            )
+
+    def _generate_schedule(self, plan):
+        """US-02: replace the schedule with lines from `plan`. The amounts and
+        dates come from compute_schedule(), the maintainer's pure function."""
+        self.ensure_one()
+        self._check_schedule_draft()
+        # BR-17: every due date is counted from the contract date.
+        if not self.date:
+            raise UserError(
+                self.env._("Set the contract date before generating the schedule.")
+            )
+        lines = compute_schedule(
+            price=self.price,
+            contract_date=self.date,
+            down_payment_percent=plan.down_payment_percent,
+            installment_count=plan.installment_count,
+            step_months=FREQUENCY_MONTHS.get(plan.frequency, 0),
+            first_installment_months=plan.first_installment_months,
+            maintenance_percent=plan.maintenance_percent,
+            maintenance_at_signing=plan.maintenance_due == "signing",
+        )
+        # Only a tiny price with many installments can leave the last one at
+        # 0 or less (rounded-up lines eat the remainder).
+        if any(line["amount"] <= 0 for line in lines):
+            raise UserError(
+                self.env._(
+                    "The price %(price)s is too small for plan %(plan)s.",
+                    price=self.price,
+                    plan=plan.code,
+                )
+            )
+        self.installment_ids.unlink()
+        self.write(
+            {
+                "plan_id": plan.id,
+                "installment_ids": [
+                    Command.create(dict(line, sequence=index))
+                    for index, line in enumerate(lines, start=1)
+                ],
+            }
+        )
 
     def _cancel_with_reason(self, reason):
         """BR-32: called by the cancel dialog for a confirmed contract.
