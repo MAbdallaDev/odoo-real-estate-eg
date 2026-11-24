@@ -181,3 +181,32 @@ class RealEstateCommon(AccountTestInvoicingCommon):
                 }
             )
         )
+
+    # Story 04 helpers
+
+    def _confirmed(self, contract):
+        contract.with_user(self.manager).action_confirm()
+        return contract
+
+    def _example_a(self):
+        """Example A, confirmed by the manager on its contract date 10 Jan
+        2027 (run it under freeze_time("2027-01-10"))."""
+        return self._confirmed(self.add_schedule(self.create_contract(), "2027-01-10"))
+
+    def _example_c(self):
+        """Example C as a draft: office 3,660,000 on NH-BIZ-5M, dated 31 Jan 2027."""
+        office = self.make_unit("CBP-A02-0105")
+        office.list_price = 3_660_000
+        contract = self.create_contract(unit=office)
+        contract.date = "2027-01-31"
+        contract._generate_schedule(self.plan_biz)
+        return contract
+
+    @staticmethod
+    def _line(contract, line_type):
+        return contract.installment_ids.filtered(lambda x: x.line_type == line_type)
+
+    def _invoiced(self, contract):
+        """Lines that have an invoice, read as superuser (invoice_id is an
+        accounting field)."""
+        return contract.installment_ids.sudo().filtered("invoice_id")

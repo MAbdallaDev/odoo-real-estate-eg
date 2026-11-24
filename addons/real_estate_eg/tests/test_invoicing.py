@@ -32,27 +32,6 @@ class TestInvoicing(RealEstateCommon):
     # (Step 3), so these tests call _create_invoices() directly.
     # ------------------------------------------------------------------
 
-    def _confirmed(self, contract):
-        contract.with_user(self.manager).action_confirm()
-        return contract
-
-    def _example_a(self):
-        """Example A, confirmed on its contract date 10 Jan 2027."""
-        return self._confirmed(self.add_schedule(self.create_contract(), "2027-01-10"))
-
-    def _example_c(self):
-        """Example C as a draft: office 3,660,000 on NH-BIZ-5M, dated 31 Jan 2027."""
-        office = self.make_unit("CBP-A02-0105")
-        office.list_price = 3_660_000
-        contract = self.create_contract(unit=office)
-        contract.date = "2027-01-31"
-        contract._generate_schedule(self.plan_biz)
-        return contract
-
-    @staticmethod
-    def _line(contract, line_type):
-        return contract.installment_ids.filtered(lambda x: x.line_type == line_type)
-
     def _invoice(self, line):
         """Invoice one line as the sales manager, who has no accounting rights."""
         line.with_user(self.manager)._create_invoices(fields.Date.today())
@@ -62,12 +41,8 @@ class TestInvoicing(RealEstateCommon):
     def test_ac_03_7_advances_account(self):
         """AC-03.7 / BR-43: the down payment posts to customer advances, not revenue.
         Example A: receivable debit 858,000, advances credit 858,000."""
-        contract = self._confirmed(
-            self.add_schedule(self.create_contract(), "2027-01-10")
-        )
-        line = contract.installment_ids.filtered(
-            lambda x: x.line_type == "down_payment"
-        )
+        contract = self._example_a()
+        line = self._line(contract, "down_payment")
         invoice = self._invoice(line)
 
         self.assertEqual(invoice.state, "posted")
@@ -118,12 +93,8 @@ class TestInvoicing(RealEstateCommon):
         self.env.ref("real_estate_eg.product_down_payment").taxes_id = tax
         self.advance_account.tax_ids = tax
 
-        contract = self._confirmed(
-            self.add_schedule(self.create_contract(), "2027-01-10")
-        )
-        line = contract.installment_ids.filtered(
-            lambda x: x.line_type == "down_payment"
-        )
+        contract = self._example_a()
+        line = self._line(contract, "down_payment")
         invoice = self._invoice(line)
 
         self.assertEqual(invoice.amount_tax, 0)
@@ -148,11 +119,6 @@ class TestInvoicing(RealEstateCommon):
     # ------------------------------------------------------------------
     # Step 3: confirmation invoices every line already due.
     # ------------------------------------------------------------------
-
-    def _invoiced(self, contract):
-        """Lines that have an invoice, read as superuser (invoice_id is an
-        accounting field)."""
-        return contract.installment_ids.sudo().filtered("invoice_id")
 
     def test_ac_03_1_invoice_at_confirmation(self):
         """AC-03.1 / AC-10.3 / BR-21: confirming invoices the lines already due,

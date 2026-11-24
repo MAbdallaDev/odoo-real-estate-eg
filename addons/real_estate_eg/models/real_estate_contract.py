@@ -88,6 +88,12 @@ class RealEstateContract(models.Model):
     )
     # BR-10 / BR-18: down payment + installments; the deposit is not in the price.
     schedule_total = fields.Monetary(compute="_compute_schedule_total")
+    # AC-03.5 / BR-24: totals read from accounting through the lines.
+    # Outstanding = invoiced but not paid; lines not invoiced yet are not owed.
+    amount_paid = fields.Monetary(string="Total Paid", compute="_compute_amounts")
+    amount_outstanding = fields.Monetary(
+        string="Total Outstanding", compute="_compute_amounts"
+    )
     state = fields.Selection(
         CONTRACT_STATE,
         string="Status",
@@ -136,6 +142,13 @@ class RealEstateContract(models.Model):
                 for line in contract.installment_ids
                 if line.line_type != "maintenance"
             )
+
+    @api.depends("installment_ids.amount_paid", "installment_ids.amount_residual")
+    def _compute_amounts(self):
+        for contract in self:
+            lines = contract.installment_ids
+            contract.amount_paid = sum(lines.mapped("amount_paid"))
+            contract.amount_outstanding = sum(lines.mapped("amount_residual"))
 
     def _check_unit_free(self, unit_ids):
         """BR-04 / AC-01.3: a clear message before the database refuses.

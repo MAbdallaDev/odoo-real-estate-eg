@@ -2,11 +2,21 @@ from odoo import Command, api, fields, models
 from odoo.exceptions import UserError
 
 # §5.3: a schedule line is a down payment, an installment or the maintenance
-# deposit. Payment states (scheduled, invoiced, paid...) come in Story 04.
+# deposit.
 LINE_TYPE = [
     ("down_payment", "Down Payment"),
     ("installment", "Installment"),
     ("maintenance", "Maintenance Deposit"),
+]
+
+# §5.3: a line's payment state, read from its invoice (BR-24). "Overdue" is
+# computed from dates in Story 05, it is not a state.
+LINE_STATE = [
+    ("scheduled", "Scheduled"),
+    ("invoiced", "Invoiced"),
+    ("partially_paid", "Partially Paid"),
+    ("paid", "Paid"),
+    ("cancelled", "Cancelled"),
 ]
 
 
@@ -64,6 +74,56 @@ class RealEstateInstallment(models.Model):
             if line.line_type == "installment":
                 label = self.env._("Installment %(number)s", number=line.number)
             line.name = label
+
+    # BR-24: state and amounts come from accounting, stored on the line so that
+    # agents and collections read them without rights on invoices.
+    state = fields.Selection(
+        LINE_STATE,
+        string="Status",
+        compute="_compute_payment",
+        store=True,
+        index=True,
+    )
+    amount_residual = fields.Monetary(
+        string="Outstanding", compute="_compute_payment", store=True
+    )
+    amount_paid = fields.Monetary(string="Paid", compute="_compute_payment", store=True)
+
+    @api.depends(
+        "contract_id.state",
+        "invoice_id.payment_state",
+        "invoice_id.amount_total",
+        "invoice_id.amount_residual",
+        "invoice_id.reversal_move_ids.state",
+        "invoice_id.reversal_move_ids.amount_total",
+    )
+    def _compute_payment(self):
+        for line in self:
+            invoice = line.invoice_id
+            # A credit note lowers the residual like a payment does, but it is
+            # not money received (BR-33), so it is left out of "paid".
+            credited = sum(
+                invoice.reversal_move_ids.filtered(
+                    lambda move: move.state == "posted"
+                ).mapped("amount_total")
+            )
+            line.amount_residual = invoice.amount_residual
+            line.amount_paid = (
+                invoice.amount_total - invoice.amount_residual - credited
+                if invoice
+                else 0
+            )
+            if line.contract_id.state == "cancelled":
+                line.state = "cancelled"
+            elif not invoice:
+                line.state = "scheduled"
+            # "In payment" (Accountant app, before bank matching) is paid too.
+            elif invoice.payment_state in ("paid", "in_payment"):
+                line.state = "paid"
+            elif invoice.payment_state == "partial":
+                line.state = "partially_paid"
+            else:
+                line.state = "invoiced"
 
     @api.depends("date_due", "invoice_date")
     def _compute_date_effective_due(self):
