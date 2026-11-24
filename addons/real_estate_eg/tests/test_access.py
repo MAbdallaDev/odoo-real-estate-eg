@@ -31,6 +31,7 @@ class TestReadOnlyRoles(RealEstateCommon):
                 "user_id": cls.agent_a.id,
             }
         )
+        cls.add_schedule(cls.draft)
 
     def _assert_reads_but_cannot_edit(self, user):
         contract = self.contract.with_user(user)
@@ -39,6 +40,11 @@ class TestReadOnlyRoles(RealEstateCommon):
         Contract = self.env["real.estate.contract"].with_user(user)
         self.assertIn(self.contract, Contract.search([]))
         self.unit_3br.with_user(user).read(["code", "list_price", "state"])
+        # ...and the schedules and plans (Story 03).
+        self.assertEqual(contract.schedule_total, 8_580_000)
+        self.assertEqual(len(contract.installment_ids), 34)
+        contract.installment_ids.read(["name", "amount", "date_due"])
+        self.assertEqual(contract.plan_id.code, "NH-STD-8Q")
 
         # Edits nothing, draft or confirmed: no field (the price included), no
         # create or delete.
@@ -60,14 +66,31 @@ class TestReadOnlyRoles(RealEstateCommon):
             ),
             "project": lambda: self.project.with_user(user).write({"name": "X"}),
             "confirm/deliver/cancel": contract.action_deliver,
+            # Story 03: the plan and the schedule, on a draft (where the BR-19
+            # lock does not apply, so only access rights stop the edit).
+            "plan": lambda: self.plan_std.with_user(user).write({"name": "X"}),
+            "contract plan": lambda: draft.write({"plan_id": self.plan_cash.id}),
+            "schedule line": lambda: draft.installment_ids[0].write({"amount": 1}),
+            "delete schedule line": draft.installment_ids[0].unlink,
+            "add schedule line": lambda: self.env["real.estate.installment"]
+            .with_user(user)
+            .create(
+                {
+                    "contract_id": self.draft.id,
+                    "line_type": "installment",
+                    "amount": 1,
+                }
+            ),
+            "generate button": draft.action_generate_schedule,
+            "generate": lambda: draft._generate_schedule(self.plan_cash),
         }
         for edit, action in edits.items():
             with self.subTest(edit), self.assertRaises(AccessError):
                 action()
 
     def test_ac_06_3_collections_reads_cannot_edit(self):
-        """AC-06.3: a collections officer sees all contracts but cannot edit
-        the price (plan and schedule arrive in Story 03, read-only the same way)."""
+        """AC-06.3: a collections officer sees all contracts and schedules but
+        cannot edit the price, the plan or the schedule."""
         self._assert_reads_but_cannot_edit(self.collections)
         # ...but can log a follow-up note in the chatter.
         self.contract.with_user(self.collections).message_post(
@@ -77,6 +100,6 @@ class TestReadOnlyRoles(RealEstateCommon):
         )
 
     def test_ac_06_5_accountant_reads_cannot_edit(self):
-        """AC-06.5: an accountant (Odoo's Invoicing group) sees all contracts but
-        cannot edit them (schedules arrive in Story 03)."""
+        """AC-06.5: an accountant (Odoo's Invoicing group) sees all contracts
+        and schedules but cannot edit them."""
         self._assert_reads_but_cannot_edit(self.accountant)

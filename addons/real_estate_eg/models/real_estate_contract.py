@@ -330,6 +330,8 @@ class RealEstateContract(models.Model):
     def action_generate_schedule(self):
         """Open the dialog to pick a plan; the button shows on drafts only."""
         self.ensure_one()
+        # BR-35 / AC-06.3: read-only roles are refused here, not in the dialog.
+        self.check_access("write")
         self._check_schedule_draft()
         return {
             "type": "ir.actions.act_window",

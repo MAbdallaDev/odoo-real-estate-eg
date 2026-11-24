@@ -204,7 +204,9 @@ failing.
 
 **Step 8 — Read-only roles see the schedule** (`tests/test_access.py` *(edit)*). *[BR-35](../../../../docs/business-requirements.md#visibility "BR-35: A sales agent sees only contracts where they are the agent, and their schedules, and edits them only while draft. A sales manager sees and edits all contracts, bills late fees and records cheques. A collections officer reads all contracts and schedules, bills late fees and records cheques, but cannot change prices, plans or schedules; billing goes through the module's own action, so the officer needs no general invoicing rights. An accountant reads all contracts and schedules and edits none. Agents see the cheques on their own contracts."),
 [AC-06.3](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.3: A collections officer sees all contracts but cannot edit price, plan or schedule."), [AC-06.5](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.5: An accountant sees all contracts and schedules but cannot edit them.") (schedule parts left from Story 02).* T14: collections and accountant
-read lines and plans, but cannot edit a line, a plan or run the wizard. *Check:* `make test`.
+read lines and plans, but cannot edit a line, a plan or run the wizard;
+`action_generate_schedule()` calls `check_access("write")`, so they are refused at the button.
+Negative check N8. *Check:* `make test`.
 
 **Step 9 — Whole flow + CI stack.** On `re_dev`: create the §6.3 plans, Example A and C contracts,
 generate, regenerate with another plan, confirm as manager; log clean. Then `make lint`,
@@ -290,6 +292,7 @@ runs `with_user()` an agent, manager, collections or Invoicing user.
 - N5: skip the BR-19 lock → T16 fails.
 - N6: skip the draft check in `_check_schedule_draft()` → T11 fails.
 - N7: let a manager change the date of a confirmed contract → `test_br_35_agent_edits_only_drafts` fails.
+- N8: give collections write on schedule lines in the CSV → T14 (collections) fails.
 - N4: drop `sudo()` / `active_test=False` from the [BR-46](../../../../docs/business-requirements.md#customers "BR-46: A national ID or passport number belongs to one contact only, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact.") search → T1 (other company / archived) fails.
 
 ## Verification Steps
