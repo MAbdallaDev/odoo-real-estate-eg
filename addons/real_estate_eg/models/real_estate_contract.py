@@ -69,6 +69,20 @@ class RealEstateContract(models.Model):
     price = fields.Monetary(
         compute="_compute_price", store=True, precompute=True, tracking=True
     )
+    # BR-07: the payment plan. Set by the generate wizard (Step 6), not typed.
+    plan_id = fields.Many2one(
+        "real.estate.plan.template",
+        string="Payment Plan",
+        readonly=True,
+        tracking=True,
+        check_company=True,
+    )
+    # US-02: the schedule. Same shape as sale.order.order_line.
+    installment_ids = fields.One2many(
+        "real.estate.installment", "contract_id", string="Schedule", copy=False
+    )
+    # BR-10 / BR-18: down payment + installments; the deposit is not in the price.
+    schedule_total = fields.Monetary(compute="_compute_schedule_total")
     state = fields.Selection(
         CONTRACT_STATE,
         string="Status",
@@ -108,6 +122,15 @@ class RealEstateContract(models.Model):
         # existing contracts (AC-01.2). A new unit re-takes its price (AC-01.6).
         for contract in self:
             contract.price = contract.unit_id.list_price
+
+    @api.depends("installment_ids.amount", "installment_ids.line_type")
+    def _compute_schedule_total(self):
+        for contract in self:
+            contract.schedule_total = sum(
+                line.amount
+                for line in contract.installment_ids
+                if line.line_type != "maintenance"
+            )
 
     def _check_unit_free(self, unit_ids):
         """BR-04 / AC-01.3: a clear message before the database refuses.

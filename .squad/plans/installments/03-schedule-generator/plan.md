@@ -128,7 +128,7 @@ intake *(edit)*, `models/res_partner.py` *(edit)*, `tests/test_partner.py` *(edi
 *(edit)*, ACL rows, contract form *(edit)*). *[US-02](../../../../docs/business-requirements.md#us-02--generate-the-payment-schedule-from-a-plan "US-02: Generate the payment schedule from a plan"), [BR-18](../../../../docs/business-requirements.md#payment-plans-and-the-schedule "BR-18: The maintenance deposit = contract price × maintenance %, rounded to whole EGP (half up). It is a separate schedule line and is not part of the contract price. If due at signing, it is due on the contract date; if due at delivery, it has no date until the contract is delivered, then it is due on the delivery date."), [BR-19](../../../../docs/business-requirements.md#payment-plans-and-the-schedule "BR-19: The schedule can be regenerated only while the contract is draft. Once confirmed, amounts and dates are locked."), [BR-35](../../../../docs/business-requirements.md#visibility "BR-35: A sales agent sees only contracts where they are the agent, and their schedules, and edits them only while draft. A sales manager sees and edits all contracts, bills late fees and records cheques. A collections officer reads all contracts and schedules, bills late fees and records cheques, but cannot change prices, plans or schedules; billing goes through the module's own action, so the officer needs no general invoicing rights. An accountant reads all contracts and schedules and edits none. Agents see the cheques on their own contracts.").*
 1. `real.estate.installment` — `contract_id` (required, `ondelete='cascade'`, indexed),
    `sequence`, `line_type` (Selection down_payment / installment / maintenance), `number` (k for
-   installments), `name` (computed label, e.g. "Installment 3 / 32"), `amount` (Monetary),
+   installments), `name` (computed label, e.g. "Installment 3"), `amount` (Monetary),
    `date_due` (empty for a deposit due at delivery), `company_id` and `currency_id` from the
    contract. `_order = 'contract_id, sequence, id'`.
 2. [BR-19](../../../../docs/business-requirements.md#payment-plans-and-the-schedule "BR-19: The schedule can be regenerated only while the contract is draft. Once confirmed, amounts and dates are locked.") lock: `create()`, `write()` and `@api.ondelete` refuse a change to a line whose
@@ -140,6 +140,7 @@ intake *(edit)*, `models/res_partner.py` *(edit)*, `tests/test_partner.py` *(edi
 4. ACL: agent RWCD (draft only, by the lock), manager RWCD, collections R,
    `account.group_account_invoice` R.
 5. Contract form: a "Schedule" page with the lines (read-only list) and the total.
+6. T16 (lock and total), with lines made by hand until the generator exists.
 *Check:* `make test` (Story 02 tests still green); the page shows on `re_dev`.
 
 **Step 4 — Arithmetic tests first** (`tools/__init__.py`, `tools/schedule.py` — signature and
@@ -263,6 +264,7 @@ runs `with_user()` an agent, manager, collections or Invoicing user.
 | T12 | `test_schedule.py` — `test_stale_schedule_dropped` (unit or date change on a draft deletes the lines) | edge 7 |
 | T13 | `test_contract_states.py` — `test_ac_10_2_schedule_required` (no schedule; a schedule not summing to the price; a full one passes) | [AC-10.2](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.2: Confirmation is refused if there is no schedule, if the schedule does not sum to the price, or if an individual customer lacks a national ID (Egyptian) or passport number (foreign). A company customer needs neither.") |
 | T14 | `test_access.py` — `test_ac_06_3_collections_reads_cannot_edit`, `test_ac_06_5_accountant_reads_cannot_edit` *(edit)*: schedule lines, plans, wizard | [AC-06.3](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.3: A collections officer sees all contracts but cannot edit price, plan or schedule."), [AC-06.5](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.5: An accountant sees all contracts and schedules but cannot edit them.") |
+| T16 | `test_schedule.py` — `test_br_19_schedule_lines_locked` (lines made by hand: total leaves the deposit out; after confirmation agent and manager cannot create / write / delete a line; superuser can) | [BR-19](../../../../docs/business-requirements.md#payment-plans-and-the-schedule "BR-19: The schedule can be regenerated only while the contract is draft. Once confirmed, amounts and dates are locked.") |
 | T15 | `make test`, `make lint`, `make test-ci`, CI on the PR and on `main` | gates stay green |
 
 **Negative checks** (seen failing once, then undone before `git add`; results in the design note):
@@ -270,13 +272,14 @@ runs `with_user()` an agent, manager, collections or Invoicing user.
 - N1: use Python `round()` instead of half up → T8 fails.
 - N2: compute each date from the previous one → T6 fails.
 - N3: remove the schedule check from confirmation → T13 fails.
+- N5: skip the BR-19 lock → T16 fails.
 - N4: drop `sudo()` / `active_test=False` from the [BR-46](../../../../docs/business-requirements.md#customers "BR-46: A national ID or passport number belongs to one contact only, across all contacts and all companies, archived contacts included. Saving a contact with a number another contact already has is refused, and the message names that contact.") search → T1 (other company / archived) fails.
 
 ## Verification Steps
 
 ```bash
 git switch main && git pull --rebase && git switch -c story/03-schedule-generator
-make test        # T1–T14 pass, log clean
+make test        # T1–T14 and T16 pass, log clean
 make lint        # pre-commit green
 make test-ci     # same tests in the CI Docker stack
 make run ARGS="-u real_estate_eg"   # Step 9 walk-through on re_dev; log clean
