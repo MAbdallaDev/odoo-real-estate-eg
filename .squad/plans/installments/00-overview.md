@@ -14,7 +14,7 @@ and be read first.
 | 01 | `01-env-skeleton/plan.md` | Environment and module skeleton | — | — |
 | 02 | `02-core-models/plan.md` | Core models, views, states and access rights | — | 01 |
 | 03 | `03-schedule-generator/plan.md` | Payment plan templates and the schedule generator | — | 02 |
-| 04 | `04-accounting-link/plan.md` *(not written yet)* | Accounting link: invoices, payment state, closing and cancellation money | — | 03 |
+| 04 | `04-accounting-link/plan.md` | Accounting link: invoices, payment state, closing and cancellation money | — | 03 |
 | 05 | `05-late-fees/plan.md` *(not written yet)* | Overdue lines, late fees and the at-risk flag | — | 04 |
 | 06 | `06-record-rules/plan.md` *(not written yet)* | Record rules: agents see their own contracts; multi-company | — | 05 |
 | 07 | `07-collections-performance/plan.md` *(not written yet)* | Collections screens and query performance | — | 05, 06 |
