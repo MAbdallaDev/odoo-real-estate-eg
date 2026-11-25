@@ -31,6 +31,8 @@
         "report/real_estate_contract_report.xml",
         "report/real_estate_contract_templates.xml",
     ],
+    # S10.1: Nile Heights Developments (Chapter 6); never used by the tests.
+    "demo": ["demo/real_estate_demo.xml"],
     "assets": {
         # BR-38: the contract report's CSS, in the bundle every PDF report
         # loads (as account adds report_invoice.css).
