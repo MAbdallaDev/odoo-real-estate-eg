@@ -156,3 +156,20 @@ class TestRecordRules(RealEstateCommon):
             ),
             lines_a,
         )
+
+    def test_agent_and_accountant_reads_all_writes_own(self):
+        """BR-35: the collections and accounting "see all" rules are read
+        only. A user who is both an agent and an accountant reads every
+        contract but still edits only their own drafts."""
+        agent_accountant = new_test_user(
+            self.env,
+            login="re_agent_accountant",
+            groups=GROUP + "agent,account.group_account_invoice",
+        )
+        own = self.create_contract(user=agent_accountant, unit=self.unit_2br)
+        other = self.contract_a.with_user(agent_accountant)
+        self.assertEqual(other.name, self.contract_a.name)  # reads it
+        with self.assertRaises(AccessError):
+            other.partner_id = self.customer_foreign
+        own.with_user(agent_accountant).partner_id = self.customer_foreign
+        self.assertEqual(own.partner_id, self.customer_foreign)

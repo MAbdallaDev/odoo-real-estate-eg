@@ -139,7 +139,8 @@ class TestContractStates(RealEstateCommon):
     def test_ac_09_1_agent_cancels_draft(self):
         """AC-09.1 / US-09, BR-32: its agent cancels a draft; the unit is free."""
         contract = self.create_contract(user=self.agent_a)
-        with self.assertRaises(AccessError):  # not agent B's contract
+        # Not agent B's contract: the agent record rule refuses B (Story 06).
+        with self.assertRaises(AccessError):
             contract.with_user(self.agent_b).action_cancel()
 
         contract.with_user(self.agent_a).action_cancel()

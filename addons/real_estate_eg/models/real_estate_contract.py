@@ -215,7 +215,7 @@ class RealEstateContract(models.Model):
         """BR-04 / AC-01.3: a clear message before the database refuses.
 
         It names only the existing contract's reference (no customer, agent or
-        price). sudo(): from Story 06 an agent cannot see another agent's
+        price). sudo(): the agent record rule hides another agent's
         contract, but the unit is still taken.
         """
         if len(unit_ids) != len(set(unit_ids)):
@@ -400,7 +400,8 @@ class RealEstateContract(models.Model):
                 "target": "new",
                 "context": {"default_contract_id": self.id},
             }
-        # Drafts: their own agent, or a manager (record rules come in Story 06).
+        # Drafts: their own agent, or a manager. The agent record rule already
+        # hides other agents' contracts; this check stays as a second guard.
         is_manager = self.env.user.has_group("real_estate_eg.group_real_estate_manager")
         if not is_manager and any(c.user_id != self.env.user for c in self):
             raise AccessError(
