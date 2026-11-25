@@ -131,9 +131,9 @@ Before the first contract is confirmed:
 | 04 | Accounting link: invoices, payment state, closing and cancellation money | done |
 | 05 | Overdue lines, late fees and the at-risk flag | done |
 | 06 | Record rules: agents see their own contracts; multi-company | done |
-| 07 | Collections screens and query performance | in review |
+| 07 | Collections screens and query performance | done |
 | 08 | Bilingual Arabic / English contract PDF | done |
-| 09 | Post-dated cheques (stretch) | planned |
+| 09 | Post-dated cheques | in progress |
 | 10 | Ship v1.0.0: unit import, demo data | planned |
 
 ## How this is built
