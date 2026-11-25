@@ -40,7 +40,7 @@ test: ## Fresh $(TEST_DB), install the module, run its tests, check the log
 
 test-ci: ## Same test run as GitHub CI: Postgres + official Odoo 19 image in Docker
 	@echo "Running the tests in Docker (full log: $(CI_LOG)) ..."
-	@status=0; $(CI_COMPOSE) run --rm odoo > $(CI_LOG) 2>&1 || status=$$?; \
+	@status=0; $(CI_COMPOSE) run --build --rm odoo > $(CI_LOG) 2>&1 || status=$$?; \
 	$(CI_COMPOSE) down -v --remove-orphans > /dev/null 2>&1 || true; \
 	grep -E 'odoo\.tests\.result|post-tests in' $(CI_LOG) | tail -n 2 || true; \
 	scripts/check_odoo_log.sh $(CI_LOG) && exit $$status

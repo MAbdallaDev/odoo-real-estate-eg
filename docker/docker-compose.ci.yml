@@ -1,11 +1,12 @@
 # CI test stack: a throwaway Postgres + the official Odoo 19 image, with this
 # repo's addons mounted read-only. Used by GitHub Actions and by `make test-ci`.
 #
-#   docker compose -f docker/docker-compose.ci.yml run --rm odoo   # run the tests
+#   docker compose -f docker/docker-compose.ci.yml run --build --rm odoo   # build + run the tests
 #   docker compose -f docker/docker-compose.ci.yml down -v         # remove the DB
 #
 # Images are pinned by digest (the exact image ID), so CI never changes Odoo or
-# Postgres version silently. To update: docker pull, then copy the new digest here.
+# Postgres version silently. To update: docker pull, then copy the new digest here
+# (Odoo's digest is in Dockerfile.ci).
 name: real-estate-eg-ci
 
 services:
@@ -23,8 +24,12 @@ services:
       retries: 30
 
   odoo:
-    # odoo:19.0 (build 19.0-20261112; ships wkhtmltopdf 0.12.6.1 with patched Qt)
-    image: odoo@sha256:03a47921f9eef2c225ded1167fe7828465d2b3177883f30d173bb1c3c792949b
+    # The pinned odoo:19.0 image plus the Arabic font for the contract PDF
+    # (Dockerfile.ci; the image digest is pinned in its FROM line).
+    build:
+      context: .
+      dockerfile: Dockerfile.ci
+    image: real-estate-eg-ci-odoo
     depends_on:
       db:
         condition: service_healthy

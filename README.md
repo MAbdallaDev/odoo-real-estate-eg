@@ -46,6 +46,10 @@ demo data and test fixtures — is in
 - PostgreSQL **16**, plus build headers for Odoo's requirements:
   `build-essential libpq-dev libldap2-dev libsasl2-dev`
 - **wkhtmltopdf 0.12.6.1 with patched Qt** (for PDF reports)
+- **An Arabic font: Noto Naskh Arabic** (for the Arabic / English contract PDF). On Debian /
+  Ubuntu it is in `fonts-noto-core`: `sudo apt install fonts-noto-core`, then
+  `fc-list | grep "Noto Naskh Arabic"` must list it. Without it wkhtmltopdf prints the Arabic
+  letters apart. The CI image installs it too ([`docker/Dockerfile.ci`](docker/Dockerfile.ci)).
 - Docker (only to reproduce CI locally)
 
 ## Quick start
@@ -119,7 +123,7 @@ Before the first contract is confirmed:
 | 05 | Overdue lines, late fees and the at-risk flag | planned |
 | 06 | Record rules: agents see their own contracts; multi-company | planned |
 | 07 | Collections screens and query performance | planned |
-| 08 | Bilingual Arabic / English contract PDF | planned |
+| 08 | Bilingual Arabic / English contract PDF | in review |
 | 09 | Post-dated cheques (stretch) | planned |
 | 10 | Ship v1.0.0: unit import, demo data | planned |
 

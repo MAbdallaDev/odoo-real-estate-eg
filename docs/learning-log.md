@@ -84,6 +84,29 @@ Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-ge
 
 Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-link.md#explain-back-questions)
 
+### Story 08 — Bilingual Arabic / English contract PDF
+
+Questions: [`design-notes/08-bilingual-pdf.md`](design-notes/08-bilingual-pdf.md#explain-back-questions)
+
+*Drafted by the AI at the maintainer's request.*
+
+1. Odoo's translation system prints a report in one language: the user's or the partner's. An
+   Egyptian contract needs both languages on the same page, so the Arabic words are fixed
+   labels in a right-hand column marked `dir="rtl"`. Inside a right-to-left paragraph, the bidi
+   algorithm reorders Latin text and numbers: without `<span dir="ltr">`, `8,580,000 EGP` would
+   show as `EGP 8,580,000`. The span keeps its order.
+2. The official `odoo:19.0` image has no Arabic font, so wkhtmltopdf would print the Arabic
+   letters apart. `Dockerfile.ci` takes the same pinned image and adds `fonts-noto-core`
+   (Noto Naskh Arabic). T4 prints a real PDF and checks that the font's name is embedded in it.
+   It does not check that the letters look joined or that the columns sit side by side: that
+   needs a look at a printed page.
+3. In a test run, Odoo returns HTML instead of a PDF; the context key `force_report_rendering`
+   makes it a real PDF. wkhtmltopdf then fetches the CSS from the Odoo server over HTTP. That
+   request waited for the test's transaction, which is never committed, so the test hung. With
+   the registry in test mode alone, the requests were refused for lack of the test cookie, and
+   the PDF came out without CSS. `allow_pdf_render()` does both: the requests share the test's
+   cursor, and wkhtmltopdf sends the test cookie.
+
 ---
 
 ## Mistakes caught
@@ -108,3 +131,7 @@ Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-lin
 | 2026-11-24 | 04 | The shell command given to invoice a line by hand used `fields.Date.today()` without importing `fields`, so it stopped with a `NameError`. | The maintainer ran it on `re_dev` | `from odoo import fields` added to the command; nothing had been created |
 | 2026-11-24 | 04 | T6 (the job invoices once) counted lines that have an invoice. A second invoice for the same line only replaced the link, so the count stayed at 2 and the test missed it. | Negative check N2 (no "no invoice yet" filter): T6 still passed | T6 counts the posted invoices in accounting; N2 now fails it |
 | 2026-11-25 | 04 | The Example E test helper paid every line numbered 0 to 4, including the maintenance deposit, which has no invoice before delivery. | The first test run: Odoo's "nothing left to pay" error | The helper pays the down payment and installments 1–4 only |
+| 2026-11-25 | 08 | The first printed contract showed 10 Jan 2027 as `01/10/2027`, the US date order of the user's language, which an Egyptian reader takes for 1 October. | Looking at the first rendered page | Every date prints `dd/MM/yyyy` (the date widget's `format` option) |
+| 2026-11-25 | 08 | The maintenance deposit row was numbered 1: it is printed after the total, by a second loop, and `line_index` restarts at 0 in each loop. The tests checked names and amounts, not numbers. | Looking at the rendered page | Number = place in the whole schedule; T1 now checks 1 to 34 |
+| 2026-11-25 | 08 | The real-PDF test hung, then printed a PDF without CSS: wkhtmltopdf's requests for the CSS waited for the test's uncommitted transaction, then were refused for lack of the test cookie. | `make test` stopped at the test; the log showed "ignored during test" for the CSS | `TransactionCase.allow_pdf_render()`: shares the test cursor and adds the cookie |
+| 2026-11-25 | 08 | A test run used the same HTTP port as the running dev server, so Odoo could not start and no test ran. | The log check: "no real_estate_eg test ran" (`Address already in use`) | Tests on their own port; the log check is what caught it |

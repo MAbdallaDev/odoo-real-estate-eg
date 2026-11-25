@@ -22,7 +22,16 @@
         "wizard/real_estate_schedule_generate_views.xml",
         "views/res_config_settings_views.xml",
         "views/real_estate_menus.xml",
+        "report/real_estate_contract_report.xml",
+        "report/real_estate_contract_templates.xml",
     ],
+    "assets": {
+        # BR-38: the contract report's CSS, in the bundle every PDF report
+        # loads (as account adds report_invoice.css).
+        "web.report_assets_common": [
+            "real_estate_eg/static/src/css/contract_report.css",
+        ],
+    },
     "installable": True,
     "application": True,
 }
