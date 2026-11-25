@@ -62,9 +62,9 @@ class TestLateFees(RealEstateCommon):
         )
 
     def _night(self, day):
-        """The late-fee step of the nightly job, run for `day`."""
+        """The nightly job, run for `day` (as the cron does, as superuser)."""
         with freeze_time(day):
-            self.env["real.estate.installment"].search([])._recompute_late_fees(
+            self.env["real.estate.contract"].sudo()._cron_nightly(
                 fields.Date.to_date(day)
             )
 
@@ -136,3 +136,44 @@ class TestLateFees(RealEstateCommon):
         self._night("2027-02-08")
         self.assertTrue(down_payment.is_overdue)
         self.assertEqual(down_payment.late_fee_accrued, 9 * 858_000 / 3000)
+
+    def test_ac_05_4_idempotent(self):
+        """T8. AC-05.4 / BR-29: the fee is overwritten from the payment
+        history, never added to: twice the same night = once; a skipped night
+        changes nothing; a payment entered late with an earlier date gives the
+        fee it would have had if entered on time."""
+        __, line = self._installment_1_invoiced()
+        self._pay(line, 141_313, "2027-04-30")
+        expected = (20 * 241_313 + 20 * 100_000) / 3000  # 10-29 Apr, 30 Apr-19 May
+        self._night("2027-05-20")
+        self.assertAlmostEqual(line.late_fee_accrued, expected, places=9)
+        self._night("2027-05-20")
+        self.assertAlmostEqual(line.late_fee_accrued, expected, places=9)
+        # 21 May skipped; 22 May counts both days.
+        self._night("2027-05-22")
+        self.assertAlmostEqual(
+            line.late_fee_accrued, (20 * 241_313 + 22 * 100_000) / 3000, places=9
+        )
+        # The rest was paid on 21 May but entered only on 25 May.
+        self._pay(line, 100_000, "2027-05-21", entered="2027-05-25")
+        self._night("2027-05-25")
+        self.assertAlmostEqual(
+            line.late_fee_accrued, (20 * 241_313 + 21 * 100_000) / 3000, places=9
+        )
+        self.assertTrue(line.late_fee_final)
+
+    def test_ac_05_6_at_risk(self):
+        """T9. AC-05.6 / BR-31: 60 days past due -> not at risk; 61 -> at risk,
+        the contract stays confirmed; paying the line clears the flag."""
+        contract, line = self._installment_1_invoiced()
+        self._pay(self._line(contract, "down_payment"), 858_000, "2027-01-10")
+        self._night("2027-06-09")
+        self.assertEqual(line.days_past_due, 60)
+        self.assertFalse(contract.at_risk)
+        self._night("2027-06-10")
+        self.assertEqual(line.days_past_due, 61)
+        self.assertTrue(contract.at_risk)
+        self.assertEqual(contract.state, "confirmed")
+        self.assertTrue(contract.with_user(self.collections).at_risk)
+        self._pay(line, 241_313, "2027-06-11")
+        self.assertFalse(contract.at_risk)

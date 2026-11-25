@@ -100,6 +100,14 @@ class RealEstateContract(models.Model):
     amount_outstanding = fields.Monetary(
         string="Total Outstanding", compute="_compute_amounts"
     )
+    # BR-31: flagged, never cancelled automatically. A stored compute on the
+    # lines, so paying the late line clears it at once.
+    at_risk = fields.Boolean(
+        compute="_compute_at_risk",
+        store=True,
+        index=True,
+        tracking=True,
+    )
     state = fields.Selection(
         CONTRACT_STATE,
         string="Status",
@@ -155,6 +163,24 @@ class RealEstateContract(models.Model):
             lines = contract.installment_ids
             contract.amount_paid = sum(lines.mapped("amount_paid"))
             contract.amount_outstanding = sum(lines.mapped("amount_residual"))
+
+    @api.depends(
+        "state",
+        "installment_ids.state",
+        "installment_ids.days_past_due",
+        "company_id.re_at_risk_days",
+    )
+    def _compute_at_risk(self):
+        """BR-31: a live contract with a line not paid and more than the
+        company's at-risk days (60) past due. Cleared when no such line
+        remains, or when the contract is no longer live."""
+        for contract in self:
+            limit = contract.company_id.re_at_risk_days
+            contract.at_risk = contract.state in ("confirmed", "delivered") and any(
+                line.state in ("invoiced", "partially_paid")
+                and line.days_past_due > limit
+                for line in contract.installment_ids
+            )
 
     def _check_unit_free(self, unit_ids):
         """BR-04 / AC-01.3: a clear message before the database refuses.
@@ -504,13 +530,37 @@ class RealEstateContract(models.Model):
     def _cron_nightly(self, today=None):
         """§5.5, the nightly job, run as superuser across all companies.
         Step 1: invoice every line that has fallen due (BR-22, BR-25).
-        Steps 2-3 (late fees, at risk) come with Story 05.
+        Step 2: recompute days past due and late fees (BR-26 - BR-29).
+        Step 3: the at-risk flag follows from step 2 (stored compute, BR-31).
         Step 4: close delivered contracts that are fully paid (BR-12).
         `today` is a parameter so tests can run any day."""
         today = today or fields.Date.context_today(self)
         contracts = self.search([("state", "in", ("confirmed", "delivered"))])
         contracts._invoice_due_lines(today)
+        self._cron_late_fees(today)
         self._cron_close_paid_contracts()
+
+    @api.model
+    def _cron_late_fees(self, today):
+        """§5.5 step 2: every invoiced line of a live contract that is not
+        paid, or was paid since its fee was last computed (not final yet).
+        A fully paid line computed once is final and skipped. Recomputing is
+        safe: the fee is overwritten from the payment history (BR-29)."""
+        lines = (
+            self.env["real.estate.installment"]
+            .sudo()
+            .search(
+                [
+                    ("contract_id.state", "in", ("confirmed", "delivered")),
+                    ("invoice_id", "!=", False),
+                    "|",
+                    ("state", "!=", "paid"),
+                    ("late_fee_final", "=", False),
+                ]
+            )
+        )
+        lines._recompute_late_fees(today)
+        return lines
 
     @api.model
     def _cron_close_paid_contracts(self):
