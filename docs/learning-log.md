@@ -84,9 +84,53 @@ Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-ge
 
 Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-link.md#explain-back-questions)
 
+*Drafted by the AI at the maintainer's request.*
+
+1. Invoiced: debit Receivable 858,000, credit Customer Advances 858,000. Paid: debit
+   Outstanding Receipts 858,000, credit Receivable 858,000, matched with the invoice.
+   Cancelled while unpaid: a credit note, debit Customer Advances 858,000, credit Receivable
+   858,000, matched with the invoice. There is no revenue line because the money still belongs
+   to the customer until the unit is handed over: it is an advance, a liability (BR-43).
+   Revenue at delivery is v1.1. For the payment to make the line show paid, the bank journal's
+   incoming payment method needs an Outstanding Receipts account. Without it the payment has
+   no journal entry, so `amount_residual` never drops.
+2. Odoo's reversal wizard always credits the whole invoice. For a partly paid invoice, that
+   would also "refund" the part the customer really paid. Our credit note is for exactly
+   `amount_residual`. The retention comes first because a credit note lowers
+   `amount_residual` exactly like a payment does. Computed afterwards, the credited amount
+   would look like money received, and the retention and refund would be too high.
+3. Agents and collections officers have no rights on invoices, so they cannot read
+   `invoice_id`. The state and amounts are copied onto the line (stored) so everyone can read
+   them, search them and group by them. The invoicing methods run with `sudo()` because a
+   sales manager (and the nightly job) has no accounting rights to create and post invoices,
+   and because BR-19 locks the schedule lines of a confirmed contract. Only the superuser
+   can link the invoice to a locked line.
+
 ### Story 05 — Overdue lines, late fees and the at-risk flag
 
 Questions: [`design-notes/05-late-fees.md`](design-notes/05-late-fees.md#explain-back-questions)
+
+*Drafted by the AI at the maintainer's request.*
+
+1. From 10 Apr to 29 Apr (20 days) the fee is on 241,313. From 30 Apr, the day of the first
+   payment, to 24 May (25 days) it is on 100,000. 25 May, the day it is fully paid, is not
+   charged. 20 × 241,313 × 1 % ÷ 30 + 25 × 100,000 × 1 % ÷ 30 = 1,608.7533 + 833.3333 =
+   2,442.0867. Shown half up to piastres: 2,442.09. Billed half up to whole EGP: 2,442.
+   Paid in full on 18 Apr: the line was never more than 7 days past due while unpaid, so it
+   was never overdue, and the fee is 0. Paid on 19 Apr: it was overdue on 18 Apr, so all 9
+   days from 10 Apr are charged: 9 × 241,313 ÷ 3,000 = 723.94.
+2. The fee is a function of the payment history and the as-of date, and the job overwrites
+   the stored value every night. An accumulating job would go wrong in all three cases.
+   Run twice the same night: it would add the day twice. A skipped night: it would miss that
+   day. A payment entered on 25 May but dated 21 May: it would already have charged 21–24 May
+   on money that was in fact paid, and could not take it back.
+3. `Monetary` rounds to piastres every time a value is set. The fee must stay unrounded
+   (3,619.695), so the invoice total is rounded only once (3,620) and the daily amounts
+   never drift. So the stored fees are `Float`. The screen totals are `Monetary` on purpose:
+   they round once, half up, for display (3,619.70). A collections officer can bill because
+   the action first checks the collections or manager group, then creates and posts the
+   invoice with `sudo()` inside the module's own method. The amount comes from the stored
+   fees, so the officer cannot type it, and the officer gets no general invoicing rights.
 
 ### Story 08 — Bilingual Arabic / English contract PDF
 
