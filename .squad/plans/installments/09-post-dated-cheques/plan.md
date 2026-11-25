@@ -3,7 +3,8 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/09-post-dated-cheques/intake.md`
 - **Branch:** `story/09-post-dated-cheques`
-- **Status:** Done Criteria approved 2026-11-25; in progress
+- **Status:** Done Criteria approved 2026-11-25; all steps done; Done Criteria met (98 tests green);
+  in review
 
 ---
 
@@ -256,12 +257,12 @@ gh run list --branch main --limit 1                    # green after merge
 
 ## Done Criteria
 
-- [ ] **AC-13.1** Given a confirmed or delivered contract, the officer records a cheque (number,
+- [x] **AC-13.1** Given a confirmed or delivered contract, the officer records a cheque (number,
   bank, date, amount) against a schedule line; it starts **held**. *Proof:* T1, T2.
-- [ ] **AC-13.2** A cheque moves held → deposited → cleared or bounced; any other change is refused.
+- [x] **AC-13.2** A cheque moves held → deposited → cleared or bounced; any other change is refused.
   *Proof:* T3, T4.
-- [ ] **AC-13.3** When a cheque bounces, a new cheque can be recorded on the same line; the bounced
+- [x] **AC-13.3** When a cheque bounces, a new cheque can be recorded on the same line; the bounced
   one stays in the line's history. *Proof:* T5.
-- [ ] **AC-13.4** Marking a cheque cleared does not change the line's payment status; only a payment
+- [x] **AC-13.4** Marking a cheque cleared does not change the line's payment status; only a payment
   in accounting does. *Proof:* T6.
-- [ ] **AC-13.5** A "To deposit" list shows held cheques dated today or earlier. *Proof:* T7.
+- [x] **AC-13.5** A "To deposit" list shows held cheques dated today or earlier. *Proof:* T7.

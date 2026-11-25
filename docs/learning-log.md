@@ -207,6 +207,12 @@ Questions: [`design-notes/07-collections-performance.md`](design-notes/07-collec
    and the plain one for the count and the pivot, which stay close to before (4.8 and 13.9 ms,
    same buffers). So the measurements said to keep both.
 
+### Story 09 — Post-dated cheques
+
+Questions: [`design-notes/09-post-dated-cheques.md`](design-notes/09-post-dated-cheques.md#explain-back-questions)
+
+*Waiting for the maintainer's answers.*
+
 ## Mistakes caught
 
 | Date | Story | What was wrong | How it was caught | Fix |
@@ -239,3 +245,4 @@ Questions: [`design-notes/07-collections-performance.md`](design-notes/07-collec
 | 2026-11-25 | 06 | Negative check N2 first gave the multi-company rule the agent group to "switch it off" for the company 2 user. That user is a manager, who has the agent group through `implied_ids`, so the rule still applied and T1 still passed. | The negative check did not fail | N2 uses the accountant group, which the user does not have; T1 then fails. The plan and design note say why. |
 | 2026-11-25 | 07 | The plan stored `project_id` on the schedule line because "only stored fields can be grouped". In Odoo 19 a non-stored **related** field is grouped through a JOIN (`_traverse_related_sql()`). | Negative check N1 (un-store it) passed instead of failing | Not stored; N1 replaced by a check that does fail |
 | 2026-11-25 | 07 | Replacing Story 05's `is_overdue` index with the new partial index made the count and the pivot slower, and removing `index=True` did not even drop the old index ("Keep unexpected index"). | Measuring every setup in the same loop on 1M lines; reading the upgrade log | Both indexes kept; the trap is in the design note |
+| 2026-11-25 | 09 | The chatter test (T3) found no tracked state change: Odoo's test base turns tracking off, and a record created that way is marked "do not track" until the next flush. With tracking turned back on, only the last of two moves in one transaction was logged. | T3 failed twice: no change logged, then only "Cleared" | The test turns tracking on and flushes before and after each move, as separate saves in the browser would. The trap is in the design note. |
