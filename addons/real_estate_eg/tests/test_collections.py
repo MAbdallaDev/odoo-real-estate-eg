@@ -133,3 +133,41 @@ class TestCollections(RealEstateCommon):
             due = "real_estate_installment_action_due"
             self.assertEqual(self._search(self.agent_b, due), line_b)
             self.assertEqual(self._search(self.agent_a, due), line_a)
+
+    # ------------------------------------------------------------------
+    # AC-04.3: the pivot
+    # ------------------------------------------------------------------
+
+    def test_ac_04_3_pivot(self):
+        """T6. AC-04.3: overdue amounts by project x aging bucket, as the
+        pivot reads them (formatted_read_group), as collections. On 11 May
+        2027 A's installment 1 (Horizon New Cairo) is 31 days past due and
+        B's (a second project, invoiced 18 Apr) is 23."""
+        project_2 = self.env["real.estate.project"].create(
+            {"name": "Nile Gardens", "code": "NG", "location": "Sheikh Zayed"}
+        )
+        self.unit_2br.project_id = project_2
+        line_a, line_b = self._overdue_on_18_april()
+        self._night("2027-05-11")
+        groups = (
+            self.env["real.estate.installment"]
+            .with_user(self.collections)
+            .formatted_read_group(
+                self._domain("real_estate_installment_action_analysis"),
+                ["project_id", "aging_bucket"],
+                ["amount_residual:sum"],
+            )
+        )
+        cells = {
+            (group["project_id"][0], group["aging_bucket"]): group[
+                "amount_residual:sum"
+            ]
+            for group in groups
+        }
+        self.assertEqual(
+            cells,
+            {
+                (self.project.id, "31_60"): 241_313,
+                (project_2.id, "1_30"): line_b.amount,
+            },
+        )

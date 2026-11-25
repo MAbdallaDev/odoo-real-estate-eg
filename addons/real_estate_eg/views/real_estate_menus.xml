@@ -53,6 +53,13 @@
     sequence="20"
   />
     <menuitem
+    id="real_estate_installment_analysis_menu"
+    name="Overdue Analysis"
+    parent="real_estate_collections_menu"
+    action="real_estate_installment_action_analysis"
+    sequence="30"
+  />
+    <menuitem
     id="real_estate_contract_at_risk_menu"
     name="At-Risk Contracts"
     parent="real_estate_collections_menu"
