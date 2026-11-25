@@ -28,6 +28,44 @@
     action="real_estate_contract_action"
     sequence="10"
   />
+    <!-- US-04: the screens §4 gives collections; managers and accountants
+         use them too. Agents see their own lines on the contract form, and the
+         record rules hold on these screens either way. -->
+    <menuitem
+    id="real_estate_collections_menu"
+    name="Collections"
+    parent="real_estate_menu_root"
+    sequence="15"
+    groups="group_real_estate_collections,group_real_estate_manager,account.group_account_invoice"
+  />
+    <menuitem
+    id="real_estate_installment_due_menu"
+    name="Due This Month"
+    parent="real_estate_collections_menu"
+    action="real_estate_installment_action_due"
+    sequence="10"
+  />
+    <menuitem
+    id="real_estate_installment_overdue_menu"
+    name="Overdue"
+    parent="real_estate_collections_menu"
+    action="real_estate_installment_action_overdue"
+    sequence="20"
+  />
+    <menuitem
+    id="real_estate_installment_analysis_menu"
+    name="Overdue Analysis"
+    parent="real_estate_collections_menu"
+    action="real_estate_installment_action_analysis"
+    sequence="30"
+  />
+    <menuitem
+    id="real_estate_contract_at_risk_menu"
+    name="At-Risk Contracts"
+    parent="real_estate_collections_menu"
+    action="real_estate_contract_action_at_risk"
+    sequence="40"
+  />
     <!-- BR-14: plans are set up by the sales manager; agents only pick one. -->
     <menuitem
     id="real_estate_config_menu"

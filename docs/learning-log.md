@@ -181,6 +181,32 @@ Questions: [`design-notes/06-record-rules.md`](design-notes/06-record-rules.md#e
    all four perms, the read-all rule would also count for writes, and since the agent's
    access rights allow writing contracts, this user could edit other agents' drafts.
 
+### Story 07 — Collections screens and query performance
+
+Questions: [`design-notes/07-collections-performance.md`](design-notes/07-collections-performance.md#explain-back-questions)
+
+*Drafted by the AI at the maintainer's request.*
+
+1. The bucket is a stored compute that depends on `days_past_due` and `is_overdue`. Nobody
+   edits the line, but the nightly job does: every night it rewrites `days_past_due` on every
+   unpaid invoiced line. That write is a change to a dependency, so the ORM recomputes the
+   bucket in the same run, and a line moves from "1–30" to "31–60" the night it reaches day 31.
+   A payment changes the line's state (read from the invoice). `is_overdue` depends on the
+   state, so it becomes False at once, and the bucket depends on `is_overdue`, so it is cleared
+   at once too, without waiting for the next night.
+2. Story 05's index on `is_overdue` only finds **which** lines are overdue, not in which
+   order. To show the 80 most late, PostgreSQL had to fetch all 12,556 overdue lines from the
+   table (one page each, about 7,450 buffers) and sort them to keep the top 80. The partial
+   index holds only the overdue lines, already sorted by days past due (most late first), so
+   PostgreSQL reads the first 80 entries in order and stops: no sort, 82 buffers, 9.1 ms down
+   to 0.11 ms. The cost no longer grows with the number of overdue lines.
+3. The count and the pivot must read **every** overdue line whatever the index, so the new
+   index cannot make them read less. When I tried the partial index alone, the planner used it
+   through a bitmap heap scan, and they got slower: the count went from 3.9 to 10.0 ms and the
+   pivot from 13.2 to 17.0 ms. With both indexes, the planner uses the partial one for the list
+   and the plain one for the count and the pivot, which stay close to before (4.8 and 13.9 ms,
+   same buffers). So the measurements said to keep both.
+
 ## Mistakes caught
 
 | Date | Story | What was wrong | How it was caught | Fix |
@@ -211,3 +237,5 @@ Questions: [`design-notes/06-record-rules.md`](design-notes/06-record-rules.md#e
 | 2026-11-25 | 08 | The real-PDF test hung, then printed a PDF without CSS: wkhtmltopdf's requests for the CSS waited for the test's uncommitted transaction, then were refused for lack of the test cookie. | `make test` stopped at the test; the log showed "ignored during test" for the CSS | `TransactionCase.allow_pdf_render()`: shares the test cursor and adds the cookie |
 | 2026-11-25 | 08 | A test run used the same HTTP port as the running dev server, so Odoo could not start and no test ran. | The log check: "no real_estate_eg test ran" (`Address already in use`) | Tests on their own port; the log check is what caught it |
 | 2026-11-25 | 06 | Negative check N2 first gave the multi-company rule the agent group to "switch it off" for the company 2 user. That user is a manager, who has the agent group through `implied_ids`, so the rule still applied and T1 still passed. | The negative check did not fail | N2 uses the accountant group, which the user does not have; T1 then fails. The plan and design note say why. |
+| 2026-11-25 | 07 | The plan stored `project_id` on the schedule line because "only stored fields can be grouped". In Odoo 19 a non-stored **related** field is grouped through a JOIN (`_traverse_related_sql()`). | Negative check N1 (un-store it) passed instead of failing | Not stored; N1 replaced by a check that does fail |
+| 2026-11-25 | 07 | Replacing Story 05's `is_overdue` index with the new partial index made the count and the pivot slower, and removing `index=True` did not even drop the old index ("Keep unexpected index"). | Measuring every setup in the same loop on 1M lines; reading the upgrade log | Both indexes kept; the trap is in the design note |

@@ -21,6 +21,15 @@ LINE_STATE = [
     ("cancelled", "Cancelled"),
 ]
 
+# BR-37: aging buckets of overdue lines, in pivot column order. Only overdue
+# lines get one, so "1-30" holds days 8-30 with the default 7 days of grace.
+AGING_BUCKET = [
+    ("1_30", "1-30"),
+    ("31_60", "31-60"),
+    ("61_90", "61-90"),
+    ("over_90", "90+"),
+]
+
 
 class RealEstateInstallment(models.Model):
     """US-02: one line of a contract's payment schedule. Lines are made by the
@@ -72,8 +81,17 @@ class RealEstateInstallment(models.Model):
     days_past_due = fields.Integer(readonly=True, copy=False)
     # BR-26: overdue = not paid and past the grace period. A stored compute on
     # the state, so a payment clears it at once, without waiting for the job.
+    # Its plain index serves the list's count and the pivot, which read every
+    # overdue line anyway (measured: without it they are slower).
     is_overdue = fields.Boolean(
         string="Overdue", compute="_compute_is_overdue", store=True, index=True
+    )
+    # S07.3: the Overdue list (AC-04.2) reads the first 80 overdue lines, most
+    # late first. This index holds only overdue lines (about 1% of them), in
+    # that order, so the list reads 80 entries instead of sorting them all.
+    # Measured in docs/design-notes/07-collections-performance.md.
+    _overdue_order_idx = models.Index(
+        "(days_past_due DESC, id) WHERE is_overdue IS TRUE"
     )
     # BR-27 / BR-30: kept UNROUNDED. A Monetary field would round to piastres
     # on every write, and the invoice must be rounded once, from the raw sum.
@@ -95,6 +113,39 @@ class RealEstateInstallment(models.Model):
     # §5.5: the fee was computed after the line was fully paid, so it is final
     # and the job skips the line (until a payment is unmatched again).
     late_fee_final = fields.Boolean(readonly=True, copy=False)
+
+    # US-04 / BR-37: the overdue line's aging bucket, by days past due. Stored
+    # so the pivot can group by it. It needs no cron step of its own: the
+    # nightly job rewrites days_past_due, and the ORM recomputes it then.
+    aging_bucket = fields.Selection(
+        AGING_BUCKET, compute="_compute_aging_bucket", store=True
+    )
+
+    # AC-04.1 / AC-04.3: read through the contract, not stored. Odoo groups,
+    # sorts and searches a non-stored related field with a JOIN to the
+    # contract, so the pivot can still group by project without a copy of it
+    # on every line. (The bucket above is a compute, not a related field, so
+    # it must be stored to be grouped.)
+    partner_id = fields.Many2one(related="contract_id.partner_id")
+    partner_phone = fields.Char(string="Phone", related="contract_id.partner_id.phone")
+    unit_id = fields.Many2one(related="contract_id.unit_id")
+    user_id = fields.Many2one(related="contract_id.user_id")
+    project_id = fields.Many2one(related="contract_id.project_id")
+
+    @api.depends("is_overdue", "days_past_due")
+    def _compute_aging_bucket(self):
+        for line in self:
+            days = line.days_past_due
+            if not line.is_overdue:
+                line.aging_bucket = False
+            elif days <= 30:
+                line.aging_bucket = "1_30"
+            elif days <= 60:
+                line.aging_bucket = "31_60"
+            elif days <= 90:
+                line.aging_bucket = "61_90"
+            else:
+                line.aging_bucket = "over_90"
 
     @api.depends("state", "days_past_due", "company_id.re_grace_days")
     def _compute_is_overdue(self):

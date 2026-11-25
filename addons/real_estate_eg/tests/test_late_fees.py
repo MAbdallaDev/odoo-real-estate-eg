@@ -2,7 +2,6 @@ from datetime import date
 
 from freezegun import freeze_time
 
-from odoo import fields
 from odoo.exceptions import AccessError
 from odoo.tests import tagged
 
@@ -31,24 +30,6 @@ class TestLateFees(RealEstateCommon):
     # Example D: Example A's installment 1, 241,313 due 10 Apr 2027.
     # ------------------------------------------------------------------
 
-    def _installment_1_invoiced(self):
-        """Example A confirmed on 10 Jan 2027; installment 1 invoiced on its
-        due date, 10 Apr 2027 (so its effective due date is 10 Apr)."""
-        with freeze_time("2027-01-10"):
-            contract = self._example_a()
-        with freeze_time("2027-04-10"):
-            contract._invoice_due_lines(fields.Date.today())
-        line = contract.installment_ids.filtered(lambda x: x.number == 1)
-        return contract, line
-
-    def _pay(self, line, amount, day, entered=None):
-        """Register a payment dated `day`, entered on `entered` (default: the
-        same day), through Odoo's register-payment wizard."""
-        with freeze_time(entered or day):
-            self._register_payment(
-                line.sudo().invoice_id, amount=amount, payment_date=day
-            )
-
     def test_payment_history(self):
         """T3. BR-24: each payment counts from its own date, even when it is
         entered later; the history is read from the invoice's reconciliation."""
@@ -61,13 +42,6 @@ class TestLateFees(RealEstateCommon):
             line._payment_history(),
             [(date(2027, 4, 30), 141_313), (date(2027, 5, 25), 100_000)],
         )
-
-    def _night(self, day):
-        """The nightly job, run for `day` (as the cron does, as superuser)."""
-        with freeze_time(day):
-            self.env["real.estate.contract"].sudo()._cron_nightly(
-                fields.Date.to_date(day)
-            )
 
     def test_ac_05_1_overdue_after_grace(self):
         """T4. AC-05.1: not overdue on 15 and 17 Apr (due + 7), overdue on

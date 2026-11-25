@@ -17,7 +17,7 @@ and be read first.
 | 04 | `04-accounting-link/plan.md` | Accounting link: invoices, payment state, closing and cancellation money | — | 03 |
 | 05 | `05-late-fees/plan.md` | Overdue lines, late fees and the at-risk flag | — | 04 |
 | 06 | `06-record-rules/plan.md` | Record rules: agents see their own contracts; multi-company | — | 05 |
-| 07 | `07-collections-performance/plan.md` *(not written yet)* | Collections screens and query performance | — | 05, 06 |
+| 07 | `07-collections-performance/plan.md` | Collections screens and query performance | — | 05, 06 |
 | 08 | `08-bilingual-pdf/plan.md` | Bilingual Arabic / English contract PDF | — | 03 |
 | 09 | `09-post-dated-cheques/plan.md` *(not written yet)* | Post-dated cheques (stretch) | — | 04, 07 |
 | 10 | `10-ship/plan.md` *(not written yet)* | Ship v1.0.0: unit import, demo data, README | — | 01–08 (09 if shipped) |
@@ -27,7 +27,7 @@ and be read first.
 - **Critical path:** 01 → 02 → 03 → 04 → 05 → 06 → 07 → 10. Story 08 needs only 03, so it can be
   pulled earlier if a story is blocked.
 - **The nightly job** is created in Story 04 (invoice due lines, close paid contracts); Story 05 adds
-  the late-fee and at-risk steps; Story 07 adds the aging-bucket recompute.
+  the late-fee and at-risk steps; Story 07's aging bucket depends on days past due, so step 2 already recomputes it.
 - **Security** is split on purpose: groups and access rights in 02 so every later test runs as a real
   user; record rules in 06 once every model they must cover exists.
 - **Story 09 is a stretch.** If time runs short it moves to v1.1 and Story 10 ships without it.

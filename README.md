@@ -116,6 +116,10 @@ Before the first contract is confirmed:
 - **CI** — GitHub Actions runs the lint and the tests (Postgres 16 + the official Odoo 19
   image, both pinned by digest) on every push and pull request. `main` changes only through
   pull requests with green CI.
+- **Performance** — a one-million-line load test in a separate database
+  ([`scripts/perf/`](scripts/perf/README.md), never in CI); the Overdue list's query plan before
+  and after its index is in the
+  [design note](docs/design-notes/07-collections-performance.md#performance-s071--s073).
 
 ## Roadmap
 
@@ -126,8 +130,8 @@ Before the first contract is confirmed:
 | 03 | Payment plan templates and the schedule generator | done |
 | 04 | Accounting link: invoices, payment state, closing and cancellation money | done |
 | 05 | Overdue lines, late fees and the at-risk flag | done |
-| 06 | Record rules: agents see their own contracts; multi-company | in review |
-| 07 | Collections screens and query performance | planned |
+| 06 | Record rules: agents see their own contracts; multi-company | done |
+| 07 | Collections screens and query performance | in review |
 | 08 | Bilingual Arabic / English contract PDF | done |
 | 09 | Post-dated cheques (stretch) | planned |
 | 10 | Ship v1.0.0: unit import, demo data | planned |
