@@ -122,6 +122,8 @@ class RealEstateContract(models.Model):
     )
     # BR-31: flagged, never cancelled automatically. A stored compute on the
     # lines, so paying the late line clears it at once.
+    # US-13: cheques on this contract the user may see (record rules apply).
+    cheque_count = fields.Integer(compute="_compute_cheque_count")
     at_risk = fields.Boolean(
         compute="_compute_at_risk",
         store=True,
@@ -413,6 +415,26 @@ class RealEstateContract(models.Model):
     # ------------------------------------------------------------------
     # US-02: generate the schedule from a plan (BR-14 to BR-20).
     # ------------------------------------------------------------------
+
+    def _compute_cheque_count(self):
+        # Under the user's record rules, so an agent counts only what they see.
+        counts = dict(
+            self.env["real.estate.cheque"]._read_group(
+                [("contract_id", "in", self.ids)], ["contract_id"], ["__count"]
+            )
+        )
+        for contract in self:
+            contract.cheque_count = counts.get(contract, 0)
+
+    def action_view_cheques(self):
+        """US-13: this contract's cheques, bounced ones included."""
+        self.ensure_one()
+        action = self.env["ir.actions.act_window"]._for_xml_id(
+            "real_estate_eg.real_estate_cheque_action"
+        )
+        action["domain"] = [("contract_id", "=", self.id)]
+        action["context"] = {"create": False}
+        return action
 
     def action_bill_late_fees(self):
         """US-05 / BR-30 / BR-35: a collections officer or a sales manager

@@ -30,6 +30,9 @@ rebuilds it. This module does it once, on top of standard Odoo accounting.
   payments.
 - **Collections:** overdue lines flagged nightly, late fees computed from payment history
   (re-running the job never double-charges), due-this-month and aging views.
+- **Post-dated cheques** (شيكات آجلة): each cheque the buyer hands over is tracked on its
+  schedule line, held → deposited → cleared or bounced, with a "to deposit" list. Status
+  only: accounting alone decides what is paid.
 - **Security:** sales agents see only their own contracts; multi-company aware.
 - **Bilingual contract PDF**, Arabic and English side by side.
 - **Unit import** from a spreadsheet, re-runnable without duplicates.
@@ -131,9 +134,9 @@ Before the first contract is confirmed:
 | 04 | Accounting link: invoices, payment state, closing and cancellation money | done |
 | 05 | Overdue lines, late fees and the at-risk flag | done |
 | 06 | Record rules: agents see their own contracts; multi-company | done |
-| 07 | Collections screens and query performance | in review |
+| 07 | Collections screens and query performance | done |
 | 08 | Bilingual Arabic / English contract PDF | done |
-| 09 | Post-dated cheques (stretch) | planned |
+| 09 | Post-dated cheques | in review |
 | 10 | Ship v1.0.0: unit import, demo data | planned |
 
 ## How this is built

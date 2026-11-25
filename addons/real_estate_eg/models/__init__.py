@@ -4,5 +4,6 @@ from . import real_estate_plan_template
 from . import res_partner
 from . import real_estate_contract
 from . import real_estate_installment
+from . import real_estate_cheque
 from . import res_company
 from . import res_config_settings

@@ -5,6 +5,7 @@
 | Module | `real_estate_eg` (Odoo 19 Community) |
 | Status | **v0.2 — Chapter 8 answered (Checkpoint 1 passed); stories next (Checkpoint 2)** |
 | Date | 2026-11-21 |
+| Scope change | 2026-11-25: US-13 (post-dated cheques, Story 09) moved from stretch into v1. Cheque *accounting* stays beyond v1 (Chapter 7). |
 | Company in this document | **Nile Heights Developments** (نايل هايتس للتطوير العقاري) — invented. Every name, number and person here is fictional. |
 
 **How to read this document.** Chapter 1 is the build contract: what v1 does, as user stories and
@@ -44,7 +45,7 @@ staff what to chase. The manager records delivery of the unit; the contract clos
 everything is paid. Contracts can be cancelled with the developer's retention computed. Agents see
 only their own contracts. The contract prints as a bilingual Arabic/English PDF. Units can be
 imported from a spreadsheet without creating duplicates. The post-dated cheques a buyer hands over
-are recorded and their status tracked (a stretch story — see §1.4). Money received is booked as
+are recorded and their status tracked. Money received is booked as
 customer advances; v1 records no sales revenue.
 
 ### 1.2 Business rules
@@ -137,7 +138,7 @@ customer advances; v1 records no sales revenue.
 | BR-38 | The contract prints as one PDF with **Arabic and English side by side**: parties, unit, price, plan, and the full schedule table. |
 | BR-39 | Importing **units** from a spreadsheet is **repeatable**: importing the same file again updates the existing units, matched by unit code, and creates no duplicates. A file is imported **all or nothing**: if any row is wrong, nothing is imported and every bad row is reported with its row number and reason. Importing existing contracts is outside v1 (Chapter 7). |
 
-#### Post-dated cheques *(stretch — see §1.4)*
+#### Post-dated cheques
 
 | ID | Rule |
 |---|---|
@@ -324,7 +325,7 @@ Rules: BR-12
   runs, the contract becomes closed.
 - **AC-12.2** A confirmed (not delivered) contract that is fully paid stays confirmed.
 
-#### US-13 — Track post-dated cheques *(stretch)*
+#### US-13 — Track post-dated cheques
 *As a **collections officer**, I want to record the cheques a buyer hands over and track each one, so
 that I know which to deposit today and which have bounced.*
 Rules: BR-40–BR-42
@@ -353,7 +354,7 @@ Rules: BR-40–BR-42
 | US-06 Agents see own | Story 02 (groups, access rights), Story 06 (record rules) |
 | US-04 Collections screen | Story 07 |
 | US-07 Bilingual PDF | Story 08 |
-| US-13 Post-dated cheques | Story 09 — **stretch**: if time runs short it moves to v1.1 |
+| US-13 Post-dated cheques | Story 09 |
 | US-08 Import units | Story 10 |
 
 ---
@@ -707,7 +708,7 @@ included below and already applied to the rules and stories.
 
 | # | Question | Options | Recommendation | Your answer |
 |---|---|---|---|---|
-| Q1 | Track post-dated cheques in v1? | (a) not in v1 (b) **light**: cheque number, bank, date and status (held / deposited / cleared / bounced), no accounting (c) full lifecycle with cheque journals | **(b)** — the most Egypt-specific feature. Each cheque is its own record, so a bounced one can be replaced; status is information only. Its own stretch story (Story 09), not part of Story 05. US-13, BR-40–42. | Accepted |
+| Q1 | Track post-dated cheques in v1? | (a) not in v1 (b) **light**: cheque number, bank, date and status (held / deposited / cleared / bounced), no accounting (c) full lifecycle with cheque journals | **(b)** — the most Egypt-specific feature. Each cheque is its own record, so a bounced one can be replaced; status is information only. Its own story (Story 09), not part of Story 05. US-13, BR-40–42. | Accepted |
 | Q2 | When is a line invoiced? | (a) each line on its due date (b) whole contract value at signing | **(a)** — matches how cheques and collections work, and keeps receivables honest. One invoice per line, not Odoo payment terms (BR-22); no taxes in v1 (BR-44). | Accepted |
 | Q3 | Revenue recognition | (a) installments invoiced to a customer-advances account, reclassified to revenue at delivery (b) straight to revenue | **(a)** — every down payment and installment invoice, before and after delivery, posts to a configurable advances account; v1 records no revenue (BR-43). The reclassification at delivery is v1.1. Confirm with an accountant. | Accepted |
 | Q4 | Rounding | (a) whole EGP, last line absorbs the difference (b) piastres, last line absorbs | **(a)** — Egyptian schedules are written in whole pounds. Half up everywhere, with exact arithmetic (BR-45). | Accepted |

@@ -21,3 +21,7 @@ access_real_estate_installment_collections,real.estate.installment collections,m
 access_real_estate_installment_manager,real.estate.installment manager,model_real_estate_installment,group_real_estate_manager,1,1,1,1
 access_real_estate_installment_accountant,real.estate.installment accountant,model_real_estate_installment,account.group_account_invoice,1,0,0,0
 access_real_estate_schedule_generate_agent,real.estate.schedule.generate agent,model_real_estate_schedule_generate,group_real_estate_agent,1,1,1,1
+access_real_estate_cheque_agent,real.estate.cheque agent,model_real_estate_cheque,group_real_estate_agent,1,0,0,0
+access_real_estate_cheque_collections,real.estate.cheque collections,model_real_estate_cheque,group_real_estate_collections,1,1,1,0
+access_real_estate_cheque_manager,real.estate.cheque manager,model_real_estate_cheque,group_real_estate_manager,1,1,1,0
+access_real_estate_cheque_accountant,real.estate.cheque accountant,model_real_estate_cheque,account.group_account_invoice,1,0,0,0

@@ -207,6 +207,30 @@ Questions: [`design-notes/07-collections-performance.md`](design-notes/07-collec
    and the plain one for the count and the pivot, which stay close to before (4.8 and 13.9 ms,
    same buffers). So the measurements said to keep both.
 
+### Story 09 — Post-dated cheques
+
+Questions: [`design-notes/09-post-dated-cheques.md`](design-notes/09-post-dated-cheques.md#explain-back-questions)
+
+*Drafted by the AI at the maintainer's request.*
+
+1. Showing each button only in the right state helps the user, but it guards nothing on the
+   server. A state can change without a click in many ways: an RPC call such as
+   `write({'state': 'cleared'})` from a script or the JSON-RPC API, an import of cheques with a
+   status column, or other Python code (a future cron or wizard). `write()` is the one place
+   every change passes through, so the check there holds for all of them, the superuser
+   included. The buttons only ask `write()` for the next state.
+2. The line's state is a stored compute that reads its invoice (BR-24). Its `@api.depends`
+   lists invoice fields only, so a cheque, cleared or not, cannot trigger it. "Cleared" is
+   only what the officer heard from the bank; BR-42 says cheque status is information only
+   and creates no entry. The line shows "Paid" when the accountant registers the payment in
+   accounting and it is matched with the line's invoice: then the invoice's amount due drops
+   to 0 and the line recomputes to paid.
+3. The manager group implies the collections group. Group rules are OR-ed, so for a manager
+   the agent rule (own contracts) OR the collections rule (every cheque, all permissions)
+   gives every cheque. For contracts, Story 06 needed its own manager rule because the
+   collections rule there is read only, and the manager must also write. The cheque
+   collections rule already allows writing, so it covers the manager.
+
 ## Mistakes caught
 
 | Date | Story | What was wrong | How it was caught | Fix |
@@ -239,3 +263,4 @@ Questions: [`design-notes/07-collections-performance.md`](design-notes/07-collec
 | 2026-11-25 | 06 | Negative check N2 first gave the multi-company rule the agent group to "switch it off" for the company 2 user. That user is a manager, who has the agent group through `implied_ids`, so the rule still applied and T1 still passed. | The negative check did not fail | N2 uses the accountant group, which the user does not have; T1 then fails. The plan and design note say why. |
 | 2026-11-25 | 07 | The plan stored `project_id` on the schedule line because "only stored fields can be grouped". In Odoo 19 a non-stored **related** field is grouped through a JOIN (`_traverse_related_sql()`). | Negative check N1 (un-store it) passed instead of failing | Not stored; N1 replaced by a check that does fail |
 | 2026-11-25 | 07 | Replacing Story 05's `is_overdue` index with the new partial index made the count and the pivot slower, and removing `index=True` did not even drop the old index ("Keep unexpected index"). | Measuring every setup in the same loop on 1M lines; reading the upgrade log | Both indexes kept; the trap is in the design note |
+| 2026-11-25 | 09 | The chatter test (T3) found no tracked state change: Odoo's test base turns tracking off, and a record created that way is marked "do not track" until the next flush. With tracking turned back on, only the last of two moves in one transaction was logged. | T3 failed twice: no change logged, then only "Cleared" | The test turns tracking on and flushes before and after each move, as separate saves in the browser would. The trap is in the design note. |

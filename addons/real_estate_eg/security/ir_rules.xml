@@ -116,4 +116,41 @@
         <field name="perm_create" eval="False" />
         <field name="perm_unlink" eval="False" />
     </record>
+
+    <!--
+        BR-35 / rights matrix "Post-dated cheques": R (own) / W / W / R.
+        Agents read the cheques on their own contracts; collections officers
+        (and managers, whose group implies collections) record and move them;
+        accountants read them all. The access rights forbid every delete.
+    -->
+    <record id="real_estate_cheque_comp_rule" model="ir.rule">
+        <field name="name">Post-dated Cheque multi-company</field>
+        <field name="model_id" ref="model_real_estate_cheque" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_cheque_agent_rule" model="ir.rule">
+        <field name="name">Post-dated Cheque: agent sees own</field>
+        <field name="model_id" ref="model_real_estate_cheque" />
+        <field name="domain_force">[('contract_id.user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_real_estate_agent'))]" />
+    </record>
+
+    <record id="real_estate_cheque_collections_rule" model="ir.rule">
+        <field name="name">Post-dated Cheque: collections sees all</field>
+        <field name="model_id" ref="model_real_estate_cheque" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_real_estate_collections'))]" />
+    </record>
+
+    <record id="real_estate_cheque_accountant_rule" model="ir.rule">
+        <field name="name">Post-dated Cheque: accounting reads all</field>
+        <field name="model_id" ref="model_real_estate_cheque" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('account.group_account_invoice'))]" />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
 </odoo>

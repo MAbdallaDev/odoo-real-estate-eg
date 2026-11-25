@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- US-13: the post-dated cheques a buyer handed over. -->
+    <record id="real_estate_cheque_view_list" model="ir.ui.view">
+        <field name="name">real.estate.cheque.list</field>
+        <field name="model">real.estate.cheque</field>
+        <field name="arch" type="xml">
+            <list
+        delete="0"
+        decoration-danger="state == 'bounced'"
+        decoration-muted="state == 'cleared'"
+      >
+                <field name="date" />
+                <field name="name" />
+                <field name="bank_name" />
+                <field name="contract_id" />
+                <field name="partner_id" />
+                <field name="line_id" />
+                <field name="amount" sum="Total" />
+                <field
+          name="state"
+          widget="badge"
+          decoration-info="state == 'held'"
+          decoration-warning="state == 'deposited'"
+          decoration-success="state == 'cleared'"
+          decoration-danger="state == 'bounced'"
+        />
+                <field name="currency_id" column_invisible="1" />
+                <field
+          name="company_id"
+          groups="base.group_multi_company"
+          optional="hide"
+        />
+            </list>
+        </field>
+    </record>
+
+    <record id="real_estate_cheque_view_form" model="ir.ui.view">
+        <field name="name">real.estate.cheque.form</field>
+        <field name="model">real.estate.cheque</field>
+        <field name="arch" type="xml">
+            <form delete="0">
+                <!-- BR-41: each button shows in its own state only; write()
+                     refuses any other move on the server. -->
+                <header>
+                    <button
+            name="action_deposit"
+            type="object"
+            string="Deposit"
+            class="oe_highlight"
+            invisible="state != 'held'"
+            groups="real_estate_eg.group_real_estate_collections"
+          />
+                    <button
+            name="action_clear"
+            type="object"
+            string="Cleared"
+            class="oe_highlight"
+            invisible="state != 'deposited'"
+            groups="real_estate_eg.group_real_estate_collections"
+          />
+                    <button
+            name="action_bounce"
+            type="object"
+            string="Bounced"
+            invisible="state != 'deposited'"
+            groups="real_estate_eg.group_real_estate_collections"
+          />
+                    <field name="state" widget="statusbar" />
+                </header>
+                <sheet>
+                    <widget
+            name="web_ribbon"
+            title="Bounced"
+            bg_color="text-bg-danger"
+            invisible="state != 'bounced'"
+          />
+                    <div class="oe_title">
+                        <label for="name" />
+                        <h1><field
+                name="name"
+                readonly="state != 'held'"
+                placeholder="e.g. 100001"
+              /></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <!-- AC-13.1: lines of confirmed or delivered contracts;
+                                 create() checks again on the server. -->
+                            <field
+                name="line_id"
+                readonly="state != 'held'"
+                domain="[('contract_id.state', 'in', ('confirmed', 'delivered'))]"
+                options="{'no_create': True}"
+              />
+                            <field name="contract_id" />
+                            <field name="partner_id" />
+                        </group>
+                        <group>
+                            <field name="bank_name" readonly="state != 'held'" />
+                            <field name="date" readonly="state != 'held'" />
+                            <field name="amount" readonly="state != 'held'" />
+                            <field name="currency_id" invisible="1" />
+                            <field
+                name="company_id"
+                groups="base.group_multi_company"
+              />
+                        </group>
+                    </group>
+                </sheet>
+                <chatter />
+            </form>
+        </field>
+    </record>
+
+    <record id="real_estate_cheque_view_search" model="ir.ui.view">
+        <field name="name">real.estate.cheque.search</field>
+        <field name="model">real.estate.cheque</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" />
+                <field name="contract_id" />
+                <field name="partner_id" />
+                <field name="bank_name" />
+                <filter name="held" string="Held" domain="[('state', '=', 'held')]" />
+                <filter
+          name="deposited"
+          string="Deposited"
+          domain="[('state', '=', 'deposited')]"
+        />
+                <filter
+          name="bounced"
+          string="Bounced"
+          domain="[('state', '=', 'bounced')]"
+        />
+                <filter
+          name="group_state"
+          string="Status"
+          context="{'group_by': 'state'}"
+        />
+                <filter
+          name="group_contract"
+          string="Contract"
+          context="{'group_by': 'contract_id'}"
+        />
+                <filter
+          name="group_bank"
+          string="Bank"
+          context="{'group_by': 'bank_name'}"
+        />
+            </search>
+        </field>
+    </record>
+
+    <record id="real_estate_cheque_action" model="ir.actions.act_window">
+        <field name="name">Cheques</field>
+        <field name="res_model">real.estate.cheque</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="real_estate_cheque_view_search" />
+    </record>
+
+    <!-- AC-13.5: held cheques dated today or earlier, oldest first (the
+         model's order). The domain is the action's, so removing a filter
+         cannot widen the list. -->
+    <record id="real_estate_cheque_action_to_deposit" model="ir.actions.act_window">
+        <field name="name">To Deposit</field>
+        <field name="res_model">real.estate.cheque</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="real_estate_cheque_view_search" />
+        <field
+      name="domain"
+    >[('state', '=', 'held'), ('date', '&lt;=', 'today')]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+</odoo>
