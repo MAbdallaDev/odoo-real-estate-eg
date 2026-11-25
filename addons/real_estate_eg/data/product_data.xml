@@ -22,4 +22,12 @@
         <field name="purchase_ok" eval="False" />
         <field name="taxes_id" eval="[Command.clear()]" />
     </record>
+    <!-- BR-30: billed late fees. Not a schedule line, so it never accrues a fee. -->
+    <record id="product_late_fee" model="product.product">
+        <field name="name">Late Fee</field>
+        <field name="type">service</field>
+        <field name="sale_ok" eval="False" />
+        <field name="purchase_ok" eval="False" />
+        <field name="taxes_id" eval="[Command.clear()]" />
+    </record>
 </odoo>

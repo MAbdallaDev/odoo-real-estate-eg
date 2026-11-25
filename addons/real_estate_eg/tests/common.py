@@ -40,10 +40,15 @@ class RealEstateCommon(AccountTestInvoicingCommon):
                 "account_type": "liability_current",
             }
         )
+        # BR-30: billed late fees are other income.
+        cls.late_fee_account = Account.create(
+            {"code": "RE4201", "name": "Late Fees", "account_type": "income_other"}
+        )
         cls.env.company.write(
             {
                 "re_advance_account_id": cls.advance_account.id,
                 "re_maintenance_account_id": cls.maintenance_account.id,
+                "re_late_fee_account_id": cls.late_fee_account.id,
             }
         )
 

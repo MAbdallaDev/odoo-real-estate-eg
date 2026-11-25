@@ -45,6 +45,44 @@
                             <field name="re_retention_percent" />
                         </setting>
                     </block>
+                    <!-- §6.4 collection policy: BR-26 - BR-28, BR-30, BR-31. -->
+                    <block title="Collections" name="real_estate_collections">
+                        <setting
+              string="Late Fee Rate"
+              company_dependent="1"
+              help="Simple interest, percent per month (1/30 of it per day), on the amount unpaid each day."
+            >
+                            <field name="re_late_fee_rate" />
+                        </setting>
+                        <setting
+              string="Late Fee Cap"
+              company_dependent="1"
+              help="A line's total late fee never exceeds this percent of its amount."
+            >
+                            <field name="re_late_fee_cap" />
+                        </setting>
+                        <setting
+              string="Late Fees Account"
+              company_dependent="1"
+              help="Income account for billed late fees."
+            >
+                            <field name="re_late_fee_account_id" />
+                        </setting>
+                        <setting
+              string="Grace Period"
+              company_dependent="1"
+              help="A line is overdue once it is unpaid this many days after its effective due date."
+            >
+                            <field name="re_grace_days" />
+                        </setting>
+                        <setting
+              string="At Risk After"
+              company_dependent="1"
+              help="A contract with a line more than this many days past due is flagged at risk."
+            >
+                            <field name="re_at_risk_days" />
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>
