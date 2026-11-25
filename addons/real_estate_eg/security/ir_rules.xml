@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--
+        Record rules (US-06). Access rights (ir.model.access.csv) say which
+        tables a role may use; these rules say which rows.
+
+        How Odoo combines them (base/models/ir_rule.py, _compute_domain):
+        rules without groups are global and AND-ed; rules with groups apply
+        to members only and are OR-ed together, then AND-ed with the global
+        ones.
+    -->
+
+    <!-- BR-36: multi-company. Global rules, domain as sale_order_comp_rule. -->
+    <record id="real_estate_project_comp_rule" model="ir.rule">
+        <field name="name">Real Estate Project multi-company</field>
+        <field name="model_id" ref="model_real_estate_project" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_unit_comp_rule" model="ir.rule">
+        <field name="name">Real Estate Unit multi-company</field>
+        <field name="model_id" ref="model_real_estate_unit" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_plan_template_comp_rule" model="ir.rule">
+        <field name="name">Payment Plan multi-company</field>
+        <field name="model_id" ref="model_real_estate_plan_template" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_contract_comp_rule" model="ir.rule">
+        <field name="name">Real Estate Contract multi-company</field>
+        <field name="model_id" ref="model_real_estate_contract" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_installment_comp_rule" model="ir.rule">
+        <field name="name">Payment Schedule Line multi-company</field>
+        <field name="model_id" ref="model_real_estate_installment" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <!--
+        BR-35: who sees which contracts and schedule lines.
+
+        An agent sees only contracts where they are the agent, and those
+        contracts' schedule lines (as sale_order_personal_rule). Edits stay
+        draft-only through the contract's write() and the schedule lock.
+        The manager group implies the agent group, so these rules apply to
+        managers too; group rules are OR-ed, so the manager rules below give
+        them every row back (as sale_order_see_all does).
+    -->
+    <record id="real_estate_contract_agent_rule" model="ir.rule">
+        <field name="name">Real Estate Contract: agent sees own</field>
+        <field name="model_id" ref="model_real_estate_contract" />
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_real_estate_agent'))]" />
+    </record>
+
+    <!-- A line has no agent of its own: it follows its contract. -->
+    <record id="real_estate_installment_agent_rule" model="ir.rule">
+        <field name="name">Payment Schedule Line: agent sees own</field>
+        <field name="model_id" ref="model_real_estate_installment" />
+        <field name="domain_force">[('contract_id.user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_real_estate_agent'))]" />
+    </record>
+
+    <record id="real_estate_contract_manager_rule" model="ir.rule">
+        <field name="name">Real Estate Contract: manager sees all</field>
+        <field name="model_id" ref="model_real_estate_contract" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_real_estate_manager'))]" />
+    </record>
+
+    <record id="real_estate_installment_manager_rule" model="ir.rule">
+        <field name="name">Payment Schedule Line: manager sees all</field>
+        <field name="model_id" ref="model_real_estate_installment" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_real_estate_manager'))]" />
+    </record>
+
+    <!--
+        Collections officers and accountants read every contract and line.
+        Read only on purpose: a user who is also an agent still writes only
+        their own drafts (the agent rule decides writes).
+    -->
+    <record id="real_estate_contract_read_all_rule" model="ir.rule">
+        <field
+      name="name"
+    >Real Estate Contract: collections and accounting read all</field>
+        <field name="model_id" ref="model_real_estate_contract" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field
+      name="groups"
+      eval="[(4, ref('group_real_estate_collections')), (4, ref('account.group_account_invoice'))]"
+    />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
+
+    <record id="real_estate_installment_read_all_rule" model="ir.rule">
+        <field
+      name="name"
+    >Payment Schedule Line: collections and accounting read all</field>
+        <field name="model_id" ref="model_real_estate_installment" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field
+      name="groups"
+      eval="[(4, ref('group_real_estate_collections')), (4, ref('account.group_account_invoice'))]"
+    />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
+</odoo>

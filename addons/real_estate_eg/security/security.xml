@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <!-- US-06 / BR-35: the module's roles. Record rules (who sees which rows) are Story 06. -->
+    <!-- US-06 / BR-35: the module's roles. Record rules (who sees which rows): ir_rules.xml. -->
 
     <!-- One "Real Estate" picker in the user form, under the category the manifest created. -->
     <record id="res_groups_privilege_real_estate" model="res.groups.privilege">

@@ -125,8 +125,8 @@ Before the first contract is confirmed:
 | 02 | Core models, views, states and access rights | done |
 | 03 | Payment plan templates and the schedule generator | done |
 | 04 | Accounting link: invoices, payment state, closing and cancellation money | done |
-| 05 | Overdue lines, late fees and the at-risk flag | in review |
-| 06 | Record rules: agents see their own contracts; multi-company | planned |
+| 05 | Overdue lines, late fees and the at-risk flag | done |
+| 06 | Record rules: agents see their own contracts; multi-company | in review |
 | 07 | Collections screens and query performance | planned |
 | 08 | Bilingual Arabic / English contract PDF | done |
 | 09 | Post-dated cheques (stretch) | planned |

@@ -10,6 +10,7 @@
     "data": [
         "security/security.xml",
         "security/ir.model.access.csv",
+        "security/ir_rules.xml",
         "data/ir_sequence_data.xml",
         "data/product_data.xml",
         "data/ir_cron_data.xml",

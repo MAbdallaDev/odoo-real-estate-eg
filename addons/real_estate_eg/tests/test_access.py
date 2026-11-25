@@ -7,8 +7,9 @@ from .common import RealEstateCommon
 @tagged("post_install", "-at_install")
 class TestReadOnlyRoles(RealEstateCommon):
     """US-06 / BR-35: collections officers and accountants read every contract
-    and edit none. Enforced here by access rights (ir.model.access.csv);
-    record rules come in Story 06."""
+    and edit none. Reading all comes from their read-only "see all" record
+    rules (security/ir_rules.xml); editing none from the access rights
+    (ir.model.access.csv). Story 06 re-runs these with every rule active."""
 
     @classmethod
     def setUpClass(cls):
