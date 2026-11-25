@@ -19,6 +19,7 @@
         "views/real_estate_plan_template_views.xml",
         "views/res_partner_views.xml",
         "views/real_estate_contract_views.xml",
+        "views/real_estate_installment_views.xml",
         "wizard/real_estate_contract_cancel_views.xml",
         "wizard/real_estate_schedule_generate_views.xml",
         "views/res_config_settings_views.xml",

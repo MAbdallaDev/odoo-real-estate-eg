@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- US-04: whom to call today. Read-only: lines change through the
+         contract and accounting, never from this screen. -->
+    <record id="real_estate_installment_view_list_collections" model="ir.ui.view">
+        <field name="name">real.estate.installment.list.collections</field>
+        <field name="model">real.estate.installment</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <list
+        create="0"
+        edit="0"
+        delete="0"
+        decoration-danger="is_overdue"
+        default_order="date_effective_due, id"
+      >
+                <field name="contract_id" />
+                <field name="name" />
+                <!-- AC-04.1 -->
+                <field name="partner_id" />
+                <field name="partner_phone" widget="phone" />
+                <field name="unit_id" />
+                <field name="project_id" optional="hide" />
+                <field name="user_id" widget="many2one_avatar_user" />
+                <field name="date_effective_due" />
+                <field name="amount" sum="Total" />
+                <field name="amount_residual" sum="Total" optional="show" />
+                <!-- AC-04.2 / BR-26 - BR-28: written by the nightly job. -->
+                <field name="is_overdue" column_invisible="1" />
+                <field name="days_past_due" optional="show" />
+                <field name="late_fee_display" optional="show" />
+                <field name="aging_bucket" optional="show" />
+                <field
+          name="state"
+          widget="badge"
+          decoration-info="state == 'invoiced'"
+          decoration-warning="state == 'partially_paid'"
+          decoration-success="state == 'paid'"
+        />
+                <field name="currency_id" column_invisible="1" />
+                <field
+          name="company_id"
+          groups="base.group_multi_company"
+          optional="hide"
+        />
+            </list>
+        </field>
+    </record>
+
+    <!-- AC-04.2: the same columns, most late first. Actions have no order
+         of their own, so the order lives on the view. -->
+    <record id="real_estate_installment_view_list_overdue" model="ir.ui.view">
+        <field name="name">real.estate.installment.list.overdue</field>
+        <field name="model">real.estate.installment</field>
+        <field name="mode">primary</field>
+        <field name="inherit_id" ref="real_estate_installment_view_list_collections" />
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="default_order">days_past_due desc, id</attribute>
+            </list>
+        </field>
+    </record>
+
+    <record id="real_estate_installment_view_search" model="ir.ui.view">
+        <field name="name">real.estate.installment.search</field>
+        <field name="model">real.estate.installment</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="contract_id" />
+                <field name="partner_id" />
+                <field name="unit_id" />
+                <field name="project_id" />
+                <field name="user_id" />
+                <filter
+          name="my_lines"
+          string="My Lines"
+          domain="[('user_id', '=', uid)]"
+        />
+                <separator />
+                <!-- AC-04.1 / BR-26: by the effective due date, relative to
+                     the user's today ('today =1d' is the 1st of this month). -->
+                <filter
+          name="due_this_month"
+          string="Due This Month"
+          domain="[('contract_id.state', 'in', ('confirmed', 'delivered')),
+                   ('state', 'in', ('scheduled', 'invoiced', 'partially_paid')),
+                   ('date_effective_due', '&gt;=', 'today =1d'),
+                   ('date_effective_due', '&lt;', 'today =1d +1m')]"
+        />
+                <filter
+          name="overdue"
+          string="Overdue"
+          domain="[('is_overdue', '=', True)]"
+        />
+                <!-- BR-31 -->
+                <filter
+          name="contract_at_risk"
+          string="Contract At Risk"
+          domain="[('contract_id.at_risk', '=', True)]"
+        />
+                <group>
+                    <filter
+            name="group_project"
+            string="Project"
+            context="{'group_by': 'project_id'}"
+          />
+                    <filter
+            name="group_bucket"
+            string="Aging Bucket"
+            context="{'group_by': 'aging_bucket'}"
+          />
+                    <filter
+            name="group_contract"
+            string="Contract"
+            context="{'group_by': 'contract_id'}"
+          />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- AC-04.1: the domain is the action's, so the list cannot be widened
+         by removing a filter. -->
+    <record id="real_estate_installment_action_due" model="ir.actions.act_window">
+        <field name="name">Due This Month</field>
+        <field name="res_model">real.estate.installment</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="real_estate_installment_view_list_collections" />
+        <field name="search_view_id" ref="real_estate_installment_view_search" />
+        <field
+      name="domain"
+    >[('contract_id.state', 'in', ('confirmed', 'delivered')), ('state', 'in', ('scheduled', 'invoiced', 'partially_paid')), ('date_effective_due', '&gt;=', 'today =1d'), ('date_effective_due', '&lt;', 'today =1d +1m')]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <!-- AC-04.2: most late first. -->
+    <record id="real_estate_installment_action_overdue" model="ir.actions.act_window">
+        <field name="name">Overdue</field>
+        <field name="res_model">real.estate.installment</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="real_estate_installment_view_list_overdue" />
+        <field name="search_view_id" ref="real_estate_installment_view_search" />
+        <field name="domain">[('is_overdue', '=', True)]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <!-- AC-04.4: the contract list, already filtered on At Risk. -->
+    <record id="real_estate_contract_action_at_risk" model="ir.actions.act_window">
+        <field name="name">At-Risk Contracts</field>
+        <field name="res_model">real.estate.contract</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_at_risk': 1}</field>
+    </record>
+</odoo>
