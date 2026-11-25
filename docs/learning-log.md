@@ -231,6 +231,16 @@ Questions: [`design-notes/09-post-dated-cheques.md`](design-notes/09-post-dated-
    collections rule there is read only, and the manager must also write. The cheque
    collections rule already allows writing, so it covers the manager.
 
+### Story 10 — Ship v1.0.0
+
+Questions: [`design-notes/10-ship.md`](design-notes/10-ship.md#explain-back-questions)
+
+*To be answered by the maintainer.*
+
+1.
+2.
+3.
+
 ## Mistakes caught
 
 | Date | Story | What was wrong | How it was caught | Fix |
@@ -264,3 +274,9 @@ Questions: [`design-notes/09-post-dated-cheques.md`](design-notes/09-post-dated-
 | 2026-11-25 | 07 | The plan stored `project_id` on the schedule line because "only stored fields can be grouped". In Odoo 19 a non-stored **related** field is grouped through a JOIN (`_traverse_related_sql()`). | Negative check N1 (un-store it) passed instead of failing | Not stored; N1 replaced by a check that does fail |
 | 2026-11-25 | 07 | Replacing Story 05's `is_overdue` index with the new partial index made the count and the pivot slower, and removing `index=True` did not even drop the old index ("Keep unexpected index"). | Measuring every setup in the same loop on 1M lines; reading the upgrade log | Both indexes kept; the trap is in the design note |
 | 2026-11-25 | 09 | The chatter test (T3) found no tracked state change: Odoo's test base turns tracking off, and a record created that way is marked "do not track" until the next flush. With tracking turned back on, only the last of two moves in one transaction was logged. | T3 failed twice: no change logged, then only "Cleared" | The test turns tracking on and flushes before and after each move, as separate saves in the browser would. The trap is in the design note. |
+| 2026-11-25 | 10 | The all-or-nothing tests used `assertRaises`, which in Odoo opens a savepoint and rolls it back. Rows written before the error vanished before the test looked, so writing the good rows first would have passed. | Negative check N1 (write the good rows, then raise): the tests still passed | The tests catch the error with `try/except`; N1 then fails T3 and T4. The trap is in the design note. |
+| 2026-11-25 | 10 | The demo loader registered payments as the agent who created the contract, who has no accounting rights. Odoo rolled the demo back and logged one warning; the install itself succeeded. | `make demo`'s log check | Payments are registered as the demo accountant, as in real life |
+| 2026-11-25 | 10 | The demo company came out in USD: Odoo's generic chart sets the US as fiscal country and its currency on the company. | Checking the demo database in `make shell` | The loader sets Egypt and EGP back right after loading the chart, before anything is posted |
+| 2026-11-25 | 10 | The design note first said Odoo's standard import reports errors "for the import as a whole". It reports rows too; what it lacks is matching by unit code. | Reading `base_import` before citing it | The note and the plan corrected |
+| 2026-11-25 | 10 | A GIF caption said "32 x 241,313 (last 241,297)", which reads as 32 installments of 241,313. Example A has 31 of 241,313 and a last one of 241,297. | Looking at the captioned frame before building the GIF | Caption fixed |
+| 2026-11-25 | 10 | A pushed commit was amended, so the next push was refused. | `git push`: non-fast-forward | The amend was undone with `git reset --soft` to the pushed commit and the change made as a new commit; no force push |

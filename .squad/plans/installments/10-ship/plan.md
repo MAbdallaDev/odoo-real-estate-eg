@@ -3,7 +3,8 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/10-ship/intake.md`
 - **Branch:** `story/10-ship`
-- **Status:** Done Criteria approved 2026-11-25; in progress
+- **Status:** Done Criteria approved 2026-11-25; Steps 0–8 done (106 tests green, coverage 97 %,
+  checklist passed); in review. Step 9 (tag) after merge, with the maintainer's OK
 
 ---
 
@@ -230,9 +231,9 @@ Then the private learning guides (local, gitignored).
    number is reported as an error, not guessed.
 10. **Non-manager:** agent, collections and accountant cannot open the wizard or write units
     (`AccessError`).
-11. **Why not Odoo's standard import** (`base_import`): it can update by external id, but not by unit
-    code, and it reports errors for the import as a whole; BR-39 asks for code matching and
-    row-numbered reasons. Recorded in the design note.
+11. **Why not Odoo's standard import** (`base_import`): it updates existing records by external
+    or database ID only, not by unit code, so re-importing the developer's sheet would duplicate
+    every unit (BR-39). Recorded in the design note.
 12. **Demo and tests:** `make test` runs without demo (`with_demo = False`); the test company is
     Odoo's test company, not the demo one, so demo codes cannot clash. T7 proves the suite also passes
     on a database that has demo data.
@@ -288,22 +289,22 @@ git tag -a v1.0.0 -m "v1.0.0" && git push origin v1.0.0              # only with
 
 ## Done Criteria
 
-- [ ] **AC-08.1** Given a file of 200 units, importing it creates 200 units. *Proof:* T1 (CSV and
+- [x] **AC-08.1** Given a file of 200 units, importing it creates 200 units. *Proof:* T1 (CSV and
   `.xlsx`).
-- [ ] **AC-08.2** Importing the same file again creates nothing new; a changed price in the file
+- [x] **AC-08.2** Importing the same file again creates nothing new; a changed price in the file
   updates the existing unit. *Proof:* T2.
-- [ ] **AC-08.3** Given a file where one row names an unknown project, nothing is imported and the
+- [x] **AC-08.3** Given a file where one row names an unknown project, nothing is imported and the
   error gives that row's number and reason. *Proof:* T3 (T4 for other bad rows).
-- [ ] **S10.1** Installing `real_estate_eg` with demo data on a fresh database gives no error and no
+- [x] **S10.1** Installing `real_estate_eg` with demo data on a fresh database gives no error and no
   warning in the log; demo data has the three projects, unit types and prices, the five plan
   templates, the collection policy, the five people as users in their groups, and contracts in every
   state. *Proof:* T6, T7.
-- [ ] **S10.2** README has screenshots, a 60-second demo GIF, the design-notes index, test count and
+- [x] **S10.2** README has screenshots, a 60-second demo GIF, the design-notes index, test count and
   coverage, and the "possible next" list from Chapter 7 (ETA named `l10n_eg_edi_eta`). *Proof:*
   README review, Step 6, Step 8.
-- [ ] **S10.3** The project plan's end-to-end checklist passes, including the manual checks AC-04.4,
+- [x] **S10.3** The project plan's end-to-end checklist passes, including the manual checks AC-04.4,
   AC-07.1 and AC-07.2. *Proof:* M2, results in the design note.
-- [ ] **S10.4** Every `US-xx` has at least one test naming it; the suite is green in CI. *Proof:* T8,
+- [x] **S10.4** Every `US-xx` has at least one test naming it; the suite is green in CI. *Proof:* T8,
   T9.
 - [ ] **S10.5** `CHANGELOG.md` has the `1.0.0` entry and the `v1.0.0` tag is pushed. *Proof:* Step 8,
-  Step 9.
+  Step 9. *(CHANGELOG done; the tag waits for the merge and the maintainer's OK.)*
