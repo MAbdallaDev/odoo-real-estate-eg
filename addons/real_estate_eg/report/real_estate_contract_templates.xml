@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- BR-38: one contract, English on the left and Arabic on the right of
+         every row. Not Odoo's translation system: the Arabic words are fixed
+         labels here; the data is printed as stored on both sides. The body's
+         dir comes from the user's language (web.report_layout), so each
+         Arabic cell sets dir="rtl" itself. Dates print day/month/year on
+         both sides (the user's language could print 01/10/2027 for 10 Jan). -->
+    <template id="report_contract_document">
+        <t t-call="web.external_layout">
+            <div class="page o_re_contract">
+                <table class="o_re_bilingual">
+                    <tr class="o_re_title">
+                        <td class="o_re_en">
+                            <h2>Preliminary Sale Contract</h2>
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <h2>عقد بيع ابتدائي</h2>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="o_re_en">
+                            <strong>Reference:</strong>
+                            <span t-field="doc.name" />
+                            <br />
+                            <strong>Contract date:</strong>
+                            <span
+                t-field="doc.date"
+                t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"
+              />
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>رقم العقد:</strong>
+                            <span dir="ltr" t-field="doc.name" />
+                            <br />
+                            <strong>تاريخ العقد:</strong>
+                            <span
+                dir="ltr"
+                t-field="doc.date"
+                t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"
+              />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <!-- US-07: the report's entry point, one document per contract. -->
+    <template id="report_contract">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="real_estate_eg.report_contract_document" />
+            </t>
+        </t>
+    </template>
+</odoo>

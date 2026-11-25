@@ -213,6 +213,9 @@ commit" (rebased on `main` first if Story 04 merged before).
     contracts, and the report follows them, as it renders with the user's rights.
 13. **Story 04 in parallel.** No Story 04 field is printed; conflicts only in shared files,
     solved at rebase.
+14. **Ambiguous dates** (found in Step 2). The user's language printed 10 Jan 2027 as
+    `01/10/2027`, which an Egyptian reader takes for 1 October. Every date prints `dd/MM/yyyy`
+    (the date widget's `format` option, an LDML pattern) on both sides.
 
 ## Test Plan
 

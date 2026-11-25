@@ -1,0 +1,22 @@
+/* BR-38 / S08.1: the bilingual contract. English left, Arabic right, the
+   same width each; a long name wraps inside its column (AC-07.2). */
+.o_re_contract .o_re_bilingual {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.o_re_contract .o_re_bilingual td {
+  width: 50%;
+  vertical-align: top;
+  padding: 4px 8px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* wkhtmltopdf joins Arabic letters only with a font that has their joined
+   forms: Noto Naskh Arabic (fonts-noto-core, see README). */
+.o_re_contract .o_re_ar {
+  font-family: "Noto Naskh Arabic", serif;
+  text-align: right;
+}
