@@ -93,7 +93,7 @@ overdue screens and aging buckets (Story 07); record rules (Story 06); demo data
 ## Implementation tasks
 
 Small steps, in order. The user asked for speed: all steps run one after another without stopping,
-**one commit per step**, each ending with Key points (built + ids, Odoo concept, trap, interview line;
+**one commit per step**, each ending with Key points (built + ids, Odoo concept, trap, one-line takeaway;
 the journal entry when the step creates one).
 
 Files are new unless marked *(edit)*. All under `addons/real_estate_eg/` unless a path says otherwise.
