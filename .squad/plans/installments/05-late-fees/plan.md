@@ -4,7 +4,8 @@
 - **Intake:** `.squad/stories/installments/05-late-fees/intake.md`
 - **Branch:** `story/05-late-fees`
 - **Status:** Done Criteria approved 2026-11-25 (grace and at-risk days are settings; unpaid late-fee
-  invoices are credited on cancellation); in progress
+  invoices are credited on cancellation); all steps done; Done Criteria met (72 tests green,
+  test-ci green); in review
 
 ---
 
@@ -284,19 +285,19 @@ gh run list --branch main --limit 1                    # green after merge
 
 ## Done Criteria
 
-- [ ] **[AC-05.1](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.1: Given an installment of 241,313 due 10 Apr 2027 and unpaid, on 15 Apr and on 17 Apr (due date + 7) it is not overdue; on 18 Apr it is overdue.")** 241,313 due 10 Apr 2027, unpaid: not overdue on 15 and 17 Apr, overdue on
+- [x] **[AC-05.1](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.1: Given an installment of 241,313 due 10 Apr 2027 and unpaid, on 15 Apr and on 17 Apr (due date + 7) it is not overdue; on 18 Apr it is overdue.")** 241,313 due 10 Apr 2027, unpaid: not overdue on 15 and 17 Apr, overdue on
   18 Apr. *Proof:* T4.
-- [ ] **[AC-05.2](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.2: Given the same line is paid in full on 25 May 2027 (45 days after due date), its total accrued late fee is 3,619.695, shown as 3,619.70 → billed as 3,620 EGP.")** Paid in full on 25 May 2027: accrued fee 3,619.695, shown 3,619.70, billed
+- [x] **[AC-05.2](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.2: Given the same line is paid in full on 25 May 2027 (45 days after due date), its total accrued late fee is 3,619.695, shown as 3,619.70 → billed as 3,620 EGP.")** Paid in full on 25 May 2027: accrued fee 3,619.695, shown 3,619.70, billed
   3,620. *Proof:* T2, T5, T10.
-- [ ] **[AC-05.3](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.3: Given 141,313 is paid on 30 Apr and 100,000 on 25 May, the accrued fee is 20 days on 241,313 plus 25 days on 100,000 = 2,442.09 → billed as 2,442.")** 141,313 paid 30 Apr and 100,000 on 25 May: fee 2,442.09, billed 2,442.
+- [x] **[AC-05.3](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.3: Given 141,313 is paid on 30 Apr and 100,000 on 25 May, the accrued fee is 20 days on 241,313 plus 25 days on 100,000 = 2,442.09 → billed as 2,442.")** 141,313 paid 30 Apr and 100,000 on 25 May: fee 2,442.09, billed 2,442.
   *Proof:* T2, T5.
-- [ ] **[AC-05.4](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.4: Running the nightly job twice on the same day gives the same totals as running it once. Skipping a night and running the next day gives the same totals as running both nights. A payment entered late with an earlier date gives the fee it would have had if entered on time.")** Running the job twice, skipping a night, or a late-entered payment with an
+- [x] **[AC-05.4](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.4: Running the nightly job twice on the same day gives the same totals as running it once. Skipping a night and running the next day gives the same totals as running both nights. A payment entered late with an earlier date gives the fee it would have had if entered on time.")** Running the job twice, skipping a night, or a late-entered payment with an
   earlier date all give the same fee as one correct computation. *Proof:* T8.
-- [ ] **[AC-05.5](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.5: A line's accrued fee never exceeds 10% of its amount.")** A line's fee never exceeds 10 % of its amount. *Proof:* T2, T6.
-- [ ] **[AC-05.6](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.6: Given a line becomes 61 days past due, its contract is flagged at risk; the contract is not cancelled.")** 61 days past due → contract at risk, not cancelled. *Proof:* T9.
-- [ ] **[AC-05.7](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.7: When a collections officer or sales manager bills late fees on a contract, one invoice is created for all unbilled fees, its total rounded once; billing again immediately creates nothing.")** A collections officer or manager bills all unbilled fees as one invoice,
+- [x] **[AC-05.5](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.5: A line's accrued fee never exceeds 10% of its amount.")** A line's fee never exceeds 10 % of its amount. *Proof:* T2, T6.
+- [x] **[AC-05.6](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.6: Given a line becomes 61 days past due, its contract is flagged at risk; the contract is not cancelled.")** 61 days past due → contract at risk, not cancelled. *Proof:* T9.
+- [x] **[AC-05.7](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.7: When a collections officer or sales manager bills late fees on a contract, one invoice is created for all unbilled fees, its total rounded once; billing again immediately creates nothing.")** A collections officer or manager bills all unbilled fees as one invoice,
   rounded once; billing again creates nothing. *Proof:* T10.
-- [ ] **[AC-05.8](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.8: The fee in AC-05.2 is 3,619.70, not 3,619.80 — daily amounts are not rounded one by one.")** The AC-05.2 fee is 3,619.70, not 3,619.80. *Proof:* T2, T5.
-- [ ] **[AC-05.9](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.9: A late-fee invoice that is itself paid late accrues no late fee.")** A late-fee invoice paid late accrues no fee. *Proof:* T11.
-- [ ] **[AC-05.10](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.10: Given a contract dated 10 Jan 2027 and confirmed on 30 Jan 2027, its down payment's effective due date is 30 Jan 2027; it accrues no fee for 10–29 Jan and is not overdue on 6 Feb.")** Dated 10 Jan, confirmed 30 Jan 2027: down payment's effective due date 30
+- [x] **[AC-05.8](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.8: The fee in AC-05.2 is 3,619.70, not 3,619.80 — daily amounts are not rounded one by one.")** The AC-05.2 fee is 3,619.70, not 3,619.80. *Proof:* T2, T5.
+- [x] **[AC-05.9](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.9: A late-fee invoice that is itself paid late accrues no late fee.")** A late-fee invoice paid late accrues no fee. *Proof:* T11.
+- [x] **[AC-05.10](../../../../docs/business-requirements.md#us-05--flag-overdue-lines-and-accrue-late-fees-every-night "AC-05.10: Given a contract dated 10 Jan 2027 and confirmed on 30 Jan 2027, its down payment's effective due date is 30 Jan 2027; it accrues no fee for 10–29 Jan and is not overdue on 6 Feb.")** Dated 10 Jan, confirmed 30 Jan 2027: down payment's effective due date 30
   Jan, no fee for 10–29 Jan, not overdue on 6 Feb. *Proof:* T2, T7.

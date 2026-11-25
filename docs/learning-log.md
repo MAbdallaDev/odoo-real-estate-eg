@@ -84,6 +84,10 @@ Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-ge
 
 Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-link.md#explain-back-questions)
 
+### Story 05 — Overdue lines, late fees and the at-risk flag
+
+Questions: [`design-notes/05-late-fees.md`](design-notes/05-late-fees.md#explain-back-questions)
+
 ---
 
 ## Mistakes caught
@@ -108,3 +112,6 @@ Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-lin
 | 2026-11-24 | 04 | The shell command given to invoice a line by hand used `fields.Date.today()` without importing `fields`, so it stopped with a `NameError`. | The maintainer ran it on `re_dev` | `from odoo import fields` added to the command; nothing had been created |
 | 2026-11-24 | 04 | T6 (the job invoices once) counted lines that have an invoice. A second invoice for the same line only replaced the link, so the count stayed at 2 and the test missed it. | Negative check N2 (no "no invoice yet" filter): T6 still passed | T6 counts the posted invoices in accounting; N2 now fails it |
 | 2026-11-25 | 04 | The Example E test helper paid every line numbered 0 to 4, including the maintenance deposit, which has no invoice before delivery. | The first test run: Odoo's "nothing left to pay" error | The helper pays the down payment and installments 1–4 only |
+| 2026-11-25 | 05 | The privacy scan ran in the same command as the commit and push, so the plan reached the story branch with a word from the private pattern list. | The scan's output, read after the push | A follow-up commit reworded it. Rule: the scan runs before `git commit`, and a hit stops the commit. |
+| 2026-11-25 | 05 | The cancellation test (T13) never ran the nightly job on installment 1's due date. The line was invoiced on the day it was paid, so its effective due date moved to that day and no fee accrued. The code was right (BR-26). | Odoo's "nothing left to pay" error when the test paid a late-fee invoice that was never created | The test runs the job on 10 Apr and 10 Jul, as in real life |
+| 2026-11-25 | 05 | T13 expected a 1,206 EGP late-fee invoice for 15 × 241,313 ÷ 3,000. That is 1,206.565, which rounds half up to 1,207. | The test failed: `1207.0 != 1206` | The expected value fixed; the comment shows the unrounded amount |
