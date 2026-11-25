@@ -10,5 +10,11 @@ omit =
     addons/real_estate_eg/__manifest__.py
 
 [report]
+# The same list again: [run] omit only stops measuring, and an unimported
+# file inside "source" would still be reported as 0%.
+omit =
+    addons/real_estate_eg/tests/*
+    addons/real_estate_eg/demo/*
+    addons/real_estate_eg/__manifest__.py
 skip_empty = true
 show_missing = false
