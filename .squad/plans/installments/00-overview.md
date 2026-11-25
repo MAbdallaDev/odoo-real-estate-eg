@@ -16,7 +16,7 @@ and be read first.
 | 03 | `03-schedule-generator/plan.md` | Payment plan templates and the schedule generator | — | 02 |
 | 04 | `04-accounting-link/plan.md` | Accounting link: invoices, payment state, closing and cancellation money | — | 03 |
 | 05 | `05-late-fees/plan.md` | Overdue lines, late fees and the at-risk flag | — | 04 |
-| 06 | `06-record-rules/plan.md` *(not written yet)* | Record rules: agents see their own contracts; multi-company | — | 05 |
+| 06 | `06-record-rules/plan.md` | Record rules: agents see their own contracts; multi-company | — | 05 |
 | 07 | `07-collections-performance/plan.md` *(not written yet)* | Collections screens and query performance | — | 05, 06 |
 | 08 | `08-bilingual-pdf/plan.md` | Bilingual Arabic / English contract PDF | — | 03 |
 | 09 | `09-post-dated-cheques/plan.md` *(not written yet)* | Post-dated cheques (stretch) | — | 04, 07 |
