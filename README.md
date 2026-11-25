@@ -123,7 +123,7 @@ Before the first contract is confirmed:
 | 05 | Overdue lines, late fees and the at-risk flag | planned |
 | 06 | Record rules: agents see their own contracts; multi-company | planned |
 | 07 | Collections screens and query performance | planned |
-| 08 | Bilingual Arabic / English contract PDF | planned |
+| 08 | Bilingual Arabic / English contract PDF | in review |
 | 09 | Post-dated cheques (stretch) | planned |
 | 10 | Ship v1.0.0: unit import, demo data | planned |
 

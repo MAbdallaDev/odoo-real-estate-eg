@@ -84,6 +84,12 @@ Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-ge
 
 Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-link.md#explain-back-questions)
 
+### Story 08 — Bilingual Arabic / English contract PDF
+
+Questions: [`design-notes/08-bilingual-pdf.md`](design-notes/08-bilingual-pdf.md#explain-back-questions)
+
+*To be answered by the maintainer.*
+
 ---
 
 ## Mistakes caught
@@ -108,3 +114,7 @@ Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-lin
 | 2026-11-24 | 04 | The shell command given to invoice a line by hand used `fields.Date.today()` without importing `fields`, so it stopped with a `NameError`. | The maintainer ran it on `re_dev` | `from odoo import fields` added to the command; nothing had been created |
 | 2026-11-24 | 04 | T6 (the job invoices once) counted lines that have an invoice. A second invoice for the same line only replaced the link, so the count stayed at 2 and the test missed it. | Negative check N2 (no "no invoice yet" filter): T6 still passed | T6 counts the posted invoices in accounting; N2 now fails it |
 | 2026-11-25 | 04 | The Example E test helper paid every line numbered 0 to 4, including the maintenance deposit, which has no invoice before delivery. | The first test run: Odoo's "nothing left to pay" error | The helper pays the down payment and installments 1–4 only |
+| 2026-11-25 | 08 | The first printed contract showed 10 Jan 2027 as `01/10/2027`, the US date order of the user's language, which an Egyptian reader takes for 1 October. | Looking at the first rendered page | Every date prints `dd/MM/yyyy` (the date widget's `format` option) |
+| 2026-11-25 | 08 | The maintenance deposit row was numbered 1: it is printed after the total, by a second loop, and `line_index` restarts at 0 in each loop. The tests checked names and amounts, not numbers. | Looking at the rendered page | Number = place in the whole schedule; T1 now checks 1 to 34 |
+| 2026-11-25 | 08 | The real-PDF test hung, then printed a PDF without CSS: wkhtmltopdf's requests for the CSS waited for the test's uncommitted transaction, then were refused for lack of the test cookie. | `make test` stopped at the test; the log showed "ignored during test" for the CSS | `TransactionCase.allow_pdf_render()`: shares the test cursor and adds the cookie |
+| 2026-11-25 | 08 | A test run used the same HTTP port as the running dev server, so Odoo could not start and no test ran. | The log check: "no real_estate_eg test ran" (`Address already in use`) | Tests on their own port; the log check is what caught it |

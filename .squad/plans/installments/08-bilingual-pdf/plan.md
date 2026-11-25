@@ -3,7 +3,7 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/08-bilingual-pdf/intake.md`
 - **Branch:** `story/08-bilingual-pdf`
-- **Status:** Done Criteria approved 2026-11-25; in progress
+- **Status:** Done Criteria approved 2026-11-25; all met 2026-11-25 (43 tests pass locally and in CI); in review
 
 ---
 
@@ -163,8 +163,9 @@ Naskh Arabic; `make test-ci` still green.
 **Step 5 — The real PDF and its font** (`tests/test_report.py` *(edit)*). *S08.1,
 [AC-07.1](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.1: The rendered report contains the Arabic and English text for parties, unit, price, plan and every schedule line, with the Arabic side marked right-to-left (dir=&quot;rtl&quot;). (manual: letters joined, columns side by side in the PDF.)") (manual part).*
 1. T4: render a real PDF (`force_report_rendering`) and check that Noto Naskh Arabic is embedded
-   in it. If the CSS is not reached in the test run (wkhtmltopdf fetches it from `report.url` or
-   the base URL, and tests run on another port), the test sets `report.url` to the test server.
+   in it. wkhtmltopdf fetches the CSS from `report.url` (set to the test server's port) and,
+   *as done*, needs `TransactionCase.allow_pdf_render()` (`odoo-src/odoo/odoo/tests/common.py`):
+   without it the requests waited for the uncommitted test transaction, then were refused.
 2. On `re_dev_08`: Example A (and C) generated, PDF printed, rendered to an image and attached
    for the maintainer's manual check — joined letters, columns side by side, 60-character name.
 *Check:* `make test`; `make test-ci` (T4 runs against the new CI image).
@@ -227,6 +228,7 @@ with `dir="rtl"`".
 | # | Test | Proves |
 |---|---|---|
 | T1 | `test_ac_07_1_bilingual_side_by_side` (Example A, 34 lines: every English label outside and every Arabic label inside a `dir="rtl"` element, for parties, unit, price, plan and each schedule line; one row per line) | [AC-07.1](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.1: The rendered report contains the Arabic and English text for parties, unit, price, plan and every schedule line, with the Arabic side marked right-to-left (dir=&quot;rtl&quot;). (manual: letters joined, columns side by side in the PDF.)"), [BR-38](../../../../docs/business-requirements.md#collections-documents-and-data "BR-38: The contract prints as one PDF with Arabic and English side by side: parties, unit, price, plan, and the full schedule table.") |
+| T1b | `test_arabic_label_for_every_value` (every selection value printed has an Arabic word) | [BR-38](../../../../docs/business-requirements.md#collections-documents-and-data "BR-38: The contract prints as one PDF with Arabic and English side by side: parties, unit, price, plan, and the full schedule table.") |
 | T2 | `test_ac_07_2_long_customer_name` (a 60-character name appears in full on both sides) | [AC-07.2](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.2: A 60-character customer name appears in full in the rendered report. (manual: the layout does not break.)") |
 | T3 | `test_ac_07_3_amount_format` (`8,580,000 EGP`, `858,000 EGP`, `241,313 EGP`, `241,297 EGP`, `686,400 EGP`; no `LE`, no `.00`; Arabic-side amounts inside `dir="ltr"`) | [AC-07.3](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.3: Amounts show with thousands separators and the currency, e.g. 8,580,000 EGP.") |
 | T4 | `test_s08_1_arabic_font_embedded` (real PDF with `force_report_rendering`; Noto Naskh Arabic embedded) | S08.1 |
@@ -242,7 +244,8 @@ pages with the header repeated.
 - N1: drop `dir="rtl"` from the Arabic cells → T1 fails.
 - N2: print amounts with the `monetary` widget → T3 fails (`LE`, `.00`).
 - N3: remove the font from the CSS → T4 fails.
-- N4: remove one Arabic line-type label from the report model → T1 fails.
+- N4: remove one Arabic word from the report model → T1b fails (done with `retail`).
+- N5: run the tests in the plain `odoo:19.0` image, without the font → T4 fails.
 
 ## Verification Steps
 
@@ -257,13 +260,13 @@ gh run list --branch main --limit 1                    # green after merge
 
 ## Done Criteria
 
-- [ ] **[AC-07.1](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.1: The rendered report contains the Arabic and English text for parties, unit, price, plan and every schedule line, with the Arabic side marked right-to-left (dir=&quot;rtl&quot;). (manual: letters joined, columns side by side in the PDF.)")** The printed contract has English and Arabic side by side for the parties,
+- [x] **[AC-07.1](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.1: The rendered report contains the Arabic and English text for parties, unit, price, plan and every schedule line, with the Arabic side marked right-to-left (dir=&quot;rtl&quot;). (manual: letters joined, columns side by side in the PDF.)")** The printed contract has English and Arabic side by side for the parties,
   unit, price, plan and every schedule line, the Arabic side marked `dir="rtl"`. *Proof:* T1;
   manual: letters joined, columns side by side in the PDF.
-- [ ] **[AC-07.2](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.2: A 60-character customer name appears in full in the rendered report. (manual: the layout does not break.)")** A 60-character customer name appears in full. *Proof:* T2; manual: the
+- [x] **[AC-07.2](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.2: A 60-character customer name appears in full in the rendered report. (manual: the layout does not break.)")** A 60-character customer name appears in full. *Proof:* T2; manual: the
   layout does not break.
-- [ ] **[AC-07.3](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.3: Amounts show with thousands separators and the currency, e.g. 8,580,000 EGP.")** Amounts show with thousands separators and the currency, e.g.
+- [x] **[AC-07.3](../../../../docs/business-requirements.md#us-07--print-the-contract-in-arabic-and-english "AC-07.3: Amounts show with thousands separators and the currency, e.g. 8,580,000 EGP.")** Amounts show with thousands separators and the currency, e.g.
   `8,580,000 EGP`. *Proof:* T3.
-- [ ] **S08.1** An Arabic font (Noto Naskh Arabic) is installed locally and in the CI image, and
+- [x] **S08.1** An Arabic font (Noto Naskh Arabic) is installed locally and in the CI image, and
   the setup is written in the README. *Proof:* T4 (in `make test` and in CI), Step 1 check,
   README.
