@@ -21,6 +21,15 @@ LINE_STATE = [
     ("cancelled", "Cancelled"),
 ]
 
+# BR-37: aging buckets of overdue lines, in pivot column order. Only overdue
+# lines get one, so "1-30" holds days 8-30 with the default 7 days of grace.
+AGING_BUCKET = [
+    ("1_30", "1-30"),
+    ("31_60", "31-60"),
+    ("61_90", "61-90"),
+    ("over_90", "90+"),
+]
+
 
 class RealEstateInstallment(models.Model):
     """US-02: one line of a contract's payment schedule. Lines are made by the
@@ -95,6 +104,39 @@ class RealEstateInstallment(models.Model):
     # §5.5: the fee was computed after the line was fully paid, so it is final
     # and the job skips the line (until a payment is unmatched again).
     late_fee_final = fields.Boolean(readonly=True, copy=False)
+
+    # US-04 / BR-37: the overdue line's aging bucket, by days past due. Stored
+    # so the pivot can group by it. It needs no cron step of its own: the
+    # nightly job rewrites days_past_due, and the ORM recomputes it then.
+    aging_bucket = fields.Selection(
+        AGING_BUCKET, compute="_compute_aging_bucket", store=True
+    )
+
+    # AC-04.1: who to call, read through the contract. Not stored: shown and
+    # searched only. The project is stored: the pivot groups by it (AC-04.3),
+    # and only stored fields can be grouped.
+    partner_id = fields.Many2one(related="contract_id.partner_id")
+    partner_phone = fields.Char(string="Phone", related="contract_id.partner_id.phone")
+    unit_id = fields.Many2one(related="contract_id.unit_id")
+    user_id = fields.Many2one(related="contract_id.user_id")
+    project_id = fields.Many2one(
+        related="contract_id.project_id", store=True, index=True
+    )
+
+    @api.depends("is_overdue", "days_past_due")
+    def _compute_aging_bucket(self):
+        for line in self:
+            days = line.days_past_due
+            if not line.is_overdue:
+                line.aging_bucket = False
+            elif days <= 30:
+                line.aging_bucket = "1_30"
+            elif days <= 60:
+                line.aging_bucket = "31_60"
+            elif days <= 90:
+                line.aging_bucket = "61_90"
+            else:
+                line.aging_bucket = "over_90"
 
     @api.depends("state", "days_past_due", "company_id.re_grace_days")
     def _compute_is_overdue(self):

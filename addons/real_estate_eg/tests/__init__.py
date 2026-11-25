@@ -14,3 +14,4 @@ from . import test_cancellation
 from . import test_late_fees
 from . import test_report
 from . import test_record_rules
+from . import test_collections

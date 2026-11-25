@@ -1,3 +1,6 @@
+from freezegun import freeze_time
+
+from odoo import fields
 from odoo.tests import Form, new_test_user
 
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
@@ -215,3 +218,30 @@ class RealEstateCommon(AccountTestInvoicingCommon):
         """Lines that have an invoice, read as superuser (invoice_id is an
         accounting field)."""
         return contract.installment_ids.sudo().filtered("invoice_id")
+
+    # Story 05 helpers (also used by Story 07)
+
+    def _installment_1_invoiced(self):
+        """Example A confirmed on 10 Jan 2027; installment 1 invoiced on its
+        due date, 10 Apr 2027 (so its effective due date is 10 Apr)."""
+        with freeze_time("2027-01-10"):
+            contract = self._example_a()
+        with freeze_time("2027-04-10"):
+            contract._invoice_due_lines(fields.Date.today())
+        line = contract.installment_ids.filtered(lambda x: x.number == 1)
+        return contract, line
+
+    def _pay(self, line, amount, day, entered=None):
+        """Register a payment dated `day`, entered on `entered` (default: the
+        same day), through Odoo's register-payment wizard."""
+        with freeze_time(entered or day):
+            self._register_payment(
+                line.sudo().invoice_id, amount=amount, payment_date=day
+            )
+
+    def _night(self, day):
+        """The nightly job, run for `day` (as the cron does, as superuser)."""
+        with freeze_time(day):
+            self.env["real.estate.contract"].sudo()._cron_nightly(
+                fields.Date.to_date(day)
+            )
