@@ -18,7 +18,7 @@ CI_LOG   := odoo-ci.log
 # Postgres role from odoo.conf, so dropdb connects as the same user as Odoo
 DB_USER   = $(shell sed -n 's/^db_user *= *//p' odoo.conf)
 
-.PHONY: help setup run test test-ci demo shell lint
+.PHONY: help setup run test test-ci demo coverage shell lint
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-8s %s\n", $$1, $$2}'
@@ -45,6 +45,13 @@ demo: ## Fresh $(DEMO_DB) with demo data (Nile Heights), then check the install 
 	@echo "Installing $(MODULE) with demo data in a fresh $(DEMO_DB) (full log: $(DEMO_LOG)) ..."
 	@status=0; $(ODOO) -d $(DEMO_DB) -i $(MODULE) --with-demo --stop-after-init $(ARGS) > $(DEMO_LOG) 2>&1 || status=$$?; \
 	scripts/check_odoo_log.sh $(DEMO_LOG) --no-tests && exit $$status
+
+coverage: ## Same as make test, measured by coverage.py (.coveragerc); prints the module's coverage
+	dropdb -U $(DB_USER) --if-exists --force $(TEST_DB)
+	@echo "Running the tests under coverage (full log: $(TEST_LOG)) ..."
+	@status=0; venv/bin/coverage run odoo-src/odoo/odoo-bin -c odoo.conf -d $(TEST_DB) -i $(MODULE) --test-tags /$(MODULE) --stop-after-init $(ARGS) > $(TEST_LOG) 2>&1 || status=$$?; \
+	grep -E 'odoo\.tests\.result' $(TEST_LOG) | tail -n 1 || true; \
+	scripts/check_odoo_log.sh $(TEST_LOG) && venv/bin/coverage report && exit $$status
 
 test-ci: ## Same test run as GitHub CI: Postgres + official Odoo 19 image in Docker
 	@echo "Running the tests in Docker (full log: $(CI_LOG)) ..."
