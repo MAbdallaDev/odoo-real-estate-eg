@@ -1,0 +1,69 @@
+/* BR-38 / S08.1: the bilingual contract. English left, Arabic right, the
+   same width each; a long name wraps inside its column (AC-07.2). */
+.o_re_contract .o_re_bilingual {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.o_re_contract .o_re_bilingual td {
+  width: 50%;
+  vertical-align: top;
+  padding: 4px 8px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* wkhtmltopdf joins Arabic letters only with a font that has their joined
+   forms: Noto Naskh Arabic (fonts-noto-core, see README). */
+.o_re_contract .o_re_ar {
+  font-family: "Noto Naskh Arabic", serif;
+  text-align: right;
+}
+
+/* BR-38: the schedule table. Its header repeats on every page (thead) and a
+   row is never split across two pages. */
+.o_re_contract .o_re_schedule {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.o_re_contract .o_re_schedule thead {
+  display: table-header-group;
+}
+
+.o_re_contract .o_re_schedule tr {
+  page-break-inside: avoid;
+}
+
+.o_re_contract .o_re_schedule th,
+.o_re_contract .o_re_schedule td {
+  border-bottom: 1px solid #ccc;
+  padding: 2px 6px;
+}
+
+.o_re_contract .o_re_num {
+  width: 6%;
+}
+
+.o_re_contract .o_re_money {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.o_re_contract .o_re_total td {
+  font-weight: bold;
+  border-top: 2px solid #333;
+}
+
+.o_re_contract .o_re_draft td {
+  font-weight: bold;
+  color: #b00;
+  border: 2px solid #b00;
+}
+
+.o_re_contract .o_re_signatures td {
+  height: 70px;
+  padding-top: 16px;
+}

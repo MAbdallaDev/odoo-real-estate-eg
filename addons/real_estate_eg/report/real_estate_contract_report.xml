@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- BR-38: the contract's own paper. report.paperformat defaults to
+         Landscape, so Portrait is set here; the top margin leaves room for
+         the company header of web.external_layout. -->
+    <record id="paperformat_contract" model="report.paperformat">
+        <field name="name">Real Estate Contract (A4)</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">40</field>
+        <field name="margin_bottom">20</field>
+        <field name="margin_left">10</field>
+        <field name="margin_right">10</field>
+        <field name="header_spacing">35</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <!-- US-07: "Print" menu on the contract. Same shape as sale's
+         action_report_saleorder. No group: whoever can read the contract
+         can print it. -->
+    <record id="action_report_contract" model="ir.actions.report">
+        <field name="name">Contract (Arabic / English)</field>
+        <field name="model">real.estate.contract</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">real_estate_eg.report_contract</field>
+        <field name="report_file">real_estate_eg.report_contract</field>
+        <field name="print_report_name">'Contract - %s' % object.name</field>
+        <field name="paperformat_id" ref="paperformat_contract" />
+        <field name="binding_model_id" ref="model_real_estate_contract" />
+        <field name="binding_type">report</field>
+    </record>
+</odoo>
