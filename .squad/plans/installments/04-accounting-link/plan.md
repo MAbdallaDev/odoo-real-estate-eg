@@ -3,7 +3,7 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/04-accounting-link/intake.md`
 - **Branch:** `story/04-accounting-link`
-- **Status:** plan approved 2026-11-24; in progress
+- **Status:** all steps done 2026-11-25; Done Criteria met (52 tests green, test-ci green); in review
 
 ---
 
@@ -298,32 +298,32 @@ gh run list --branch main --limit 1   # green after merge
 
 ## Done Criteria
 
-- [ ] **[AC-03.1](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.1: When a contract is confirmed, then every line already due is invoiced immediately — the down payment, and for Example C (Chapter 6) also the maintenance deposit due at signing.")** On confirmation every line already due is invoiced at once: the down payment,
+- [x] **[AC-03.1](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.1: When a contract is confirmed, then every line already due is invoiced immediately — the down payment, and for Example C (Chapter 6) also the maintenance deposit due at signing.")** On confirmation every line already due is invoiced at once: the down payment,
   and for Example C also the maintenance deposit due at signing. *Proof:* T5.
-- [ ] **[AC-03.2](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.2: Given an installment due today, when the invoicing job runs, then one customer invoice is posted for it. When the job runs again the same day, no second invoice is created.")** The nightly job posts one invoice for an installment due today; a second run
+- [x] **[AC-03.2](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.2: Given an installment due today, when the invoicing job runs, then one customer invoice is posted for it. When the job runs again the same day, no second invoice is created.")** The nightly job posts one invoice for an installment due today; a second run
   the same day creates none. *Proof:* T6.
-- [ ] **[AC-03.3](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.3: Given a maintenance deposit falls due, its invoice posts to the maintenance deposit liability account, not to sales revenue.")** A maintenance deposit invoice posts to the maintenance deposit liability
+- [x] **[AC-03.3](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.3: Given a maintenance deposit falls due, its invoice posts to the maintenance deposit liability account, not to sales revenue.")** A maintenance deposit invoice posts to the maintenance deposit liability
   account, not to revenue. *Proof:* T3, T10.
-- [ ] **[AC-03.4](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.4: Given a 241,313 invoice and a bank journal with an outstanding receipts account, when a payment of 141,313 is registered, the line shows partly paid with 100,000 outstanding; when the rest is paid, it shows paid (also while accounting shows the invoice In payment).")** 241,313 invoice, 141,313 paid through a bank journal with Outstanding
+- [x] **[AC-03.4](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.4: Given a 241,313 invoice and a bank journal with an outstanding receipts account, when a payment of 141,313 is registered, the line shows partly paid with 100,000 outstanding; when the rest is paid, it shows paid (also while accounting shows the invoice In payment).")** 241,313 invoice, 141,313 paid through a bank journal with Outstanding
   Receipts → line partly paid, 100,000 outstanding; rest paid → paid, also when accounting shows
   *In payment*. *Proof:* T8.
-- [ ] **[AC-03.5](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.5: The contract shows total paid and total outstanding, both computed from accounting.")** The contract shows total paid and total outstanding (invoiced but unpaid),
+- [x] **[AC-03.5](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.5: The contract shows total paid and total outstanding, both computed from accounting.")** The contract shows total paid and total outstanding (invoiced but unpaid),
   both computed from accounting. *Proof:* T9.
-- [ ] **[AC-03.6](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.6: Given the company has a default sales tax, schedule-line invoices still carry no tax.")** With a company default sales tax, schedule-line invoices still carry no tax.
+- [x] **[AC-03.6](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.6: Given the company has a default sales tax, schedule-line invoices still carry no tax.")** With a company default sales tax, schedule-line invoices still carry no tax.
   *Proof:* T4.
-- [ ] **[AC-03.7](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.7: Down payment and installment invoices post to the customer advances account, not to sales revenue.")** Down payment and installment invoices post to the customer advances account,
+- [x] **[AC-03.7](../../../../docs/business-requirements.md#us-03--invoice-each-line-when-it-falls-due "AC-03.7: Down payment and installment invoices post to the customer advances account, not to sales revenue.")** Down payment and installment invoices post to the customer advances account,
   not to revenue. *Proof:* T2.
-- [ ] **[AC-12.1](../../../../docs/business-requirements.md#us-12--close-the-contract-when-everything-is-paid "AC-12.1: Given a delivered contract whose last unpaid line has been paid, when the nightly job runs, the contract becomes closed.")** A delivered contract whose last unpaid line is paid closes on the next nightly
+- [x] **[AC-12.1](../../../../docs/business-requirements.md#us-12--close-the-contract-when-everything-is-paid "AC-12.1: Given a delivered contract whose last unpaid line has been paid, when the nightly job runs, the contract becomes closed.")** A delivered contract whose last unpaid line is paid closes on the next nightly
   run. *Proof:* T11.
-- [ ] **[AC-12.2](../../../../docs/business-requirements.md#us-12--close-the-contract-when-everything-is-paid "AC-12.2: A confirmed (not delivered) contract that is fully paid stays confirmed.")** A confirmed (not delivered) contract that is fully paid stays confirmed.
+- [x] **[AC-12.2](../../../../docs/business-requirements.md#us-12--close-the-contract-when-everything-is-paid "AC-12.2: A confirmed (not delivered) contract that is fully paid stays confirmed.")** A confirmed (not delivered) contract that is fully paid stays confirmed.
   *Proof:* T12.
-- [ ] **[AC-09.3](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.3: Given the customer paid 858,000 + 4 × 241,313 = 1,823,252, when the manager cancels, retention is 273,488 and refundable is 1,549,764, both recorded on the contract and unchanged after the credit notes are created.")** Example E: 1,823,252 paid → retention 273,488, refundable 1,549,764, stored on
+- [x] **[AC-09.3](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.3: Given the customer paid 858,000 + 4 × 241,313 = 1,823,252, when the manager cancels, retention is 273,488 and refundable is 1,549,764, both recorded on the contract and unchanged after the credit notes are created.")** Example E: 1,823,252 paid → retention 273,488, refundable 1,549,764, stored on
   the contract and unchanged after the credit notes. *Proof:* T13.
-- [ ] **[AC-09.4](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.4: After cancellation, invoiced-but-unpaid amounts are credited (including the unpaid remainder of a partly paid invoice), future lines are cancelled, every line shows cancelled, and the unit is available.")** After cancellation invoiced-but-unpaid amounts are credited (a partly paid
+- [x] **[AC-09.4](../../../../docs/business-requirements.md#us-09--cancel-a-contract "AC-09.4: After cancellation, invoiced-but-unpaid amounts are credited (including the unpaid remainder of a partly paid invoice), future lines are cancelled, every line shows cancelled, and the unit is available.")** After cancellation invoiced-but-unpaid amounts are credited (a partly paid
   invoice for its remainder), future lines are cancelled, every line shows cancelled, the unit is
   available. *Proof:* T14.
-- [ ] **[AC-10.3](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.3: On confirmation the unit shows sold and every line already due is invoiced (BR-21).")** *(invoicing part)* On confirmation every line already due is invoiced
+- [x] **[AC-10.3](../../../../docs/business-requirements.md#us-10--confirm-a-contract "AC-10.3: On confirmation the unit shows sold and every line already due is invoiced (BR-21).")** *(invoicing part)* On confirmation every line already due is invoiced
   ([BR-21](../../../../docs/business-requirements.md#invoicing-and-payment "BR-21: On confirmation, every line due on or before the confirmation date is invoiced at once — the down payment, a maintenance deposit due at signing, and any installment already due.")). *Proof:* T5.
-- [ ] **[AC-11.2](../../../../docs/business-requirements.md#us-11--record-delivery-of-the-unit "AC-11.2: On delivery, a maintenance deposit 'due at delivery' gets the delivery date as its due date and is invoiced.")** On delivery a deposit "due at delivery" gets the delivery date and is
+- [x] **[AC-11.2](../../../../docs/business-requirements.md#us-11--record-delivery-of-the-unit "AC-11.2: On delivery, a maintenance deposit 'due at delivery' gets the delivery date as its due date and is invoiced.")** On delivery a deposit "due at delivery" gets the delivery date and is
   invoiced. *Proof:* T10.
-- [ ] **[AC-11.3](../../../../docs/business-requirements.md#us-11--record-delivery-of-the-unit "AC-11.3: Installments not yet due stay scheduled as before.")** Installments not yet due stay scheduled after delivery. *Proof:* T10.
+- [x] **[AC-11.3](../../../../docs/business-requirements.md#us-11--record-delivery-of-the-unit "AC-11.3: Installments not yet due stay scheduled as before.")** Installments not yet due stay scheduled after delivery. *Proof:* T10.

@@ -72,6 +72,18 @@ make run            # http://localhost:8019 → Apps → "Real Estate Installmen
 gitignored and rebuilt, never copied. `odoo.conf` is created from
 [`odoo.conf.example`](odoo.conf.example) and is gitignored too.
 
+### Accounting setup
+
+Before the first contract is confirmed:
+
+1. **Chart of accounts.** For an Egyptian company, install Odoo's Egyptian localisation
+   (`l10n_eg`). It is recommended, not required: the module works with any chart
+   ([why](docs/design-notes/04-accounting-link.md#adr-l10n_eg-is-not-a-dependency)).
+2. **Two liability accounts** — customer advances and maintenance deposits — picked in
+   *Settings → Real Estate*. Confirmation is refused until both are set.
+3. **Outstanding Receipts** on the bank journal's incoming payment method. Without it a
+   registered payment has no journal entry, and no line ever shows paid.
+
 ## Daily commands
 
 | Command | What it does |
@@ -102,8 +114,8 @@ gitignored and rebuilt, never copied. `odoo.conf` is created from
 |---|---|---|
 | 01 | Environment and module skeleton | done |
 | 02 | Core models, views, states and access rights | done |
-| 03 | Payment plan templates and the schedule generator | in review |
-| 04 | Accounting link: invoices, payment state, closing and cancellation money | planned |
+| 03 | Payment plan templates and the schedule generator | done |
+| 04 | Accounting link: invoices, payment state, closing and cancellation money | in review |
 | 05 | Overdue lines, late fees and the at-risk flag | planned |
 | 06 | Record rules: agents see their own contracts; multi-company | planned |
 | 07 | Collections screens and query performance | planned |

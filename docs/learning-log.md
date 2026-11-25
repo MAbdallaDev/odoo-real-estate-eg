@@ -80,6 +80,10 @@ Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-ge
    created at the same time, which the Python check cannot see. `sudo()` lets the search see
    contacts of other companies, and `active_test=False` makes it find archived contacts too.
 
+### Story 04 — Accounting link: invoices, payment state, closing and cancellation money
+
+Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-link.md#explain-back-questions)
+
 ---
 
 ## Mistakes caught
@@ -101,3 +105,6 @@ Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-ge
 | 2026-11-24 | 03 | Story 02 left the contract date writable by a manager after confirmation (only the form hid it), so a confirmed schedule's dates could drift from it. | The maintainer asked why the plan said "a manager can still change it" when the form was read-only | `write()` refuses a new date outside draft; Story 02's test now expects the refusal (N7) |
 | 2026-11-24 | 01 | `make shell` never worked: `odoo-bin` needs its subcommand first, but the Makefile put `shell` after `-c odoo.conf`. | The maintainer ran `make shell` for the first time | The target calls `odoo-bin shell -c odoo.conf` |
 | 2026-11-24 | 03 | The AI ran `make test` while the maintainer's own run was going: same database, port and log file, so one run showed a stale result. | Timestamps: the failing run had ended before the fix was saved | Rule: one test run at a time; wait for the maintainer's run to finish |
+| 2026-11-24 | 04 | The shell command given to invoice a line by hand used `fields.Date.today()` without importing `fields`, so it stopped with a `NameError`. | The maintainer ran it on `re_dev` | `from odoo import fields` added to the command; nothing had been created |
+| 2026-11-24 | 04 | T6 (the job invoices once) counted lines that have an invoice. A second invoice for the same line only replaced the link, so the count stayed at 2 and the test missed it. | Negative check N2 (no "no invoice yet" filter): T6 still passed | T6 counts the posted invoices in accounting; N2 now fails it |
+| 2026-11-25 | 04 | The Example E test helper paid every line numbered 0 to 4, including the maintenance deposit, which has no invoice before delivery. | The first test run: Odoo's "nothing left to pay" error | The helper pays the down payment and installments 1–4 only |
