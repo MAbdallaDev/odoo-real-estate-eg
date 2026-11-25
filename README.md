@@ -136,8 +136,8 @@ Before the first contract is confirmed:
 | 06 | Record rules: agents see their own contracts; multi-company | done |
 | 07 | Collections screens and query performance | done |
 | 08 | Bilingual Arabic / English contract PDF | done |
-| 09 | Post-dated cheques | in review |
-| 10 | Ship v1.0.0: unit import, demo data | planned |
+| 09 | Post-dated cheques | done |
+| 10 | Ship v1.0.0: unit import, demo data | in progress |
 
 ## How this is built
 

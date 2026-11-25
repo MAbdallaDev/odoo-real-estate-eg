@@ -20,7 +20,7 @@ and be read first.
 | 07 | `07-collections-performance/plan.md` | Collections screens and query performance | — | 05, 06 |
 | 08 | `08-bilingual-pdf/plan.md` | Bilingual Arabic / English contract PDF | — | 03 |
 | 09 | `09-post-dated-cheques/plan.md` | Post-dated cheques | — | 04, 07 |
-| 10 | `10-ship/plan.md` *(not written yet)* | Ship v1.0.0: unit import, demo data, README | — | 01–09 |
+| 10 | `10-ship/plan.md` | Ship v1.0.0: unit import, demo data, README | — | 01–09 |
 
 ## Dependency notes
 
