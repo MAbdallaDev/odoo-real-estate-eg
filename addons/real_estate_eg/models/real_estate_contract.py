@@ -295,8 +295,8 @@ class RealEstateContract(models.Model):
 
     def action_deliver(self):
         """US-11 / BR-11: a manager records the handover of a confirmed contract.
-        Installments continue as scheduled; the maintenance deposit falling due
-        is Story 04."""
+        Installments continue as scheduled (AC-11.3); the maintenance deposit
+        due at delivery falls due on the delivery date and is invoiced."""
         self._check_manager()
         today = fields.Date.context_today(self)
         for contract in self:
@@ -309,6 +309,13 @@ class RealEstateContract(models.Model):
             contract.write(
                 {"state": "delivered", "delivery_date": contract.delivery_date or today}
             )
+        # BR-18 / AC-11.2: the deposit due at delivery gets the delivery date.
+        # As superuser: the schedule of a confirmed contract is locked (BR-19).
+        for line in self.installment_ids.sudo():
+            if line.line_type == "maintenance" and not line.date_due:
+                line.date_due = line.contract_id.delivery_date
+        # BR-23: invoiced at once, to the maintenance deposits account.
+        self._invoice_due_lines(today)
         return True
 
     def action_cancel(self):
