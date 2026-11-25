@@ -46,6 +46,10 @@ demo data and test fixtures — is in
 - PostgreSQL **16**, plus build headers for Odoo's requirements:
   `build-essential libpq-dev libldap2-dev libsasl2-dev`
 - **wkhtmltopdf 0.12.6.1 with patched Qt** (for PDF reports)
+- **An Arabic font: Noto Naskh Arabic** (for the Arabic / English contract PDF). On Debian /
+  Ubuntu it is in `fonts-noto-core`: `sudo apt install fonts-noto-core`, then
+  `fc-list | grep "Noto Naskh Arabic"` must list it. Without it wkhtmltopdf prints the Arabic
+  letters apart. The CI image installs it too ([`docker/Dockerfile.ci`](docker/Dockerfile.ci)).
 - Docker (only to reproduce CI locally)
 
 ## Quick start
