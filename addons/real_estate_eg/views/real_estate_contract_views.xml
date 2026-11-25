@@ -150,6 +150,9 @@
                     </notebook>
                     <group string="Cancellation" invisible="state != 'cancelled'">
                         <field name="cancel_reason" />
+                        <!-- BR-33: kept and refundable, from real payments. -->
+                        <field name="retention_amount" />
+                        <field name="refundable_amount" />
                     </group>
                 </sheet>
                 <chatter />

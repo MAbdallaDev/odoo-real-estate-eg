@@ -1,9 +1,10 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
-from ..tools.schedule import compute_schedule
+from ..tools.schedule import compute_schedule, half_up
 from .real_estate_plan_template import FREQUENCY_MONTHS
 
 # BR-09: the only states. Same shape as SALE_ORDER_STATE in sale/models/sale_order.py.
@@ -70,6 +71,11 @@ class RealEstateContract(models.Model):
     # filled with today by action_deliver() when left empty.
     delivery_date = fields.Date(copy=False, tracking=True)
     cancel_reason = fields.Text(readonly=True, copy=False, tracking=True)
+    # BR-33 / AC-09.3: computed from real payments when a confirmed contract is
+    # cancelled, before any credit note. Issuing the refund is the accountant's
+    # manual step.
+    retention_amount = fields.Monetary(readonly=True, copy=False, tracking=True)
+    refundable_amount = fields.Monetary(readonly=True, copy=False, tracking=True)
     # BR-08: frozen at the unit's list price; depends on unit_id only.
     price = fields.Monetary(
         compute="_compute_price", store=True, precompute=True, tracking=True
@@ -419,8 +425,7 @@ class RealEstateContract(models.Model):
         )
 
     def _cancel_with_reason(self, reason):
-        """BR-32: called by the cancel dialog for a confirmed contract.
-        Retention and refunds from real payments are Story 04."""
+        """BR-32 / BR-33: called by the cancel dialog for a confirmed contract."""
         self.ensure_one()
         self._check_manager()
         if self.state != "confirmed":
@@ -429,7 +434,27 @@ class RealEstateContract(models.Model):
             )
         if not (reason or "").strip():
             raise UserError(self.env._("A written reason is required."))
+        # BR-33: the money first, while it still reads real payments only.
+        self.write(self._cancellation_amounts())
         self.write({"state": "cancelled", "cancel_reason": reason.strip()})
+
+    def _cancellation_amounts(self):
+        """BR-33: retention = retention % of what was paid against the down
+        payment and installments, half up to whole EGP; refundable = that paid
+        amount - retention + any paid maintenance deposit, in full. Late fees
+        are not refunded (Story 05). Line amount_paid counts payments only,
+        never credit notes."""
+        self.ensure_one()
+        lines = self.installment_ids
+        price_lines = lines.filtered(lambda line: line.line_type != "maintenance")
+        paid = Decimal(str(sum(price_lines.mapped("amount_paid"))))
+        deposit_paid = sum((lines - price_lines).mapped("amount_paid"))
+        percent = Decimal(str(self.company_id.re_retention_percent))
+        retention = half_up(paid * percent / Decimal(100))
+        return {
+            "retention_amount": retention,
+            "refundable_amount": float(paid) - retention + deposit_paid,
+        }
 
     def _confirmation_error_message(self):
         """Why this contract cannot be confirmed, or False. Same role as
