@@ -104,8 +104,12 @@ descriptions), `test_arabic_label_for_every_value`, T2 `test_ac_07_2_long_custom
 | N4 | one Arabic word removed (`retail`) | `test_arabic_label_for_every_value` fails |
 | N5 | the tests in the plain `odoo:19.0` image, without the font | T4 fails |
 
-**Manual check** (sample PDFs of Examples A and C attached to the PR): joined letters, columns
-side by side, the long name wrapping, the header repeated over pages.
+**Manual check** on printed samples: joined letters, columns side by side, the long name
+wrapping, the header repeated over pages.
+
+| Example A, page 1 (61-character name, draft mark) | Example C, page 3 of 3 (62 lines) |
+|---|---|
+| ![Example A, page 1](../images/08-contract-example-a-page-1.png) | ![Example C, last page](../images/08-contract-example-c-last-page.png) |
 
 ## Open questions
 
