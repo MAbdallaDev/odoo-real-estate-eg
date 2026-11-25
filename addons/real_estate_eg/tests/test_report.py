@@ -3,6 +3,7 @@ import re
 from lxml import html as lxml_html
 
 from odoo.tests import tagged
+from odoo.tools import config
 
 from ..report.real_estate_contract_report import ARABIC_LABELS, SELECTION_FIELDS
 from .common import RealEstateCommon
@@ -185,3 +186,29 @@ class TestContractReport(RealEstateCommon):
                 len(tree.xpath("//tr[contains(@class, 'o_re_line')]")),
                 len(confirmed.installment_ids),
             )
+
+    def test_s08_1_arabic_font_embedded(self):
+        """S08.1: a real PDF (wkhtmltopdf), not the HTML of the tests above,
+        carries Noto Naskh Arabic: the font that joins the Arabic letters.
+        Whether they look joined is checked by eye on a printed page."""
+        Report = self.env["ir.actions.report"]
+        if Report.get_wkhtmltopdf_state() != "ok":
+            self.skipTest("wkhtmltopdf is not available")
+        # wkhtmltopdf fetches the report CSS (which names the font) over
+        # HTTP: point it at this test server, whatever its port.
+        # allow_pdf_render() lets those requests share this test's cursor;
+        # without it they wait for the uncommitted transaction (a hang) or
+        # are refused, and the PDF comes out without its CSS.
+        self.env["ir.config_parameter"].sudo().set_param(
+            "report.url", f"http://127.0.0.1:{config['http_port']}"
+        )
+        contract = self.example_a()
+        with self.allow_pdf_render():
+            pdf, report_type = (
+                Report.with_user(self.agent_a)
+                .with_context(force_report_rendering=True)
+                ._render_qweb_pdf(REPORT, contract.ids)
+            )
+        self.assertEqual(report_type, "pdf")
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        self.assertIn(b"NotoNaskhArabic", pdf)
