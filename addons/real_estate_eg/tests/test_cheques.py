@@ -1,3 +1,5 @@
+from ast import literal_eval
+
 from freezegun import freeze_time
 from psycopg2 import IntegrityError
 
@@ -96,6 +98,14 @@ class TestCheques(RealEstateCommon):
         # Collections and the manager see every cheque.
         for user in (self.collections, self.manager):
             self.assertEqual(Cheque.with_user(user).search([]), cheque)
+
+        # The contract's Cheques button counts and opens under the same rules.
+        self.assertEqual(self.contract.with_user(self.agent_a).cheque_count, 1)
+        self.assertEqual(self.contract.with_user(self.accountant).cheque_count, 1)
+        action = self.contract.with_user(self.agent_a).action_view_cheques()
+        self.assertEqual(
+            Cheque.with_user(self.agent_a).search(action["domain"]), cheque
+        )
 
     # ------------------------------------------------------------------
     # AC-13.2 / BR-41: held -> deposited -> cleared or bounced, nothing else
@@ -277,3 +287,27 @@ class TestCheques(RealEstateCommon):
         self._pay(self.line, self.line.amount, "2027-06-25")
         self.assertEqual(self.line.state, "paid")
         self.assertEqual(twin_line.state, "invoiced")
+
+    # ------------------------------------------------------------------
+    # AC-13.5: To Deposit = held cheques dated today or earlier
+    # ------------------------------------------------------------------
+
+    def test_ac_13_5_to_deposit(self):
+        def cheque(number, day):
+            return self._record(self.collections, name=number, date=day)
+
+        yesterday = cheque("1", "2027-04-09")
+        today = cheque("2", "2027-04-10")
+        cheque("3", "2027-04-11")  # tomorrow: not yet
+        deposited = cheque("4", "2027-04-01")
+        deposited.with_user(self.collections).action_deposit()
+        bounced = cheque("5", "2027-04-01")
+        bounced.with_user(self.collections).action_deposit()
+        bounced.with_user(self.collections).action_bounce()
+
+        action = self.env.ref("real_estate_eg.real_estate_cheque_action_to_deposit")
+        Cheque = self.env["real.estate.cheque"].with_user(self.collections)
+        with freeze_time("2027-04-10"):
+            to_deposit = Cheque.search(literal_eval(action.domain))
+        # Oldest first, the model's order.
+        self.assertEqual(to_deposit.ids, (yesterday | today).ids)

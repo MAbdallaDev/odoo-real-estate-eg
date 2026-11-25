@@ -103,6 +103,24 @@
             bg_color="text-bg-danger"
             invisible="not at_risk"
           />
+                    <!-- US-13: agents see their contracts' cheques here (they
+                         have no Collections menu); the count follows the
+                         record rules. -->
+                    <div class="oe_button_box" name="button_box">
+                        <button
+              name="action_view_cheques"
+              type="object"
+              class="oe_stat_button"
+              icon="fa-money"
+              invisible="state == 'draft'"
+            >
+                            <field
+                name="cheque_count"
+                widget="statinfo"
+                string="Cheques"
+              />
+                        </button>
+                    </div>
                     <div class="oe_title">
                         <h1><field name="name" /></h1>
                     </div>
