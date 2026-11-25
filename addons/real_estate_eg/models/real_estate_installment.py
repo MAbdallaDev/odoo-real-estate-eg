@@ -132,6 +132,12 @@ class RealEstateInstallment(models.Model):
     user_id = fields.Many2one(related="contract_id.user_id")
     project_id = fields.Many2one(related="contract_id.project_id")
 
+    # BR-40: the line's cheque history, bounced ones included. Read only:
+    # nothing on the line depends on it (BR-42).
+    cheque_ids = fields.One2many(
+        "real.estate.cheque", "line_id", string="Cheques", readonly=True
+    )
+
     @api.depends("is_overdue", "days_past_due")
     def _compute_aging_bucket(self):
         for line in self:
