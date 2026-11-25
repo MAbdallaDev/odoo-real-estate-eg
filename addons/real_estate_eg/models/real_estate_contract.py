@@ -675,14 +675,30 @@ class RealEstateContract(models.Model):
         """BR-12 / AC-12.1: a delivered contract closes once every line is
         paid. A line not invoiced yet is not paid, so a contract with future
         installments stays open. AC-12.2: a confirmed contract never closes.
-        (Story 05 adds: no billed late fee unpaid, none left unbilled.)"""
+        BR-12 also waits for late fees: every late-fee invoice paid and no
+        accrued fee left unbilled (v1 has no waiver)."""
         delivered = self.search([("state", "=", "delivered")])
         paid = delivered.filtered(
             lambda contract: contract.installment_ids
             and all(line.state == "paid" for line in contract.installment_ids)
+            and contract._late_fees_settled()
         )
         paid.write({"state": "closed"})
         return paid
+
+    def _late_fees_settled(self):
+        """BR-12: every billed late fee paid ("In payment" counts as paid,
+        BR-24) and nothing left to bill. A rest under 0.50 EGP rounds to 0 and
+        can never be billed (BR-30), so it does not block closing."""
+        self.ensure_one()
+        invoices = self.sudo().late_fee_invoice_ids
+        unbilled = [
+            Decimal(str(x)) for x in self.installment_ids.mapped("late_fee_unbilled")
+        ]
+        return (
+            all(invoice.payment_state in ("paid", "in_payment") for invoice in invoices)
+            and half_up(sum(unbilled, Decimal(0))) == 0
+        )
 
     def _invoice_due_lines(self, today):
         """BR-21 / BR-22: invoice every line of these contracts that is due by
