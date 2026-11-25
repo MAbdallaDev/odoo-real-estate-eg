@@ -60,7 +60,7 @@ class TestSchedule(RealEstateCommon):
         return contract
 
     def test_ac_02_1_generate_from_wizard(self):
-        """AC-02.1: the agent generates Example A through the dialog."""
+        """US-02 / AC-02.1: the agent generates Example A through the dialog."""
         contract = self._contract_on(date(2027, 1, 10))
         self.generate_schedule(contract, self.plan_std)
 

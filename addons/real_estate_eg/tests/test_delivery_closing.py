@@ -46,7 +46,7 @@ class TestDeliveryClosing(RealEstateCommon):
         self.assertEqual(installment_1.state, "scheduled")
 
     def test_ac_12_1_close_when_paid(self):
-        """AC-12.1 / BR-12: a delivered contract closes on the next nightly run
+        """US-12 / AC-12.1 / BR-12: a delivered contract closes on the next nightly run
         once its last unpaid line is paid, not before."""
         contract = self._cash_contract()
         with freeze_time("2027-02-01"):

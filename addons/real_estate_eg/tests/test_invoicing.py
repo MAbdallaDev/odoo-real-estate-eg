@@ -121,7 +121,7 @@ class TestInvoicing(RealEstateCommon):
     # ------------------------------------------------------------------
 
     def test_ac_03_1_invoice_at_confirmation(self):
-        """AC-03.1 / AC-10.3 / BR-21: confirming invoices the lines already due,
+        """US-03 / AC-03.1 / AC-10.3 / BR-21: confirming invoices the lines already due,
         done by a sales manager who has no accounting rights."""
         self.assertFalse(self.manager.has_group("account.group_account_invoice"))
 
