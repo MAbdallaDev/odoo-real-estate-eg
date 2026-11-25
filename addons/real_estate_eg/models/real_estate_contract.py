@@ -464,6 +464,16 @@ class RealEstateContract(models.Model):
             )
         return False
 
+    @api.model
+    def _cron_nightly(self, today=None):
+        """§5.5, the nightly job, run as superuser across all companies.
+        Step 1: invoice every line that has fallen due (BR-22, BR-25).
+        Steps 2-3 (late fees, at risk) come with Story 05; step 4 (closing)
+        with Step 7. `today` is a parameter so tests can run any day."""
+        today = today or fields.Date.context_today(self)
+        contracts = self.search([("state", "in", ("confirmed", "delivered"))])
+        contracts._invoice_due_lines(today)
+
     def _invoice_due_lines(self, today):
         """BR-21 / BR-22: invoice every line of these contracts that is due by
         today + the company's lead days and has no invoice yet (BR-25).

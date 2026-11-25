@@ -12,6 +12,7 @@
         "security/ir.model.access.csv",
         "data/ir_sequence_data.xml",
         "data/product_data.xml",
+        "data/ir_cron_data.xml",
         "views/real_estate_project_views.xml",
         "views/real_estate_unit_views.xml",
         "views/real_estate_plan_template_views.xml",

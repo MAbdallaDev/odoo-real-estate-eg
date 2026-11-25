@@ -160,3 +160,53 @@ class TestInvoicing(RealEstateCommon):
         with self.assertRaisesRegex(UserError, "Settings > Real Estate"):
             contract.with_user(self.manager).action_confirm()
         self.assertEqual(contract.state, "draft")
+
+    # ------------------------------------------------------------------
+    # Step 5: the nightly job invoices lines as they fall due.
+    # ------------------------------------------------------------------
+
+    def _run_job(self, day):
+        """Run the nightly job as the cron does (superuser) on `day`."""
+        with freeze_time(day):
+            self.env["real.estate.contract"].sudo()._cron_nightly()
+
+    def _invoice_count(self, contract):
+        """Posted customer invoices made for the contract, counted in accounting
+        (a duplicate would replace the line's link, so lines cannot tell)."""
+        return self.env["account.move"].search_count(
+            [("invoice_origin", "=", contract.name), ("move_type", "=", "out_invoice")]
+        )
+
+    def test_ac_03_2_job_invoices_once(self):
+        """AC-03.2 / BR-22 / BR-25: the job posts one invoice for an installment
+        due today and none on a second run; draft contracts are never
+        invoiced; lead days invoice early but keep the due date."""
+        with freeze_time("2027-01-10"):
+            contract = self._example_a()
+            unit = self.make_unit("HNC-B07-0303")
+            draft = self.add_schedule(self.create_contract(unit=unit), "2027-01-10")
+        installment_1 = contract.installment_ids.filtered(lambda x: x.number == 1)
+        self.assertEqual(installment_1.state, "scheduled")
+
+        self._run_job("2027-04-10")
+        invoice = installment_1.sudo().invoice_id
+        self.assertEqual(invoice.amount_total, 241_313)
+        self.assertEqual(str(invoice.invoice_date), "2027-04-10")
+        self.assertEqual(installment_1.state, "invoiced")
+        self.assertEqual(self._invoice_count(contract), 2, "down payment + inst. 1")
+
+        self._run_job("2027-04-10")
+        self.assertEqual(self._invoice_count(contract), 2, "no second invoice")
+        self.assertFalse(self._invoiced(draft), "a draft is never invoiced")
+
+        # BR-22: 5 lead days invoice installment 2 (due 10 Jul) on 5 Jul; its
+        # due date stays 10 Jul (BR-26), so it is not late before then.
+        self.env.company.re_invoice_lead_days = 5
+        installment_2 = contract.installment_ids.filtered(lambda x: x.number == 2)
+        self._run_job("2027-07-04")
+        self.assertFalse(installment_2.sudo().invoice_id, "6 days early: not yet")
+        self._run_job("2027-07-05")
+        invoice = installment_2.sudo().invoice_id
+        self.assertEqual(str(invoice.invoice_date), "2027-07-05")
+        self.assertEqual(str(invoice.invoice_date_due), "2027-07-10")
+        self.assertEqual(str(installment_2.date_effective_due), "2027-07-10")

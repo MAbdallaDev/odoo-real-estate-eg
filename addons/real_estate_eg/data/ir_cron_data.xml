@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- §5.5: one nightly job; its steps run in the order of the business document. -->
+    <record id="ir_cron_real_estate_nightly" model="ir.cron">
+        <field name="name">Real Estate: nightly run</field>
+        <field name="model_id" ref="model_real_estate_contract" />
+        <field name="state">code</field>
+        <field name="code">model._cron_nightly()</field>
+        <field name="user_id" ref="base.user_root" />
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field
+      name="nextcall"
+      eval="(DateTime.now().replace(hour=1, minute=0) + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')"
+    />
+    </record>
+</odoo>
