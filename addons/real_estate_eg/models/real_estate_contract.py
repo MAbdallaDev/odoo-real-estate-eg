@@ -100,6 +100,34 @@ class RealEstateContract(models.Model):
     amount_outstanding = fields.Monetary(
         string="Total Outstanding", compute="_compute_amounts"
     )
+    # BR-30: late fees, summed from the lines' unrounded amounts and rounded
+    # once (Monetary rounds to piastres when it is set).
+    late_fee_accrued = fields.Monetary(
+        string="Accrued Late Fees", compute="_compute_late_fees"
+    )
+    late_fee_unbilled = fields.Monetary(
+        string="Unbilled Late Fees", compute="_compute_late_fees"
+    )
+    # BR-30: the late-fee invoices billed on this contract. Not schedule lines,
+    # so they never accrue a fee (AC-05.9). Accounting users only.
+    late_fee_invoice_ids = fields.Many2many(
+        "account.move",
+        "real_estate_contract_late_fee_invoice_rel",
+        "contract_id",
+        "move_id",
+        string="Late Fee Invoices",
+        readonly=True,
+        copy=False,
+        groups="account.group_account_invoice",
+    )
+    # BR-31: flagged, never cancelled automatically. A stored compute on the
+    # lines, so paying the late line clears it at once.
+    at_risk = fields.Boolean(
+        compute="_compute_at_risk",
+        store=True,
+        index=True,
+        tracking=True,
+    )
     state = fields.Selection(
         CONTRACT_STATE,
         string="Status",
@@ -155,6 +183,33 @@ class RealEstateContract(models.Model):
             lines = contract.installment_ids
             contract.amount_paid = sum(lines.mapped("amount_paid"))
             contract.amount_outstanding = sum(lines.mapped("amount_residual"))
+
+    @api.depends(
+        "state",
+        "installment_ids.state",
+        "installment_ids.days_past_due",
+        "company_id.re_at_risk_days",
+    )
+    def _compute_at_risk(self):
+        """BR-31: a live contract with a line not paid and more than the
+        company's at-risk days (60) past due. Cleared when no such line
+        remains, or when the contract is no longer live."""
+        for contract in self:
+            limit = contract.company_id.re_at_risk_days
+            contract.at_risk = contract.state in ("confirmed", "delivered") and any(
+                line.state in ("invoiced", "partially_paid")
+                and line.days_past_due > limit
+                for line in contract.installment_ids
+            )
+
+    @api.depends(
+        "installment_ids.late_fee_accrued", "installment_ids.late_fee_unbilled"
+    )
+    def _compute_late_fees(self):
+        for contract in self:
+            lines = contract.installment_ids
+            contract.late_fee_accrued = sum(lines.mapped("late_fee_accrued"))
+            contract.late_fee_unbilled = sum(lines.mapped("late_fee_unbilled"))
 
     def _check_unit_free(self, unit_ids):
         """BR-04 / AC-01.3: a clear message before the database refuses.
@@ -358,6 +413,85 @@ class RealEstateContract(models.Model):
     # US-02: generate the schedule from a plan (BR-14 to BR-20).
     # ------------------------------------------------------------------
 
+    def action_bill_late_fees(self):
+        """US-05 / BR-30 / BR-35: a collections officer or a sales manager
+        bills a contract's unbilled late fees in one invoice. The system never
+        bills them on its own."""
+        # The manager group implies the collections group.
+        if not self.env.user.has_group("real_estate_eg.group_real_estate_collections"):
+            raise AccessError(
+                self.env._(
+                    "Only a collections officer or a sales manager can bill late fees."
+                )
+            )
+        if any(c.state not in ("confirmed", "delivered") for c in self):
+            raise UserError(
+                self.env._(
+                    "Late fees are billed only on confirmed or delivered contracts."
+                )
+            )
+        today = fields.Date.context_today(self)
+        for contract in self:
+            contract._bill_late_fees(today)
+        return True
+
+    def _bill_late_fees(self, invoice_date):
+        """BR-30: one invoice for the sum of the lines' unbilled fees, rounded
+        once, half up to whole EGP (BR-45). Each line's billed fee becomes its
+        accrued fee, unrounded, so billing again finds nothing (AC-05.7).
+        Created as superuser: collections officers have no invoicing rights.
+        Returns the invoice, or an empty recordset when nothing is due."""
+        self.ensure_one()
+        lines = self.installment_ids.sudo().filtered(
+            lambda line: line.late_fee_unbilled > 0
+        )
+        unbilled = [Decimal(str(x)) for x in lines.mapped("late_fee_unbilled")]
+        total = half_up(sum(unbilled, Decimal(0)))
+        Move = self.env["account.move"].sudo().with_company(self.company_id)
+        if total <= 0:
+            return Move
+        account = self.company_id.re_late_fee_account_id
+        if not account:
+            raise UserError(
+                self.env._("Set the Late Fees account in Settings > Real Estate first.")
+            )
+        product = self.env.ref("real_estate_eg.product_late_fee")
+        invoice = Move.create(
+            {
+                "move_type": "out_invoice",
+                "company_id": self.company_id.id,
+                "partner_id": self.partner_id.id,
+                "invoice_date": invoice_date,
+                "invoice_payment_term_id": False,
+                "invoice_origin": self.name,
+                "invoice_line_ids": [
+                    Command.create(
+                        {
+                            "product_id": product.id,
+                            "name": self.env._("%s - Late fees", self.name),
+                            "quantity": 1,
+                            "price_unit": total,
+                            "account_id": account.id,
+                            "tax_ids": [Command.clear()],
+                        }
+                    )
+                ],
+            }
+        )
+        invoice.action_post()
+        for line in lines:
+            line.late_fee_billed = line.late_fee_accrued
+        self.sudo().late_fee_invoice_ids = [Command.link(invoice.id)]
+        # Collections officers cannot open invoices: the chatter tells them.
+        self.message_post(
+            body=self.env._(
+                "Late fees billed: %(amount)s EGP (%(invoice)s).",
+                amount=f"{total:,}",
+                invoice=invoice.name,
+            )
+        )
+        return invoice
+
     def action_generate_schedule(self):
         """Open the dialog to pick a plan; the button shows on drafts only."""
         self.ensure_one()
@@ -437,17 +571,34 @@ class RealEstateContract(models.Model):
         # BR-33: the money first, while it still reads real payments only.
         self.write(self._cancellation_amounts())
         # BR-34: then credit what was invoiced but not paid.
-        self.installment_ids._credit_unpaid(fields.Date.context_today(self))
+        today = fields.Date.context_today(self)
+        self.installment_ids._credit_unpaid(today)
+        # BR-34: unpaid late-fee invoices too; paid ones are not refunded.
+        self._credit_unpaid_late_fees(today)
         # Every line now shows cancelled, set by the module (line state
         # follows the contract); the unit is available again (BR-03).
         self.write({"state": "cancelled", "cancel_reason": reason.strip()})
 
+    def _credit_unpaid_late_fees(self, credit_date):
+        """BR-34: credit what is still owed on each late-fee invoice, to the
+        account it was billed to. Fees never billed are simply dropped: the
+        contract is cancelled and no longer computed (BR-29)."""
+        self.ensure_one()
+        product = self.env.ref("real_estate_eg.product_late_fee")
+        invoices = self.sudo().late_fee_invoice_ids.filtered(
+            lambda move: move.state == "posted" and move.amount_residual > 0
+        )
+        Line = self.env["real.estate.installment"]
+        for invoice in invoices:
+            account = invoice.invoice_line_ids[:1].account_id
+            Line._credit_residual(invoice, product, account, credit_date)
+
     def _cancellation_amounts(self):
         """BR-33: retention = retention % of what was paid against the down
         payment and installments, half up to whole EGP; refundable = that paid
-        amount - retention + any paid maintenance deposit, in full. Late fees
-        are not refunded (Story 05). Line amount_paid counts payments only,
-        never credit notes."""
+        amount - retention + any paid maintenance deposit, in full. Paid late
+        fees are not refunded: late-fee invoices are not schedule lines. Line
+        amount_paid counts payments only, never credit notes."""
         self.ensure_one()
         lines = self.installment_ids
         price_lines = lines.filtered(lambda line: line.line_type != "maintenance")
@@ -504,27 +655,67 @@ class RealEstateContract(models.Model):
     def _cron_nightly(self, today=None):
         """§5.5, the nightly job, run as superuser across all companies.
         Step 1: invoice every line that has fallen due (BR-22, BR-25).
-        Steps 2-3 (late fees, at risk) come with Story 05.
+        Step 2: recompute days past due and late fees (BR-26 - BR-29).
+        Step 3: the at-risk flag follows from step 2 (stored compute, BR-31).
         Step 4: close delivered contracts that are fully paid (BR-12).
         `today` is a parameter so tests can run any day."""
         today = today or fields.Date.context_today(self)
         contracts = self.search([("state", "in", ("confirmed", "delivered"))])
         contracts._invoice_due_lines(today)
+        self._cron_late_fees(today)
         self._cron_close_paid_contracts()
+
+    @api.model
+    def _cron_late_fees(self, today):
+        """§5.5 step 2: every invoiced line of a live contract that is not
+        paid, or was paid since its fee was last computed (not final yet).
+        A fully paid line computed once is final and skipped. Recomputing is
+        safe: the fee is overwritten from the payment history (BR-29)."""
+        lines = (
+            self.env["real.estate.installment"]
+            .sudo()
+            .search(
+                [
+                    ("contract_id.state", "in", ("confirmed", "delivered")),
+                    ("invoice_id", "!=", False),
+                    "|",
+                    ("state", "!=", "paid"),
+                    ("late_fee_final", "=", False),
+                ]
+            )
+        )
+        lines._recompute_late_fees(today)
+        return lines
 
     @api.model
     def _cron_close_paid_contracts(self):
         """BR-12 / AC-12.1: a delivered contract closes once every line is
         paid. A line not invoiced yet is not paid, so a contract with future
         installments stays open. AC-12.2: a confirmed contract never closes.
-        (Story 05 adds: no billed late fee unpaid, none left unbilled.)"""
+        BR-12 also waits for late fees: every late-fee invoice paid and no
+        accrued fee left unbilled (v1 has no waiver)."""
         delivered = self.search([("state", "=", "delivered")])
         paid = delivered.filtered(
             lambda contract: contract.installment_ids
             and all(line.state == "paid" for line in contract.installment_ids)
+            and contract._late_fees_settled()
         )
         paid.write({"state": "closed"})
         return paid
+
+    def _late_fees_settled(self):
+        """BR-12: every billed late fee paid ("In payment" counts as paid,
+        BR-24) and nothing left to bill. A rest under 0.50 EGP rounds to 0 and
+        can never be billed (BR-30), so it does not block closing."""
+        self.ensure_one()
+        invoices = self.sudo().late_fee_invoice_ids
+        unbilled = [
+            Decimal(str(x)) for x in self.installment_ids.mapped("late_fee_unbilled")
+        ]
+        return (
+            all(invoice.payment_state in ("paid", "in_payment") for invoice in invoices)
+            and half_up(sum(unbilled, Decimal(0))) == 0
+        )
 
     def _invoice_due_lines(self, today):
         """BR-21 / BR-22: invoice every line of these contracts that is due by

@@ -73,3 +73,48 @@ class TestCancellation(RealEstateCommon):
         self.assertEqual(set(contract.installment_ids.mapped("state")), {"cancelled"})
         self.assertEqual(len(self._invoiced(contract)), 2, "future lines: none")
         self.assertEqual(contract.unit_id.state, "available")
+
+    def test_br_34_credit_late_fee_invoice(self):
+        """T13. BR-34 / BR-33: on cancellation an unpaid late-fee invoice is
+        credited in full and matched; a paid one is not refunded; retention
+        counts only the down payment and installments."""
+        with freeze_time("2027-01-10"):
+            contract = self._example_a()
+            self._register_payment(
+                self._line(contract, "down_payment").sudo().invoice_id
+            )
+        Contract = self.env["real.estate.contract"].sudo()
+        installments = contract.installment_ids.filtered(lambda x: x.number in (1, 2))
+        # Each installment is invoiced on its due date by the nightly job.
+        for day in ("2027-04-10", "2027-07-10"):
+            with freeze_time(day):
+                Contract._cron_nightly()
+        # Installment 1 (due 10 Apr) paid 25 May: 3,620 billed and paid.
+        with freeze_time("2027-05-25"):
+            Contract._cron_nightly()
+            self._register_payment(installments[0].sudo().invoice_id)
+            Contract._cron_nightly()
+            contract.with_user(self.collections).action_bill_late_fees()
+            paid_fee = contract.sudo().late_fee_invoice_ids
+            self._register_payment(paid_fee)
+        # Installment 2 (due 10 Jul) unpaid on 25 Jul: its fee billed, unpaid.
+        with freeze_time("2027-07-25"):
+            Contract._cron_nightly()
+            contract.with_user(self.collections).action_bill_late_fees()
+        unpaid_fee = contract.sudo().late_fee_invoice_ids - paid_fee
+        self.assertEqual(
+            unpaid_fee.amount_total, 1207
+        )  # 15 x 241,313 / 3000 = 1,206.565
+
+        with freeze_time("2027-07-26"):
+            contract.with_user(self.manager)._cancel_with_reason("Customer request")
+        self.assertEqual(unpaid_fee.amount_residual, 0)
+        self.assertEqual(unpaid_fee.payment_state, "reversed")
+        refund = unpaid_fee.reversal_move_ids
+        self.assertEqual(refund.amount_total, 1207)
+        self.assertEqual(refund.invoice_line_ids.account_id, self.late_fee_account)
+        self.assertEqual(paid_fee.payment_state, "paid")
+        self.assertFalse(paid_fee.reversal_move_ids)
+        # 15% of 858,000 + 241,313 = 1,099,313 -> 164,897 (half up).
+        self.assertEqual(contract.retention_amount, 164_897)
+        self.assertEqual(contract.refundable_amount, 934_416)

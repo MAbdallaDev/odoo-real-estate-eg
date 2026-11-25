@@ -84,6 +84,54 @@ Questions: [`design-notes/03-schedule-generator.md`](design-notes/03-schedule-ge
 
 Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-link.md#explain-back-questions)
 
+*Drafted by the AI at the maintainer's request.*
+
+1. Invoiced: debit Receivable 858,000, credit Customer Advances 858,000. Paid: debit
+   Outstanding Receipts 858,000, credit Receivable 858,000, matched with the invoice.
+   Cancelled while unpaid: a credit note, debit Customer Advances 858,000, credit Receivable
+   858,000, matched with the invoice. There is no revenue line because the money still belongs
+   to the customer until the unit is handed over: it is an advance, a liability (BR-43).
+   Revenue at delivery is v1.1. For the payment to make the line show paid, the bank journal's
+   incoming payment method needs an Outstanding Receipts account. Without it the payment has
+   no journal entry, so `amount_residual` never drops.
+2. Odoo's reversal wizard always credits the whole invoice. For a partly paid invoice, that
+   would also "refund" the part the customer really paid. Our credit note is for exactly
+   `amount_residual`. The retention comes first because a credit note lowers
+   `amount_residual` exactly like a payment does. Computed afterwards, the credited amount
+   would look like money received, and the retention and refund would be too high.
+3. Agents and collections officers have no rights on invoices, so they cannot read
+   `invoice_id`. The state and amounts are copied onto the line (stored) so everyone can read
+   them, search them and group by them. The invoicing methods run with `sudo()` because a
+   sales manager (and the nightly job) has no accounting rights to create and post invoices,
+   and because BR-19 locks the schedule lines of a confirmed contract. Only the superuser
+   can link the invoice to a locked line.
+
+### Story 05 — Overdue lines, late fees and the at-risk flag
+
+Questions: [`design-notes/05-late-fees.md`](design-notes/05-late-fees.md#explain-back-questions)
+
+*Drafted by the AI at the maintainer's request.*
+
+1. From 10 Apr to 29 Apr (20 days) the fee is on 241,313. From 30 Apr, the day of the first
+   payment, to 24 May (25 days) it is on 100,000. 25 May, the day it is fully paid, is not
+   charged. 20 × 241,313 × 1 % ÷ 30 + 25 × 100,000 × 1 % ÷ 30 = 1,608.7533 + 833.3333 =
+   2,442.0867. Shown half up to piastres: 2,442.09. Billed half up to whole EGP: 2,442.
+   Paid in full on 18 Apr: the line was never more than 7 days past due while unpaid, so it
+   was never overdue, and the fee is 0. Paid on 19 Apr: it was overdue on 18 Apr, so all 9
+   days from 10 Apr are charged: 9 × 241,313 ÷ 3,000 = 723.94.
+2. The fee is a function of the payment history and the as-of date, and the job overwrites
+   the stored value every night. An accumulating job would go wrong in all three cases.
+   Run twice the same night: it would add the day twice. A skipped night: it would miss that
+   day. A payment entered on 25 May but dated 21 May: it would already have charged 21–24 May
+   on money that was in fact paid, and could not take it back.
+3. `Monetary` rounds to piastres every time a value is set. The fee must stay unrounded
+   (3,619.695), so the invoice total is rounded only once (3,620) and the daily amounts
+   never drift. So the stored fees are `Float`. The screen totals are `Monetary` on purpose:
+   they round once, half up, for display (3,619.70). A collections officer can bill because
+   the action first checks the collections or manager group, then creates and posts the
+   invoice with `sudo()` inside the module's own method. The amount comes from the stored
+   fees, so the officer cannot type it, and the officer gets no general invoicing rights.
+
 ### Story 08 — Bilingual Arabic / English contract PDF
 
 Questions: [`design-notes/08-bilingual-pdf.md`](design-notes/08-bilingual-pdf.md#explain-back-questions)
@@ -131,6 +179,9 @@ Questions: [`design-notes/08-bilingual-pdf.md`](design-notes/08-bilingual-pdf.md
 | 2026-11-24 | 04 | The shell command given to invoice a line by hand used `fields.Date.today()` without importing `fields`, so it stopped with a `NameError`. | The maintainer ran it on `re_dev` | `from odoo import fields` added to the command; nothing had been created |
 | 2026-11-24 | 04 | T6 (the job invoices once) counted lines that have an invoice. A second invoice for the same line only replaced the link, so the count stayed at 2 and the test missed it. | Negative check N2 (no "no invoice yet" filter): T6 still passed | T6 counts the posted invoices in accounting; N2 now fails it |
 | 2026-11-25 | 04 | The Example E test helper paid every line numbered 0 to 4, including the maintenance deposit, which has no invoice before delivery. | The first test run: Odoo's "nothing left to pay" error | The helper pays the down payment and installments 1–4 only |
+| 2026-11-25 | 05 | The privacy scan ran in the same command as the commit and push, so the plan reached the story branch with a word from the private pattern list. | The scan's output, read after the push | A follow-up commit reworded it. Rule: the scan runs before `git commit`, and a hit stops the commit. |
+| 2026-11-25 | 05 | The cancellation test (T13) never ran the nightly job on installment 1's due date. The line was invoiced on the day it was paid, so its effective due date moved to that day and no fee accrued. The code was right (BR-26). | Odoo's "nothing left to pay" error when the test paid a late-fee invoice that was never created | The test runs the job on 10 Apr and 10 Jul, as in real life |
+| 2026-11-25 | 05 | T13 expected a 1,206 EGP late-fee invoice for 15 × 241,313 ÷ 3,000. That is 1,206.565, which rounds half up to 1,207. | The test failed: `1207.0 != 1206` | The expected value fixed; the comment shows the unrounded amount |
 | 2026-11-25 | 08 | The first printed contract showed 10 Jan 2027 as `01/10/2027`, the US date order of the user's language, which an Egyptian reader takes for 1 October. | Looking at the first rendered page | Every date prints `dd/MM/yyyy` (the date widget's `format` option) |
 | 2026-11-25 | 08 | The maintenance deposit row was numbered 1: it is printed after the total, by a second loop, and `line_index` restarts at 0 in each loop. The tests checked names and amounts, not numbers. | Looking at the rendered page | Number = place in the whole schedule; T1 now checks 1 to 34 |
 | 2026-11-25 | 08 | The real-PDF test hung, then printed a PDF without CSS: wkhtmltopdf's requests for the CSS waited for the test's uncommitted transaction, then were refused for lack of the test cookie. | `make test` stopped at the test; the log showed "ignored during test" for the CSS | `TransactionCase.allow_pdf_render()`: shares the test cursor and adds the cookie |

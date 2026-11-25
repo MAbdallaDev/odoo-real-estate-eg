@@ -74,3 +74,30 @@ class TestDeliveryClosing(RealEstateCommon):
 
         self._run_job("2027-02-01")
         self.assertEqual(contract.state, "confirmed")
+
+    def test_br_12_close_waits_for_late_fees(self):
+        """T12. BR-12: a delivered contract whose lines are all paid stays
+        delivered while a late fee is unbilled, or billed and unpaid; it closes
+        once the late-fee invoice is paid."""
+        contract = self._cash_contract()
+        with freeze_time("2027-02-01"):
+            contract.with_user(self.manager).action_deliver()
+            self._pay(contract, "maintenance")
+        # The down payment (due 10 Jan) is paid 50 days late.
+        down_payment = self._line(contract, "down_payment").sudo().invoice_id
+        with freeze_time("2027-03-01"):
+            self._register_payment(down_payment, payment_date="2027-03-01")
+        self._run_job("2027-03-02")
+        self.assertEqual(set(contract.installment_ids.mapped("state")), {"paid"})
+        self.assertEqual(contract.late_fee_unbilled, 143_000)  # 50 x 8,580,000 / 3000
+        self.assertEqual(contract.state, "delivered", "a late fee is unbilled")
+
+        with freeze_time("2027-03-02"):
+            contract.with_user(self.collections).action_bill_late_fees()
+        self._run_job("2027-03-03")
+        self.assertEqual(contract.state, "delivered", "the late fee is unpaid")
+
+        with freeze_time("2027-03-03"):
+            self._register_payment(contract.sudo().late_fee_invoice_ids)
+        self._run_job("2027-03-04")
+        self.assertEqual(contract.state, "closed")

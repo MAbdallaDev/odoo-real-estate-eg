@@ -1,6 +1,8 @@
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError
 
+from ..tools.late_fee import compute_late_fee, days_past_due, paid_date
+
 # §5.3: a schedule line is a down payment, an installment or the maintenance
 # deposit.
 LINE_TYPE = [
@@ -66,6 +68,52 @@ class RealEstateInstallment(models.Model):
         "CHECK (amount > 0)", "A schedule line must have an amount above 0."
     )
 
+    # BR-26: days past due, written by the nightly job for its as-of date.
+    days_past_due = fields.Integer(readonly=True, copy=False)
+    # BR-26: overdue = not paid and past the grace period. A stored compute on
+    # the state, so a payment clears it at once, without waiting for the job.
+    is_overdue = fields.Boolean(
+        string="Overdue", compute="_compute_is_overdue", store=True, index=True
+    )
+    # BR-27 / BR-30: kept UNROUNDED. A Monetary field would round to piastres
+    # on every write, and the invoice must be rounded once, from the raw sum.
+    late_fee_accrued = fields.Float(
+        string="Accrued Late Fee (unrounded)", readonly=True, copy=False
+    )
+    late_fee_billed = fields.Float(
+        string="Billed Late Fee (unrounded)", readonly=True, copy=False
+    )
+    late_fee_unbilled = fields.Float(
+        string="Unbilled Late Fee (unrounded)",
+        compute="_compute_late_fee_unbilled",
+        store=True,
+    )
+    # For the screen only: the accrued fee rounded half up to piastres.
+    late_fee_display = fields.Monetary(
+        string="Late Fee", compute="_compute_late_fee_display"
+    )
+    # §5.5: the fee was computed after the line was fully paid, so it is final
+    # and the job skips the line (until a payment is unmatched again).
+    late_fee_final = fields.Boolean(readonly=True, copy=False)
+
+    @api.depends("state", "days_past_due", "company_id.re_grace_days")
+    def _compute_is_overdue(self):
+        for line in self:
+            line.is_overdue = (
+                line.state in ("invoiced", "partially_paid")
+                and line.days_past_due > line.company_id.re_grace_days
+            )
+
+    @api.depends("late_fee_accrued", "late_fee_billed")
+    def _compute_late_fee_unbilled(self):
+        for line in self:
+            line.late_fee_unbilled = line.late_fee_accrued - line.late_fee_billed
+
+    @api.depends("late_fee_accrued")
+    def _compute_late_fee_display(self):
+        for line in self:
+            line.late_fee_display = line.late_fee_accrued
+
     @api.depends("line_type", "number")
     def _compute_name(self):
         labels = dict(LINE_TYPE)
@@ -130,6 +178,64 @@ class RealEstateInstallment(models.Model):
         for line in self:
             dates = [d for d in (line.date_due, line.invoice_date) if d]
             line.date_effective_due = max(dates) if dates else False
+
+    # ------------------------------------------------------------------
+    # BR-24 / BR-29: payment history, read from accounting
+    # ------------------------------------------------------------------
+
+    def _payment_history(self):
+        """(date, amount) of every payment matched with this line's invoice,
+        each from its own accounting date (BR-24), so a payment entered late
+        with an earlier date counts from that earlier date. Credit notes are
+        not payments (BR-33); exchange differences do not apply (EGP only).
+        Read as superuser: only accounting users can read invoices."""
+        self.ensure_one()
+        invoice = self.sudo().invoice_id
+        if not invoice:
+            return []
+        history = []
+        # One entry per partial reconciliation on the receivable line; "aml"
+        # is the other side (the payment's line), sorted by date.
+        for partial in invoice._get_all_reconciled_invoice_partials():
+            counterpart = partial["aml"]
+            if partial["is_exchange"] or counterpart.move_id.move_type == "out_refund":
+                continue
+            history.append((counterpart.date, partial["amount"]))
+        return history
+
+    # ------------------------------------------------------------------
+    # BR-26 - BR-29: overdue and accrued late fee
+    # ------------------------------------------------------------------
+
+    def _recompute_late_fees(self, as_of):
+        """Compute each line's days past due and accrued fee for `as_of` from
+        its payment history, and OVERWRITE the stored values (BR-29): never
+        add to last night's number. Runs as superuser: the line is locked
+        (BR-19) and the history is read from invoices."""
+        for line in self.sudo():
+            if not line.invoice_id or not line.date_effective_due:
+                continue  # not invoiced: not due, nothing to compute
+            company = line.company_id
+            history = line._payment_history()
+            fee = compute_late_fee(
+                line.amount,
+                line.date_effective_due,
+                history,
+                as_of,
+                monthly_rate=company.re_late_fee_rate,
+                cap_percent=company.re_late_fee_cap,
+                grace_days=company.re_grace_days,
+            )
+            fully_paid = paid_date(line.amount, [p for p in history if p[0] <= as_of])
+            line.write(
+                {
+                    "days_past_due": 0
+                    if fully_paid
+                    else days_past_due(line.date_effective_due, as_of),
+                    "late_fee_accrued": float(fee),
+                    "late_fee_final": bool(fully_paid),
+                }
+            )
 
     # ------------------------------------------------------------------
     # BR-22 / BR-23 / BR-25 / BR-43 / BR-44: invoicing
@@ -229,48 +335,57 @@ class RealEstateInstallment(models.Model):
         money the customer really paid.) Runs as superuser, like invoicing."""
         refunds = self.env["account.move"]
         for line in self.sudo().filtered(lambda x: x.invoice_id.amount_residual > 0):
-            invoice = line.invoice_id
             product, account = line._line_product_and_account()
-            refund = (
-                self.env["account.move"]
-                .sudo()
-                .with_company(line.company_id)
-                .create(
-                    {
-                        "move_type": "out_refund",
-                        "company_id": line.company_id.id,
-                        "partner_id": invoice.partner_id.id,
-                        "invoice_date": credit_date,
-                        "invoice_payment_term_id": False,
-                        "invoice_origin": invoice.invoice_origin,
-                        # Links the credit note to its invoice (reversal_move_ids).
-                        "reversed_entry_id": invoice.id,
-                        "ref": self.env._("Cancellation of %s", invoice.name),
-                        "invoice_line_ids": [
-                            Command.create(
-                                {
-                                    "product_id": product.id,
-                                    "name": invoice.invoice_line_ids[:1].name,
-                                    "quantity": 1,
-                                    "price_unit": invoice.amount_residual,
-                                    "account_id": account.id,
-                                    "tax_ids": [Command.clear()],  # BR-44
-                                }
-                            )
-                        ],
-                    }
-                )
+            refunds |= self._credit_residual(
+                line.invoice_id, product, account, credit_date
             )
-            refund.action_post()
-            # Match the credit note with the invoice on the receivable account.
-            receivable = (invoice.line_ids | refund.line_ids).filtered(
-                lambda move_line: move_line.account_id.account_type
-                == "asset_receivable"
-                and not move_line.reconciled
-            )
-            receivable.reconcile()
-            refunds |= refund
         return refunds
+
+    @api.model
+    def _credit_residual(self, invoice, product, account, credit_date):
+        """Post a credit note for exactly `invoice`'s amount due, with the
+        given product and account and no tax, and match it with the invoice
+        on the receivable account. Used for schedule lines and, from Story 05,
+        for late-fee invoices (BR-34)."""
+        invoice = invoice.sudo()
+        refund = (
+            self.env["account.move"]
+            .sudo()
+            .with_company(invoice.company_id)
+            .create(
+                {
+                    "move_type": "out_refund",
+                    "company_id": invoice.company_id.id,
+                    "partner_id": invoice.partner_id.id,
+                    "invoice_date": credit_date,
+                    "invoice_payment_term_id": False,
+                    "invoice_origin": invoice.invoice_origin,
+                    # Links the credit note to its invoice (reversal_move_ids).
+                    "reversed_entry_id": invoice.id,
+                    "ref": self.env._("Cancellation of %s", invoice.name),
+                    "invoice_line_ids": [
+                        Command.create(
+                            {
+                                "product_id": product.id,
+                                "name": invoice.invoice_line_ids[:1].name,
+                                "quantity": 1,
+                                "price_unit": invoice.amount_residual,
+                                "account_id": account.id,
+                                "tax_ids": [Command.clear()],  # BR-44
+                            }
+                        )
+                    ],
+                }
+            )
+        )
+        refund.action_post()
+        # Match the credit note with the invoice on the receivable account.
+        receivable = (invoice.line_ids | refund.line_ids).filtered(
+            lambda move_line: move_line.account_id.account_type == "asset_receivable"
+            and not move_line.reconciled
+        )
+        receivable.reconcile()
+        return refund
 
     # ------------------------------------------------------------------
     # BR-19: a schedule changes only while its contract is draft.

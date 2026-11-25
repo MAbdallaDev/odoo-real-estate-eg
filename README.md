@@ -87,6 +87,11 @@ Before the first contract is confirmed:
    *Settings → Real Estate*. Confirmation is refused until both are set.
 3. **Outstanding Receipts** on the bank journal's incoming payment method. Without it a
    registered payment has no journal entry, and no line ever shows paid.
+4. **A late fees income account** (e.g. *Other Income*) in *Settings → Real Estate →
+   Collections*, next to the late fee rate (1 % a month), cap (10 %), grace period (7 days)
+   and at-risk days (60). These are illustrative values: 12 % a year is above the Civil Code
+   cap, so set them with your lawyer
+   ([why](docs/design-notes/05-late-fees.md#open-questions)).
 
 ## Daily commands
 
@@ -119,11 +124,11 @@ Before the first contract is confirmed:
 | 01 | Environment and module skeleton | done |
 | 02 | Core models, views, states and access rights | done |
 | 03 | Payment plan templates and the schedule generator | done |
-| 04 | Accounting link: invoices, payment state, closing and cancellation money | in review |
-| 05 | Overdue lines, late fees and the at-risk flag | planned |
+| 04 | Accounting link: invoices, payment state, closing and cancellation money | done |
+| 05 | Overdue lines, late fees and the at-risk flag | in review |
 | 06 | Record rules: agents see their own contracts; multi-company | planned |
 | 07 | Collections screens and query performance | planned |
-| 08 | Bilingual Arabic / English contract PDF | in review |
+| 08 | Bilingual Arabic / English contract PDF | done |
 | 09 | Post-dated cheques (stretch) | planned |
 | 10 | Ship v1.0.0: unit import, demo data | planned |
 
