@@ -60,3 +60,79 @@ class TestLateFees(RealEstateCommon):
             line._payment_history(),
             [(date(2027, 4, 30), 141_313), (date(2027, 5, 25), 100_000)],
         )
+
+    def _night(self, day):
+        """The late-fee step of the nightly job, run for `day`."""
+        with freeze_time(day):
+            self.env["real.estate.installment"].search([])._recompute_late_fees(
+                fields.Date.to_date(day)
+            )
+
+    def test_ac_05_1_overdue_after_grace(self):
+        """T4. AC-05.1: not overdue on 15 and 17 Apr (due + 7), overdue on
+        18 Apr. A payment clears the flag at once, before the next run."""
+        contract, line = self._installment_1_invoiced()
+        for day, days, overdue in (
+            ("2027-04-15", 5, False),
+            ("2027-04-17", 7, False),
+            ("2027-04-18", 8, True),
+        ):
+            self._night(day)
+            self.assertEqual(line.days_past_due, days, day)
+            self.assertEqual(line.is_overdue, overdue, day)
+        # Collections read it without rights on invoices.
+        self.assertTrue(line.with_user(self.collections).is_overdue)
+        self._pay(line, 241_313, "2027-04-20")
+        self.assertFalse(line.is_overdue)
+
+    def test_ac_05_2_example_d_full(self):
+        """T5. AC-05.2 / AC-05.8: paid in full on 25 May -> 3,619.695 stored
+        unrounded, shown 3,619.70 (not 3,619.80); the fee is final."""
+        __, line = self._installment_1_invoiced()
+        self._pay(line, 241_313, "2027-05-25")
+        self._night("2027-05-25")
+        self.assertEqual(line.late_fee_accrued, 3619.695)
+        self.assertEqual(line.late_fee_unbilled, 3619.695)
+        self.assertEqual(line.late_fee_display, 3619.70)
+        self.assertNotEqual(line.late_fee_display, 3619.80)
+        self.assertTrue(line.late_fee_final)
+        self.assertEqual(line.days_past_due, 0)
+
+    def test_ac_05_3_example_d_parts(self):
+        """T5. AC-05.3: 141,313 on 30 Apr and 100,000 on 25 May -> 2,442.0867,
+        shown 2,442.09."""
+        __, line = self._installment_1_invoiced()
+        self._pay(line, 141_313, "2027-04-30")
+        self._night("2027-05-01")
+        self.assertFalse(line.late_fee_final)
+        self._pay(line, 100_000, "2027-05-25")
+        self._night("2027-05-25")
+        self.assertAlmostEqual(
+            line.late_fee_accrued, (20 * 241_313 + 25 * 100_000) / 3000, places=9
+        )
+        self.assertEqual(line.late_fee_display, 2442.09)
+
+    def test_ac_05_5_cap(self):
+        """T6. AC-05.5: unpaid for 400 days -> capped at 10%: 24,131.30."""
+        __, line = self._installment_1_invoiced()
+        self._night("2028-05-14")
+        self.assertEqual(line.late_fee_accrued, 24_131.3)
+
+    def test_ac_05_10_confirmed_late(self):
+        """T7. AC-05.10: dated 10 Jan 2027, confirmed 30 Jan 2027 -> the down
+        payment's effective due date is 30 Jan: not overdue on 6 Feb, and once
+        overdue its fee counts from 30 Jan, not 10 Jan."""
+        with freeze_time("2027-01-30"):
+            contract = self._confirmed(
+                self.add_schedule(self.create_contract(), "2027-01-10")
+            )
+        down_payment = self._line(contract, "down_payment")
+        self.assertEqual(down_payment.date_due, date(2027, 1, 10))
+        self.assertEqual(down_payment.date_effective_due, date(2027, 1, 30))
+        self._night("2027-02-06")
+        self.assertEqual(down_payment.days_past_due, 7)
+        self.assertFalse(down_payment.is_overdue)
+        self.assertEqual(down_payment.late_fee_accrued, 0)
+        self._night("2027-02-08")
+        self.assertTrue(down_payment.is_overdue)
+        self.assertEqual(down_payment.late_fee_accrued, 9 * 858_000 / 3000)

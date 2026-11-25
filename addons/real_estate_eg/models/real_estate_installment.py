@@ -1,6 +1,8 @@
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError
 
+from ..tools.late_fee import compute_late_fee, days_past_due, paid_date
+
 # §5.3: a schedule line is a down payment, an installment or the maintenance
 # deposit.
 LINE_TYPE = [
@@ -65,6 +67,52 @@ class RealEstateInstallment(models.Model):
     _amount_positive = models.Constraint(
         "CHECK (amount > 0)", "A schedule line must have an amount above 0."
     )
+
+    # BR-26: days past due, written by the nightly job for its as-of date.
+    days_past_due = fields.Integer(readonly=True, copy=False)
+    # BR-26: overdue = not paid and past the grace period. A stored compute on
+    # the state, so a payment clears it at once, without waiting for the job.
+    is_overdue = fields.Boolean(
+        string="Overdue", compute="_compute_is_overdue", store=True, index=True
+    )
+    # BR-27 / BR-30: kept UNROUNDED. A Monetary field would round to piastres
+    # on every write, and the invoice must be rounded once, from the raw sum.
+    late_fee_accrued = fields.Float(
+        string="Accrued Late Fee (unrounded)", readonly=True, copy=False
+    )
+    late_fee_billed = fields.Float(
+        string="Billed Late Fee (unrounded)", readonly=True, copy=False
+    )
+    late_fee_unbilled = fields.Float(
+        string="Unbilled Late Fee (unrounded)",
+        compute="_compute_late_fee_unbilled",
+        store=True,
+    )
+    # For the screen only: the accrued fee rounded half up to piastres.
+    late_fee_display = fields.Monetary(
+        string="Late Fee", compute="_compute_late_fee_display"
+    )
+    # §5.5: the fee was computed after the line was fully paid, so it is final
+    # and the job skips the line (until a payment is unmatched again).
+    late_fee_final = fields.Boolean(readonly=True, copy=False)
+
+    @api.depends("state", "days_past_due", "company_id.re_grace_days")
+    def _compute_is_overdue(self):
+        for line in self:
+            line.is_overdue = (
+                line.state in ("invoiced", "partially_paid")
+                and line.days_past_due > line.company_id.re_grace_days
+            )
+
+    @api.depends("late_fee_accrued", "late_fee_billed")
+    def _compute_late_fee_unbilled(self):
+        for line in self:
+            line.late_fee_unbilled = line.late_fee_accrued - line.late_fee_billed
+
+    @api.depends("late_fee_accrued")
+    def _compute_late_fee_display(self):
+        for line in self:
+            line.late_fee_display = line.late_fee_accrued
 
     @api.depends("line_type", "number")
     def _compute_name(self):
@@ -154,6 +202,40 @@ class RealEstateInstallment(models.Model):
                 continue
             history.append((counterpart.date, partial["amount"]))
         return history
+
+    # ------------------------------------------------------------------
+    # BR-26 - BR-29: overdue and accrued late fee
+    # ------------------------------------------------------------------
+
+    def _recompute_late_fees(self, as_of):
+        """Compute each line's days past due and accrued fee for `as_of` from
+        its payment history, and OVERWRITE the stored values (BR-29): never
+        add to last night's number. Runs as superuser: the line is locked
+        (BR-19) and the history is read from invoices."""
+        for line in self.sudo():
+            if not line.invoice_id or not line.date_effective_due:
+                continue  # not invoiced: not due, nothing to compute
+            company = line.company_id
+            history = line._payment_history()
+            fee = compute_late_fee(
+                line.amount,
+                line.date_effective_due,
+                history,
+                as_of,
+                monthly_rate=company.re_late_fee_rate,
+                cap_percent=company.re_late_fee_cap,
+                grace_days=company.re_grace_days,
+            )
+            fully_paid = paid_date(line.amount, [p for p in history if p[0] <= as_of])
+            line.write(
+                {
+                    "days_past_due": 0
+                    if fully_paid
+                    else days_past_due(line.date_effective_due, as_of),
+                    "late_fee_accrued": float(fee),
+                    "late_fee_final": bool(fully_paid),
+                }
+            )
 
     # ------------------------------------------------------------------
     # BR-22 / BR-23 / BR-25 / BR-43 / BR-44: invoicing
