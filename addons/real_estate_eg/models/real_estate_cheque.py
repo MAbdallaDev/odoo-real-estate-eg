@@ -9,6 +9,16 @@ CHEQUE_STATE = [
     ("bounced", "Bounced"),
 ]
 
+# BR-41: the only moves. Cleared and bounced are final; a bounced cheque is
+# replaced by a new held one on the same line (AC-13.3).
+TRANSITIONS = {
+    "held": ("deposited",),
+    "deposited": ("cleared", "bounced"),
+}
+
+# What is written on the cheque: editable only while it is held.
+LOCKED_FIELDS = {"name", "bank_name", "date", "amount", "line_id"}
+
 
 class RealEstateCheque(models.Model):
     """US-13 / BR-40: a post-dated cheque the buyer handed over, linked to one
@@ -54,12 +64,8 @@ class RealEstateCheque(models.Model):
         "CHECK (amount > 0)", "A cheque must have an amount above 0."
     )
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        lines = self.env["real.estate.installment"].browse(
-            {vals["line_id"] for vals in vals_list if vals.get("line_id")}
-        )
-        # AC-13.1: only on a contract that binds.
+    def _check_lines_open(self, lines):
+        """AC-13.1: cheques go only on lines of a contract that binds."""
         if any(
             line.contract_id.state not in ("confirmed", "delivered") for line in lines
         ):
@@ -68,7 +74,49 @@ class RealEstateCheque(models.Model):
                     "Cheques are recorded only on confirmed or delivered contracts."
                 )
             )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        self._check_lines_open(
+            self.env["real.estate.installment"].browse(
+                {vals["line_id"] for vals in vals_list if vals.get("line_id")}
+            )
+        )
         # AC-13.1: a new cheque is always held, whatever the values say.
         for vals in vals_list:
             vals["state"] = "held"
         return super().create(vals_list)
+
+    def write(self, vals):
+        # BR-41: checked here, not only by hiding buttons, so the rule holds
+        # for every caller: RPC, imports, code, and the superuser too.
+        if "state" in vals:
+            for cheque in self:
+                new = vals["state"]
+                if new != cheque.state and new not in TRANSITIONS.get(cheque.state, ()):
+                    raise UserError(
+                        self.env._(
+                            "A cheque cannot go from %(old)s to %(new)s.",
+                            old=dict(CHEQUE_STATE)[cheque.state],
+                            new=dict(CHEQUE_STATE).get(new, new),
+                        )
+                    )
+        # Once the bank has the cheque, what is written on it is history.
+        if LOCKED_FIELDS.intersection(vals) and any(c.state != "held" for c in self):
+            raise UserError(self.env._("Only a held cheque can be corrected."))
+        if vals.get("line_id"):
+            self._check_lines_open(
+                self.env["real.estate.installment"].browse(vals["line_id"])
+            )
+        return super().write(vals)
+
+    # BR-41: the buttons only ask write() for the next state.
+
+    def action_deposit(self):
+        return self.write({"state": "deposited"})
+
+    def action_clear(self):
+        return self.write({"state": "cleared"})
+
+    def action_bounce(self):
+        return self.write({"state": "bounced"})
