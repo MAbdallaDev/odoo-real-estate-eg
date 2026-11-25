@@ -102,3 +102,27 @@ class TestRecordRules(RealEstateCommon):
         self.assertIn(self.contract_a, Contract.search([]))
         with self.assertRaises(AccessError):
             unit_2.with_user(self.manager).read(["code"])
+
+    # ------------------------------------------------------------------
+    # BR-35: who sees which contracts (Step 2; the agent rule is Step 3)
+    # ------------------------------------------------------------------
+
+    def test_ac_06_2_manager_sees_every_agent(self):
+        """AC-06.2: a manager sees the contracts of every agent, with their
+        schedule lines, and can edit every draft. The manager group implies
+        the agent group, so this also guards against the agent rule hiding
+        other agents' contracts from managers."""
+        contract_b = self.add_schedule(
+            self.create_contract(user=self.agent_b, unit=self.unit_2br)
+        )
+        contracts = self.contract_a | contract_b
+        Contract = self.env["real.estate.contract"].with_user(self.manager)
+        self.assertEqual(Contract.search([("id", "in", contracts.ids)]), contracts)
+        Line = self.env["real.estate.installment"].with_user(self.manager)
+        lines = contracts.installment_ids
+        self.assertEqual(Line.search([("contract_id", "in", contracts.ids)]), lines)
+
+        for contract in contracts:
+            with self.subTest(agent=contract.user_id.login):
+                contract.with_user(self.manager).partner_id = self.customer_foreign
+                self.assertEqual(contract.partner_id, self.customer_foreign)

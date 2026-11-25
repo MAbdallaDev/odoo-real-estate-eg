@@ -40,4 +40,63 @@
         <field name="model_id" ref="model_real_estate_installment" />
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+
+    <!--
+        BR-35: who sees which contracts and schedule lines.
+
+        The agent rules (own contracts only) are the maintainer's task, Step 3.
+        The manager group implies the agent group, so the agent rules will
+        apply to managers too; group rules are OR-ed, so the manager rules
+        below give them every row back (as sale_order_see_all does).
+    -->
+    <record id="real_estate_contract_manager_rule" model="ir.rule">
+        <field name="name">Real Estate Contract: manager sees all</field>
+        <field name="model_id" ref="model_real_estate_contract" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_real_estate_manager'))]" />
+    </record>
+
+    <record id="real_estate_installment_manager_rule" model="ir.rule">
+        <field name="name">Payment Schedule Line: manager sees all</field>
+        <field name="model_id" ref="model_real_estate_installment" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_real_estate_manager'))]" />
+    </record>
+
+    <!--
+        Collections officers and accountants read every contract and line.
+        Read only on purpose: a user who is also an agent still writes only
+        their own drafts (the agent rule decides writes).
+    -->
+    <record id="real_estate_contract_read_all_rule" model="ir.rule">
+        <field
+      name="name"
+    >Real Estate Contract: collections and accounting read all</field>
+        <field name="model_id" ref="model_real_estate_contract" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field
+      name="groups"
+      eval="[(4, ref('group_real_estate_collections')), (4, ref('account.group_account_invoice'))]"
+    />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
+
+    <record id="real_estate_installment_read_all_rule" model="ir.rule">
+        <field
+      name="name"
+    >Payment Schedule Line: collections and accounting read all</field>
+        <field name="model_id" ref="model_real_estate_installment" />
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field
+      name="groups"
+      eval="[(4, ref('group_real_estate_collections')), (4, ref('account.group_account_invoice'))]"
+    />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
 </odoo>
