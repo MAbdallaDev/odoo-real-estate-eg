@@ -114,6 +114,8 @@ class TestContractReport(RealEstateCommon):
             ("Installment 32", "القسط 32", "10/01/2035", "241,297 EGP"),
             ("Maintenance Deposit", "وديعة الصيانة", "On delivery", "686,400 EGP"),
         ]
+        numbers = [_cell(row, "o_re_num") for row in rows]
+        self.assertEqual(numbers, [str(n) for n in range(1, 35)])
         for row, (en_name, ar_name, due, amount) in zip(rows, expected, strict=True):
             self.assertEqual(_cell(row, "o_re_line_en"), en_name)
             self.assertEqual(_cell(row, "o_re_line_ar"), ar_name)

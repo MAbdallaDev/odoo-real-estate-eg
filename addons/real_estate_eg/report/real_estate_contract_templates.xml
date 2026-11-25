@@ -12,11 +12,13 @@
       />&#160;<t t-out="currency.name" /></span>
     </template>
 
-    <!-- BR-38: one schedule line. "Installment 3" / "القسط 3"; a deposit
+    <!-- BR-38: one schedule line, numbered by its place in the whole
+         schedule (the deposit row comes after the total, from a second loop).
+         "Installment 3" / "القسط 3"; a deposit
          due at delivery has no date yet (BR-18): "On delivery". -->
     <template id="report_contract_line">
         <tr class="o_re_line">
-            <td class="o_re_num"><span t-out="line_index + 1" /></td>
+            <td class="o_re_num"><span t-out="lines.ids.index(line.id) + 1" /></td>
             <td class="o_re_line_en">
                 <t t-if="line.line_type == 'installment'">Installment <t
             t-out="line.number"
@@ -299,11 +301,11 @@
                             <th class="o_re_num">#</th>
                             <th>Description</th>
                             <th class="o_re_ar" dir="rtl">البيان</th>
-                            <th>Due date <span
+                            <th>Due date<br /><span
                   class="o_re_ar"
                   dir="rtl"
                 >تاريخ الاستحقاق</span></th>
-                            <th class="o_re_money">Amount <span
+                            <th class="o_re_money">Amount<br /><span
                   class="o_re_ar"
                   dir="rtl"
                 >المبلغ</span></th>
