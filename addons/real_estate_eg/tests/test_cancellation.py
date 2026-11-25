@@ -40,3 +40,36 @@ class TestCancellation(RealEstateCommon):
         installment_5 = contract.installment_ids.filtered(lambda x: x.number == 5)
         self.assertEqual(installment_5.amount_paid, 0)
         self.assertEqual(contract.amount_paid, 1_823_252)
+
+    def test_ac_09_4_credit_notes(self):
+        """AC-09.4 / BR-34: an unpaid invoice is credited in full, a partly paid
+        one for its remainder and matched; future lines are cancelled; every
+        line shows cancelled; the unit is available."""
+        with freeze_time("2027-01-10"):
+            contract = self._example_a()
+        with freeze_time("2027-04-10"):
+            self.env["real.estate.contract"].sudo()._cron_nightly()
+        down_payment = self._line(contract, "down_payment").sudo().invoice_id
+        installment_1 = contract.installment_ids.filtered(lambda x: x.number == 1)
+        invoice_1 = installment_1.sudo().invoice_id
+        self._register_payment(invoice_1, amount=141_313)
+
+        with freeze_time("2027-04-30"):
+            contract.with_user(self.manager)._cancel_with_reason("Customer request")
+
+        for invoice, credited in ((down_payment, 858_000), (invoice_1, 100_000)):
+            refund = invoice.reversal_move_ids
+            self.assertEqual(refund.move_type, "out_refund")
+            self.assertEqual(refund.state, "posted")
+            self.assertEqual(refund.amount_total, credited)
+            self.assertEqual(refund.amount_tax, 0)
+            self.assertEqual(refund.invoice_line_ids.account_id, self.advance_account)
+            self.assertEqual(invoice.amount_residual, 0, "matched with the invoice")
+            self.assertEqual(refund.amount_residual, 0)
+        # The money really paid stays paid; the credit note is not a payment.
+        self.assertEqual(installment_1.amount_paid, 141_313)
+        self.assertEqual(contract.amount_outstanding, 0)
+
+        self.assertEqual(set(contract.installment_ids.mapped("state")), {"cancelled"})
+        self.assertEqual(len(self._invoiced(contract)), 2, "future lines: none")
+        self.assertEqual(contract.unit_id.state, "available")

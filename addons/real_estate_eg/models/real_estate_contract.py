@@ -436,6 +436,10 @@ class RealEstateContract(models.Model):
             raise UserError(self.env._("A written reason is required."))
         # BR-33: the money first, while it still reads real payments only.
         self.write(self._cancellation_amounts())
+        # BR-34: then credit what was invoiced but not paid.
+        self.installment_ids._credit_unpaid(fields.Date.context_today(self))
+        # Every line now shows cancelled, set by the module (line state
+        # follows the contract); the unit is available again (BR-03).
         self.write({"state": "cancelled", "cancel_reason": reason.strip()})
 
     def _cancellation_amounts(self):

@@ -221,6 +221,57 @@ class RealEstateInstallment(models.Model):
             moves |= company_moves
         return moves
 
+    def _credit_unpaid(self, credit_date):
+        """BR-34: credit exactly what is still owed on each invoiced line and
+        match it with the invoice. One path for both cases: an unpaid invoice
+        is credited in full, a partly paid one for its remainder only. (Odoo's
+        reversal wizard always credits the full invoice, which would "refund"
+        money the customer really paid.) Runs as superuser, like invoicing."""
+        refunds = self.env["account.move"]
+        for line in self.sudo().filtered(lambda x: x.invoice_id.amount_residual > 0):
+            invoice = line.invoice_id
+            product, account = line._line_product_and_account()
+            refund = (
+                self.env["account.move"]
+                .sudo()
+                .with_company(line.company_id)
+                .create(
+                    {
+                        "move_type": "out_refund",
+                        "company_id": line.company_id.id,
+                        "partner_id": invoice.partner_id.id,
+                        "invoice_date": credit_date,
+                        "invoice_payment_term_id": False,
+                        "invoice_origin": invoice.invoice_origin,
+                        # Links the credit note to its invoice (reversal_move_ids).
+                        "reversed_entry_id": invoice.id,
+                        "ref": self.env._("Cancellation of %s", invoice.name),
+                        "invoice_line_ids": [
+                            Command.create(
+                                {
+                                    "product_id": product.id,
+                                    "name": invoice.invoice_line_ids[:1].name,
+                                    "quantity": 1,
+                                    "price_unit": invoice.amount_residual,
+                                    "account_id": account.id,
+                                    "tax_ids": [Command.clear()],  # BR-44
+                                }
+                            )
+                        ],
+                    }
+                )
+            )
+            refund.action_post()
+            # Match the credit note with the invoice on the receivable account.
+            receivable = (invoice.line_ids | refund.line_ids).filtered(
+                lambda move_line: move_line.account_id.account_type
+                == "asset_receivable"
+                and not move_line.reconciled
+            )
+            receivable.reconcile()
+            refunds |= refund
+        return refunds
+
     # ------------------------------------------------------------------
     # BR-19: a schedule changes only while its contract is draft.
     # ------------------------------------------------------------------
