@@ -62,7 +62,7 @@
     </record>
 
     <!-- AC-04.3 / BR-37: overdue amounts still owed, by project x bucket.
-         Both are stored on the line: only stored fields can be grouped. -->
+         The bucket is stored; the project is grouped through the contract. -->
     <record id="real_estate_installment_view_pivot" model="ir.ui.view">
         <field name="name">real.estate.installment.pivot</field>
         <field name="model">real.estate.installment</field>

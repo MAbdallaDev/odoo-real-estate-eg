@@ -102,9 +102,12 @@ up-to-date `main`; commit this plan and the overview row.
 **Step 1 — Line fields for the screens** (`models/real_estate_installment.py` *(edit)*,
 `tests/test_collections.py`, `tests/__init__.py` *(edit)*). *[BR-37](../../../../docs/business-requirements.md#collections-documents-and-data "BR-37: Overdue amounts are grouped in aging buckets by days past due (BR-26): 1–30, 31–60, 61–90, over 90. Only overdue lines appear, so the first bucket holds days 8–30 in practice."), [AC-04.1](../../../../docs/business-requirements.md#us-04--see-what-to-chase-today "AC-04.1: A 'Due this month' list shows every unpaid line due in the current month, with customer, phone, unit, amount and agent."), [AC-04.3](../../../../docs/business-requirements.md#us-04--see-what-to-chase-today "AC-04.3: A pivot shows overdue amounts by project × aging bucket (1–30, 31–60, 61–90, 90+).").*
 1. Related fields from the contract: `partner_id`, `partner_phone` (`partner_id.phone`), `unit_id`,
-   `user_id` (agent) — **not stored** (shown and searched only; searching a related field goes
-   through the contract). `project_id` — **stored and indexed**, because the pivot groups by it and
-   `formatted_read_group` can only group by stored fields.
+   `user_id` (agent), `project_id` — **not stored**. *Corrected during Step 3:* the first version
+   stored `project_id` because "only stored fields can be grouped". That is wrong in Odoo 19 for
+   related fields: `_field_to_sql()` in `odoo-src/odoo/odoo/orm/models.py` joins through
+   `_traverse_related_sql()` for a non-stored related field, so the pivot groups by project with a
+   JOIN to the contract. The maintainer chose not to store it (no copy to keep in sync on 1M rows);
+   Step 5 also measures the pivot query.
 2. `aging_bucket`: a stored computed Selection `1_30`, `31_60`, `61_90`, `over_90` (labels
    "1–30", "31–60", "61–90", "90+"), empty when the line is not overdue. Depends on `is_overdue` and
    `days_past_due`. The order of the selection is the pivot's column order.
@@ -147,7 +150,7 @@ up-to-date `main`; commit this plan and the overview row.
 2. `seed.sql` (run with `psql -d re_perf -f scripts/perf/seed.sql`) fills projects, units, partners,
    contracts and about **1,000,000** lines with `generate_series`, writing the stored columns
    directly (state, `date_effective_due`, `days_past_due`, `is_overdue`, `aging_bucket`,
-   `project_id`, amounts), with a stated, realistic mix (most lines future or paid, a few percent
+   amounts), with a stated, realistic mix (most lines future or paid, a few percent
    overdue). Lines get no invoice; the README says this is a load test of one query, not
    accounting data. Ends with `ANALYZE`.
 3. Never in the test suite or CI: the file is outside `addons/`, the tests and the CI workflow do not
@@ -163,7 +166,8 @@ up-to-date `main`; commit this plan and the overview row.
    plan and timings into the design note.
 3. **Index**: chosen from that plan, not in advance. Starting candidate: a partial index for the
    overdue rows in list order, e.g. `models.Index("(days_past_due DESC, id) WHERE is_overdue IS
-   TRUE")`; the final columns follow the plan. Whether Story 05's plain `index=True` on `is_overdue`
+   TRUE")`; the final columns follow the plan. The pivot's `formatted_read_group` query (with its
+   JOIN to the contract for the project) is measured too. Whether Story 05's plain `index=True` on `is_overdue`
    stays is decided from the same numbers.
 4. `-u real_estate_eg` on `re_perf` (Odoo creates the index), `ANALYZE`, **after** run with the same
    queries. Both plans, timings, buffers and the index size in the note. If the index does not help,
@@ -198,8 +202,9 @@ the explain-back questions in `docs/learning-log.md` and merges with "Create a m
    this month.
 7. **Record rules**: the screens add no rule and no `sudo()`; an agent who opens a list by URL sees
    only their own lines; the pivot totals are computed under the same rules.
-8. **Not-stored related fields** (customer, phone, unit, agent) cannot be pivot rows or list sort
-   keys; only `project_id` is stored on the line because only it is grouped.
+8. **Not-stored related fields** (customer, phone, unit, agent, project) are grouped, sorted and
+   searched through a JOIN to the contract; a non-stored *compute* (not related) could not be grouped,
+   which is why `aging_bucket` is stored.
 9. **Relative dates** use the user's timezone (`context_today`), so "this month" flips at local
    midnight on the 1st.
 10. **Perf data never leaks**: `re_perf` is separate; `make test` drops and recreates only
@@ -230,7 +235,8 @@ with `freeze_time`; the nightly job runs as in `test_late_fees.py`.
 
 **Negative checks** (seen failing once, then undone before `git add`; results in the design note):
 
-- N1: make `project_id` on the line not stored → T6 fails (cannot group by a non-stored field).
+- N1: drop `is_overdue` from the bucket's `@api.depends` → T2 fails (a payment no longer clears the
+  bucket). *(Replaces the first N1, "un-store `project_id`", which passed: see Step 1.)*
 - N2: move bucket edge 30 into `31_60` → T1 fails.
 - N3: drop the `models.Index` declaration → T7 fails.
 

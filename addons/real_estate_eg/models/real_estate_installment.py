@@ -112,16 +112,16 @@ class RealEstateInstallment(models.Model):
         AGING_BUCKET, compute="_compute_aging_bucket", store=True
     )
 
-    # AC-04.1: who to call, read through the contract. Not stored: shown and
-    # searched only. The project is stored: the pivot groups by it (AC-04.3),
-    # and only stored fields can be grouped.
+    # AC-04.1 / AC-04.3: read through the contract, not stored. Odoo groups,
+    # sorts and searches a non-stored related field with a JOIN to the
+    # contract, so the pivot can still group by project without a copy of it
+    # on every line. (The bucket above is a compute, not a related field, so
+    # it must be stored to be grouped.)
     partner_id = fields.Many2one(related="contract_id.partner_id")
     partner_phone = fields.Char(string="Phone", related="contract_id.partner_id.phone")
     unit_id = fields.Many2one(related="contract_id.unit_id")
     user_id = fields.Many2one(related="contract_id.user_id")
-    project_id = fields.Many2one(
-        related="contract_id.project_id", store=True, index=True
-    )
+    project_id = fields.Many2one(related="contract_id.project_id")
 
     @api.depends("is_overdue", "days_past_due")
     def _compute_aging_bucket(self):
