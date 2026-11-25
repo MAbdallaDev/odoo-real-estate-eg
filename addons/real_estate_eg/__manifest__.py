@@ -7,6 +7,8 @@
     "author": "Mostafa Abdallah",
     "website": "https://github.com/MAbdallaDev/odoo-real-estate-eg",
     "depends": ["account", "mail"],
+    # US-08: .xlsx import; already in Odoo's own requirements.
+    "external_dependencies": {"python": ["openpyxl"]},
     "data": [
         "security/security.xml",
         "security/ir.model.access.csv",
