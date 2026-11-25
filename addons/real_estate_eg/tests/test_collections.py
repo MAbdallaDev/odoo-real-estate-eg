@@ -171,3 +171,22 @@ class TestCollections(RealEstateCommon):
                 (project_2.id, "1_30"): line_b.amount,
             },
         )
+
+    # ------------------------------------------------------------------
+    # S07.3: the index ships with the module
+    # ------------------------------------------------------------------
+
+    def test_s07_3_index_installed(self):
+        """T7. S07.3: the Overdue list's partial index exists after install,
+        with its definition from the model, next to Story 05's plain index
+        on is_overdue. Small tables are scanned whatever the indexes: this
+        checks that it exists, not that it is used (measured on re_perf)."""
+        self.env.cr.execute(
+            "SELECT indexname, indexdef FROM pg_indexes"
+            " WHERE tablename = 'real_estate_installment'"
+        )
+        indexes = dict(self.env.cr.fetchall())
+        definition = indexes.get("real_estate_installment_overdue_order_idx", "")
+        self.assertIn("days_past_due DESC, id", definition)
+        self.assertIn("WHERE (is_overdue IS TRUE)", definition)
+        self.assertIn("real_estate_installment__is_overdue_index", indexes)

@@ -81,8 +81,17 @@ class RealEstateInstallment(models.Model):
     days_past_due = fields.Integer(readonly=True, copy=False)
     # BR-26: overdue = not paid and past the grace period. A stored compute on
     # the state, so a payment clears it at once, without waiting for the job.
+    # Its plain index serves the list's count and the pivot, which read every
+    # overdue line anyway (measured: without it they are slower).
     is_overdue = fields.Boolean(
         string="Overdue", compute="_compute_is_overdue", store=True, index=True
+    )
+    # S07.3: the Overdue list (AC-04.2) reads the first 80 overdue lines, most
+    # late first. This index holds only overdue lines (about 1% of them), in
+    # that order, so the list reads 80 entries instead of sorting them all.
+    # Measured in docs/design-notes/07-collections-performance.md.
+    _overdue_order_idx = models.Index(
+        "(days_past_due DESC, id) WHERE is_overdue IS TRUE"
     )
     # BR-27 / BR-30: kept UNROUNDED. A Monetary field would round to piastres
     # on every write, and the invoice must be rounded once, from the raw sum.
