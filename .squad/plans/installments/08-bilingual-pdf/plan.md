@@ -3,7 +3,7 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/08-bilingual-pdf/intake.md`
 - **Branch:** `story/08-bilingual-pdf`
-- **Status:** Done Criteria approved 2026-11-25; all met 2026-11-25 (43 tests pass locally and in CI); in review
+- **Status:** Done Criteria approved 2026-11-25; all met 2026-11-25 (58 tests with Story 04, pass locally and in CI); in review
 
 ---
 

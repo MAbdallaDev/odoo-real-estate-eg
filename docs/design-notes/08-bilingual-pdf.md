@@ -88,7 +88,8 @@ T4 makes a real PDF, and this needed two things:
 
 ## Tests
 
-43 tests, every report rendered as a user from `new_test_user`. Story 08 adds `test_report.py`:
+58 tests (with Story 04), every report rendered as a user from `new_test_user`. Story 08 adds
+`test_report.py`:
 T1 `test_ac_07_1_bilingual_side_by_side` (Example A, all 34 lines, numbers and both
 descriptions), `test_arabic_label_for_every_value`, T2 `test_ac_07_2_long_customer_name`, T3
 `test_ac_07_3_amount_format`, T4 `test_s08_1_arabic_font_embedded` (real PDF) and T5
