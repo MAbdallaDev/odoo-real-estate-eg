@@ -161,7 +161,25 @@ Questions: [`design-notes/08-bilingual-pdf.md`](design-notes/08-bilingual-pdf.md
 
 Questions: [`design-notes/06-record-rules.md`](design-notes/06-record-rules.md#explain-back-questions)
 
-*To be answered by the maintainer.*
+*Drafted by the AI at the maintainer's request.*
+
+1. An access right says which **tables** a group may read, write, create or delete. A record
+   rule says which **rows** of a table a user may reach. In this module the access rights
+   decide that a collections officer can read contracts but never write them. The record
+   rules decide that an agent reads only the contracts where they are the agent, and only
+   those contracts' schedule lines.
+2. Global rules (no groups) are AND-ed: each one narrows what every user sees, managers
+   included, which is why a company 2 manager sees nothing of company 1. Group rules apply
+   only to members of their groups, and the ones that apply are OR-ed, then AND-ed with the
+   global rules. The manager group implies the agent group, so a manager is also an agent
+   and the agent rule applies to them. Alone, it would show a manager only their own
+   contracts. The manager rule `[(1, '=', 1)]` is OR-ed with it: own contracts OR all
+   contracts = all contracts. The groups did not change; a widening rule was added.
+3. Reading agent A's contract: the agent rule (own only) and the read-all rule both apply,
+   OR-ed, so the user sees it. Editing it: the read-all rule has `perm_read` only, so for a
+   write only the agent rule counts, and A's contract is refused with an access error. With
+   all four perms, the read-all rule would also count for writes, and since the agent's
+   access rights allow writing contracts, this user could edit other agents' drafts.
 
 ## Mistakes caught
 
