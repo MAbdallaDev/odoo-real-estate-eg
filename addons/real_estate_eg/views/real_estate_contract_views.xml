@@ -13,6 +13,13 @@
                 <field name="date" optional="show" />
                 <field name="price" sum="Total" />
                 <field name="currency_id" column_invisible="1" />
+                <!-- BR-31 -->
+                <field
+          name="at_risk"
+          widget="boolean_toggle"
+          readonly="1"
+          optional="show"
+        />
                 <field
           name="company_id"
           groups="base.group_multi_company"
@@ -58,6 +65,15 @@
             invisible="state != 'confirmed'"
             groups="real_estate_eg.group_real_estate_manager"
           />
+                    <!-- BR-30 / BR-35: collections officers and managers bill late
+                         fees; the method checks again on the server. -->
+                    <button
+            name="action_bill_late_fees"
+            type="object"
+            string="Bill Late Fees"
+            invisible="state not in ('confirmed', 'delivered') or not late_fee_unbilled"
+            groups="real_estate_eg.group_real_estate_collections"
+          />
                     <!-- BR-32: anyone may try on a draft; only managers see it on a
                          confirmed contract. The method checks again on the server. -->
                     <button
@@ -80,6 +96,13 @@
           />
                 </header>
                 <sheet>
+                    <!-- BR-31: flagged, never cancelled automatically. -->
+                    <widget
+            name="web_ribbon"
+            title="At Risk"
+            bg_color="text-bg-danger"
+            invisible="not at_risk"
+          />
                     <div class="oe_title">
                         <h1><field name="name" /></h1>
                     </div>
@@ -114,7 +137,8 @@
                         <!-- US-02: the schedule is generated, never typed (BR-19). -->
                         <page string="Schedule" name="schedule">
                             <field name="installment_ids" readonly="1">
-                                <list>
+                                <!-- BR-26: overdue lines in red. -->
+                                <list decoration-danger="is_overdue">
                                     <field name="name" />
                                     <field name="line_type" optional="hide" />
                                     <field name="date_due" />
@@ -122,6 +146,16 @@
                                     <!-- BR-24: read from accounting. -->
                                     <field name="amount_paid" optional="show" />
                                     <field name="amount_residual" optional="show" />
+                                    <!-- BR-26 - BR-30: written by the nightly job. -->
+                                    <field name="is_overdue" column_invisible="1" />
+                                    <field name="days_past_due" optional="show" />
+                                    <field name="late_fee_display" optional="show" />
+                                    <field
+                    name="late_fee_billed"
+                    string="Billed Late Fee"
+                    digits="[16, 2]"
+                    optional="hide"
+                  />
                                     <field
                     name="state"
                     widget="badge"
@@ -145,7 +179,19 @@
                                 <!-- AC-03.5: totals from accounting. -->
                                 <field name="amount_paid" />
                                 <field name="amount_outstanding" />
+                                <!-- BR-30: summed unrounded, rounded once. -->
+                                <field name="late_fee_accrued" />
+                                <field name="late_fee_unbilled" />
                             </group>
+                        </page>
+                        <!-- BR-30: billed late fees; only accounting users open invoices. -->
+                        <page
+              string="Late Fee Invoices"
+              name="late_fees"
+              groups="account.group_account_invoice"
+              invisible="not late_fee_invoice_ids"
+            >
+                            <field name="late_fee_invoice_ids" />
                         </page>
                     </notebook>
                     <group string="Cancellation" invisible="state != 'cancelled'">
@@ -195,6 +241,18 @@
           name="cancelled"
           string="Cancelled"
           domain="[('state', '=', 'cancelled')]"
+        />
+                <separator />
+                <!-- BR-26 / BR-31: what collections chase. -->
+                <filter
+          name="overdue"
+          string="Overdue"
+          domain="[('installment_ids.is_overdue', '=', True)]"
+        />
+                <filter
+          name="at_risk"
+          string="At Risk"
+          domain="[('at_risk', '=', True)]"
         />
                 <group>
                     <filter
