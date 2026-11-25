@@ -3,7 +3,7 @@
 [![CI](https://github.com/MAbdallaDev/odoo-real-estate-eg/actions/workflows/ci.yml/badge.svg)](https://github.com/MAbdallaDev/odoo-real-estate-eg/actions/workflows/ci.yml)
 [![Odoo 19.0](https://img.shields.io/badge/Odoo-19.0%20Community-714B67)](https://www.odoo.com/documentation/19.0/)
 [![License: LGPL-3](https://img.shields.io/badge/license-LGPL--3-blue)](LICENSE)
-[![Tests: 106](https://img.shields.io/badge/tests-106%20passing-brightgreen)](addons/real_estate_eg/tests/)
+[![Tests: 107](https://img.shields.io/badge/tests-107%20passing-brightgreen)](addons/real_estate_eg/tests/)
 [![Coverage: 97%](https://img.shields.io/badge/coverage-97%25-brightgreen)](#quality-gates)
 
 `real_estate_eg` is an Odoo 19 Community addon for Egyptian real-estate developers who sell
@@ -156,7 +156,7 @@ Before the first contract is confirmed:
 
 ## Quality gates
 
-- **Tests** — 106 tests, all run as real agent, manager, collections or accountant users,
+- **Tests** — 107 tests, all run as real agent, manager, collections or accountant users,
   never as admin, and never relying on demo data. `make test` fails if a test fails, if the
   log contains any `WARNING`, `ERROR` or `CRITICAL` line, or if no test of this module ran
   at all ([`scripts/check_odoo_log.sh`](scripts/check_odoo_log.sh)).

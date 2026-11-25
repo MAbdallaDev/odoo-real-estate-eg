@@ -4,6 +4,17 @@ All notable changes to `real_estate_eg` are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow Odoo's module
 numbering: `19.0.x.y.z` in the manifest, tagged `vx.y.z` in git.
 
+## [1.0.1] - 2026-11-25
+
+### Fixed
+
+- Typing in a schedule-line picker, such as the cheque form's **Schedule Line** field, raised
+  `Cannot convert real.estate.installment.name to SQL because it is not stored`: the line's
+  label is computed and translated, so the default name search could not run. The model now
+  declares `_rec_names_search = ["contract_id"]`, so a line is found by its contract's
+  reference. Picking from the dropdown was never affected. Found by walking the module by
+  hand; the suite had no test that searched a model by name, and now has one.
+
 ## [1.0.0] - 2026-11-25
 
 First release, for Odoo 19.0 Community. Every feature traces to the business requirements
