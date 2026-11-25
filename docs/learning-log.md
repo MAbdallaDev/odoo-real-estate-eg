@@ -181,6 +181,16 @@ Questions: [`design-notes/06-record-rules.md`](design-notes/06-record-rules.md#e
    all four perms, the read-all rule would also count for writes, and since the agent's
    access rights allow writing contracts, this user could edit other agents' drafts.
 
+### Story 07 — Collections screens and query performance
+
+Questions: [`design-notes/07-collections-performance.md`](design-notes/07-collections-performance.md#explain-back-questions)
+
+*To be answered by the maintainer.*
+
+1.
+2.
+3.
+
 ## Mistakes caught
 
 | Date | Story | What was wrong | How it was caught | Fix |
@@ -211,3 +221,5 @@ Questions: [`design-notes/06-record-rules.md`](design-notes/06-record-rules.md#e
 | 2026-11-25 | 08 | The real-PDF test hung, then printed a PDF without CSS: wkhtmltopdf's requests for the CSS waited for the test's uncommitted transaction, then were refused for lack of the test cookie. | `make test` stopped at the test; the log showed "ignored during test" for the CSS | `TransactionCase.allow_pdf_render()`: shares the test cursor and adds the cookie |
 | 2026-11-25 | 08 | A test run used the same HTTP port as the running dev server, so Odoo could not start and no test ran. | The log check: "no real_estate_eg test ran" (`Address already in use`) | Tests on their own port; the log check is what caught it |
 | 2026-11-25 | 06 | Negative check N2 first gave the multi-company rule the agent group to "switch it off" for the company 2 user. That user is a manager, who has the agent group through `implied_ids`, so the rule still applied and T1 still passed. | The negative check did not fail | N2 uses the accountant group, which the user does not have; T1 then fails. The plan and design note say why. |
+| 2026-11-25 | 07 | The plan stored `project_id` on the schedule line because "only stored fields can be grouped". In Odoo 19 a non-stored **related** field is grouped through a JOIN (`_traverse_related_sql()`). | Negative check N1 (un-store it) passed instead of failing | Not stored; N1 replaced by a check that does fail |
+| 2026-11-25 | 07 | Replacing Story 05's `is_overdue` index with the new partial index made the count and the pivot slower, and removing `index=True` did not even drop the old index ("Keep unexpected index"). | Measuring every setup in the same loop on 1M lines; reading the upgrade log | Both indexes kept; the trap is in the design note |
