@@ -1,6 +1,7 @@
 from freezegun import freeze_time
 from psycopg2 import IntegrityError
 
+from odoo import fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
 from odoo.tools import mute_logger
@@ -214,3 +215,65 @@ class TestCheques(RealEstateCommon):
         for user in (self.collections, self.manager):
             with self.subTest(user=user.login), self.assertRaises(AccessError):
                 first.with_user(user).unlink()
+
+    # ------------------------------------------------------------------
+    # AC-13.4 / BR-42: cheque status is information only
+    # ------------------------------------------------------------------
+
+    LINE_FIELDS = [
+        "state",
+        "amount_paid",
+        "amount_residual",
+        "is_overdue",
+        "days_past_due",
+        "late_fee_accrued",
+        "aging_bucket",
+    ]
+
+    def _snapshot(self, line):
+        """What accounting and the nightly job decide, read as collections."""
+        return line.with_user(self.collections).read(self.LINE_FIELDS)[0] | {"id": 0}
+
+    def test_ac_13_4_status_only(self):
+        # A twin of example A on an identical unit, with no cheque at all.
+        twin_unit = self.make_unit("HNC-B07-0303")
+        twin_unit.list_price = self.unit_3br.list_price
+        with freeze_time("2027-01-10"):
+            twin = self._confirmed(
+                self.add_schedule(self.create_contract(unit=twin_unit), "2027-01-10")
+            )
+        with freeze_time("2027-04-10"):
+            (self.contract | twin)._invoice_due_lines(fields.Date.today())
+        twin_line = twin.installment_ids.filtered(lambda x: x.number == 1)
+        self.assertEqual(self.line.amount, twin_line.amount)
+        Move = self.env["account.move"].sudo()
+
+        # A cheque is recorded, deposited and cleared; no entry is created.
+        moves = Move.search_count([])
+        with freeze_time("2027-04-15"):
+            cleared = self._record(self.collections, amount=self.line.amount)
+            cleared.with_user(self.collections).action_deposit()
+            cleared.with_user(self.collections).action_clear()
+        self.assertEqual(Move.search_count([]), moves, "no entry for a cheque")
+        # The line is still owed, and the nightly job still finds it late.
+        self._night("2027-05-20")
+        snapshot = self._snapshot(self.line)
+        self.assertEqual(snapshot, self._snapshot(twin_line))
+        self.assertEqual(snapshot["state"], "invoiced")
+        self.assertTrue(snapshot["is_overdue"])
+        self.assertGreater(snapshot["late_fee_accrued"], 0)
+
+        # A replacement that bounces changes nothing either.
+        moves = Move.search_count([])
+        with freeze_time("2027-05-25"):
+            bounced = self._record(self.collections, name="100002")
+            bounced.with_user(self.collections).action_deposit()
+            bounced.with_user(self.collections).action_bounce()
+        self.assertEqual(Move.search_count([]), moves, "no entry for a bounce")
+        self._night("2027-06-20")
+        self.assertEqual(self._snapshot(self.line), self._snapshot(twin_line))
+
+        # Only a payment in accounting pays the line (BR-24).
+        self._pay(self.line, self.line.amount, "2027-06-25")
+        self.assertEqual(self.line.state, "paid")
+        self.assertEqual(twin_line.state, "invoiced")
