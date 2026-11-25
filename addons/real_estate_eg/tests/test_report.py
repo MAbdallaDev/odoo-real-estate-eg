@@ -17,6 +17,11 @@ def _text(nodes):
     return " ".join(text.replace("\xa0", " ").split())
 
 
+def _cell(row, css_class):
+    """The text of the cell of `row` with this class."""
+    return _text(row.xpath(f"td[contains(@class, '{css_class}')]"))
+
+
 @tagged("post_install", "-at_install")
 class TestContractReport(RealEstateCommon):
     """US-07 / BR-38: the bilingual contract report. In a test run Odoo
@@ -95,6 +100,31 @@ class TestContractReport(RealEstateCommon):
             "وديعة الصيانة: 8%، عند الاستلام",
         ]:
             self.assertIn(word, arabic)
+        # Every schedule line, one row each, described in both languages.
+        rows = tree.xpath("//tr[contains(@class, 'o_re_line')]")
+        self.assertEqual(len(contract.installment_ids), 34)
+        self.assertEqual(len(rows), 34)
+        expected = [("Down Payment", "المقدم", "10/01/2027", "858,000 EGP")]
+        expected += [
+            (f"Installment {k}", f"القسط {k}", None, "241,313 EGP")
+            for k in range(1, 32)
+        ]
+        expected += [
+            ("Installment 32", "القسط 32", "10/01/2035", "241,297 EGP"),
+            ("Maintenance Deposit", "وديعة الصيانة", "On delivery", "686,400 EGP"),
+        ]
+        for row, (en_name, ar_name, due, amount) in zip(rows, expected, strict=True):
+            self.assertEqual(_cell(row, "o_re_line_en"), en_name)
+            self.assertEqual(_cell(row, "o_re_line_ar"), ar_name)
+            self.assertEqual(
+                row.xpath("td[contains(@class, 'o_re_line_ar')]/@dir"), ["rtl"]
+            )
+            if due:
+                self.assertIn(due, _cell(row, "o_re_date"))
+            self.assertEqual(_cell(row, "o_re_money"), amount)
+        self.assertIn("عند الاستلام", arabic)  # the deposit's date, in Arabic
+        total = tree.xpath("//tr[contains(@class, 'o_re_total')]")[0]
+        self.assertEqual(_cell(total, "o_re_money"), "8,580,000 EGP")
         # No Arabic on the English side, and every Arabic letter of the
         # page sits inside a right-to-left element.
         self.assertFalse(ARABIC.search(english))
@@ -134,3 +164,24 @@ class TestContractReport(RealEstateCommon):
             "//*[@dir='rtl']//span[contains(@class, 'o_re_amount')]"
         ):
             self.assertEqual(span.get("dir"), "ltr")
+
+    def test_print_draft_and_read_only_roles(self):
+        """A draft is marked as not for signature; with no schedule yet the
+        table is replaced by one line. Read-only roles can print too."""
+        draft = self.create_contract()
+        english, arabic = self.sides(self.render(draft))
+        self.assertIn("DRAFT: not for signature", english)
+        self.assertIn("مسودة: غير صالحة للتوقيع", arabic)
+        self.assertIn("No schedule generated yet.", english)
+        self.assertIn("لم يتم إنشاء جدول السداد بعد.", arabic)
+
+        confirmed = self.add_schedule(self.create_contract(unit=self.unit_2br))
+        confirmed.with_user(self.manager).action_confirm()
+        for user in (self.collections, self.accountant):
+            tree = self.render(confirmed, user=user)
+            english, _arabic = self.sides(tree)
+            self.assertNotIn("DRAFT", english)
+            self.assertEqual(
+                len(tree.xpath("//tr[contains(@class, 'o_re_line')]")),
+                len(confirmed.installment_ids),
+            )

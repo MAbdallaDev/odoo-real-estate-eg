@@ -12,6 +12,43 @@
       />&#160;<t t-out="currency.name" /></span>
     </template>
 
+    <!-- BR-38: one schedule line. "Installment 3" / "القسط 3"; a deposit
+         due at delivery has no date yet (BR-18): "On delivery". -->
+    <template id="report_contract_line">
+        <tr class="o_re_line">
+            <td class="o_re_num"><span t-out="line_index + 1" /></td>
+            <td class="o_re_line_en">
+                <t t-if="line.line_type == 'installment'">Installment <t
+            t-out="line.number"
+          /></t>
+                <t t-else="" t-out="en['line_type'][line.line_type]" />
+            </td>
+            <td class="o_re_ar o_re_line_ar" dir="rtl">
+                <t t-out="ar['line_type'][line.line_type]" />
+                <t t-if="line.line_type == 'installment'"> <span
+            dir="ltr"
+            t-out="line.number"
+          /></t>
+            </td>
+            <td class="o_re_date">
+                <span
+          t-if="line.date_due"
+          t-field="line.date_due"
+          t-options="date_options"
+        />
+                <t t-else="">On delivery <span
+            class="o_re_ar"
+            dir="rtl"
+          >عند الاستلام</span></t>
+            </td>
+            <td class="o_re_money">
+                <t t-call="real_estate_eg.report_contract_amount">
+                    <t t-set="amount" t-value="line.amount" />
+                </t>
+            </td>
+        </tr>
+    </template>
+
     <!-- BR-38: one contract, English on the left and Arabic on the right of
          every row. Not Odoo's translation system: the Arabic words are fixed
          labels here; the data is printed as stored on both sides (on the
@@ -30,6 +67,14 @@
         t-value="{'widget': 'date', 'format': 'dd/MM/yyyy'}"
       />
             <div class="page o_re_contract">
+                <!-- A draft is not binding: marked on both sides, so it is
+                     not signed by mistake. -->
+                <table t-if="doc.state == 'draft'" class="o_re_bilingual o_re_draft">
+                    <tr>
+                        <td class="o_re_en">DRAFT: not for signature</td>
+                        <td class="o_re_ar" dir="rtl">مسودة: غير صالحة للتوقيع</td>
+                    </tr>
+                </table>
                 <table class="o_re_bilingual">
                     <tr class="o_re_title">
                         <td class="o_re_en">
@@ -227,6 +272,95 @@
                   t-out="'%g' % plan.maintenance_percent"
                 />%</span>،
                             <span t-out="ar['maintenance_due'][plan.maintenance_due]" />
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- BR-38: the full schedule, one row per line. The line's
+                     description is printed in both languages side by side;
+                     number, date and amount are the same on both sides. -->
+                <table class="o_re_bilingual">
+                    <tr class="o_re_section">
+                        <td class="o_re_en"><h4>Payment schedule</h4></td>
+                        <td class="o_re_ar" dir="rtl"><h4>جدول السداد</h4></td>
+                    </tr>
+                </table>
+                <t t-set="lines" t-value="doc.installment_ids" />
+                <table t-if="not lines" class="o_re_bilingual o_re_no_schedule">
+                    <tr>
+                        <td class="o_re_en">No schedule generated yet.</td>
+                        <td class="o_re_ar" dir="rtl">لم يتم إنشاء جدول السداد بعد.</td>
+                    </tr>
+                </table>
+                <table t-else="" class="o_re_schedule">
+                    <!-- A thead repeats on every page of a long schedule. -->
+                    <thead>
+                        <tr>
+                            <th class="o_re_num">#</th>
+                            <th>Description</th>
+                            <th class="o_re_ar" dir="rtl">البيان</th>
+                            <th>Due date <span
+                  class="o_re_ar"
+                  dir="rtl"
+                >تاريخ الاستحقاق</span></th>
+                            <th class="o_re_money">Amount <span
+                  class="o_re_ar"
+                  dir="rtl"
+                >المبلغ</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t
+              t-foreach="lines.filtered(lambda l: l.line_type != 'maintenance')"
+              t-as="line"
+            >
+                            <t t-call="real_estate_eg.report_contract_line" />
+                        </t>
+                        <!-- BR-10 / BR-18: down payment + installments = the
+                             price; the deposit comes after, not in the total. -->
+                        <tr class="o_re_total">
+                            <td />
+                            <td>Total of the price</td>
+                            <td class="o_re_ar" dir="rtl">إجمالي ثمن الوحدة</td>
+                            <td />
+                            <td class="o_re_money">
+                                <t t-call="real_estate_eg.report_contract_amount">
+                                    <t t-set="amount" t-value="doc.schedule_total" />
+                                </t>
+                            </td>
+                        </tr>
+                        <t
+              t-foreach="lines.filtered(lambda l: l.line_type == 'maintenance')"
+              t-as="line"
+            >
+                            <t t-call="real_estate_eg.report_contract_line" />
+                        </t>
+                    </tbody>
+                </table>
+
+                <table class="o_re_bilingual o_re_signatures">
+                    <tr>
+                        <td class="o_re_en">
+                            <strong>Seller</strong>
+                            <br />
+                            Signature:
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>البائع</strong>
+                            <br />
+                            التوقيع:
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="o_re_en">
+                            <strong>Buyer</strong>
+                            <br />
+                            Signature:
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>المشتري</strong>
+                            <br />
+                            التوقيع:
                         </td>
                     </tr>
                 </table>
