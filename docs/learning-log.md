@@ -88,7 +88,24 @@ Questions: [`design-notes/04-accounting-link.md`](design-notes/04-accounting-lin
 
 Questions: [`design-notes/08-bilingual-pdf.md`](design-notes/08-bilingual-pdf.md#explain-back-questions)
 
-*To be answered by the maintainer.*
+*Drafted by the AI at the maintainer's request.*
+
+1. Odoo's translation system prints a report in one language: the user's or the partner's. An
+   Egyptian contract needs both languages on the same page, so the Arabic words are fixed
+   labels in a right-hand column marked `dir="rtl"`. Inside a right-to-left paragraph, the bidi
+   algorithm reorders Latin text and numbers: without `<span dir="ltr">`, `8,580,000 EGP` would
+   show as `EGP 8,580,000`. The span keeps its order.
+2. The official `odoo:19.0` image has no Arabic font, so wkhtmltopdf would print the Arabic
+   letters apart. `Dockerfile.ci` takes the same pinned image and adds `fonts-noto-core`
+   (Noto Naskh Arabic). T4 prints a real PDF and checks that the font's name is embedded in it.
+   It does not check that the letters look joined or that the columns sit side by side: that
+   needs a look at a printed page.
+3. In a test run, Odoo returns HTML instead of a PDF; the context key `force_report_rendering`
+   makes it a real PDF. wkhtmltopdf then fetches the CSS from the Odoo server over HTTP. That
+   request waited for the test's transaction, which is never committed, so the test hung. With
+   the registry in test mode alone, the requests were refused for lack of the test cookie, and
+   the PDF came out without CSS. `allow_pdf_render()` does both: the requests share the test's
+   cursor, and wkhtmltopdf sends the test cookie.
 
 ---
 
