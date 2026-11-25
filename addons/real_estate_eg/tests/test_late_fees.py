@@ -3,6 +3,7 @@ from datetime import date
 from freezegun import freeze_time
 
 from odoo import fields
+from odoo.exceptions import AccessError
 from odoo.tests import tagged
 
 from .common import RealEstateCommon
@@ -176,4 +177,58 @@ class TestLateFees(RealEstateCommon):
         self.assertEqual(contract.state, "confirmed")
         self.assertTrue(contract.with_user(self.collections).at_risk)
         self._pay(line, 241_313, "2027-06-11")
+        self.assertFalse(contract.at_risk)
+
+    def _example_d_paid_25_may(self):
+        """Down payment paid on time; installment 1 paid in full on 25 May;
+        the nightly job has run that day: 3,619.695 accrued."""
+        contract, line = self._installment_1_invoiced()
+        self._pay(self._line(contract, "down_payment"), 858_000, "2027-01-10")
+        self._pay(line, 241_313, "2027-05-25")
+        self._night("2027-05-25")
+        return contract, line
+
+    def test_ac_05_7_bill_once(self):
+        """T10. AC-05.7 / BR-30 / BR-35: a collections officer bills all
+        unbilled fees in one invoice rounded once: 3,619.695 -> 3,620, to the
+        Late Fees account, no tax. Billing again creates nothing. A manager
+        may bill; an agent or an accountant may not."""
+        contract, line = self._example_d_paid_25_may()
+        self.assertEqual(contract.late_fee_unbilled, 3619.70)
+        for user in (self.agent_a, self.accountant):
+            with self.assertRaises(AccessError):
+                contract.with_user(user).action_bill_late_fees()
+
+        with freeze_time("2027-05-26"):
+            contract.with_user(self.collections).action_bill_late_fees()
+        invoices = contract.sudo().late_fee_invoice_ids
+        self.assertEqual(len(invoices), 1)
+        self.assertEqual(invoices.state, "posted")
+        self.assertEqual(invoices.amount_total, 3620)
+        self.assertEqual(invoices.amount_tax, 0)
+        self.assertEqual(invoices.invoice_line_ids.account_id, self.late_fee_account)
+        self.assertEqual(line.late_fee_billed, 3619.695)
+        self.assertEqual(line.late_fee_unbilled, 0)
+        self.assertEqual(contract.late_fee_unbilled, 0)
+        self.assertIn("3,620", contract.message_ids[:1].body)
+
+        with freeze_time("2027-05-26"):
+            contract.with_user(self.collections).action_bill_late_fees()
+            contract.with_user(self.manager).action_bill_late_fees()
+        self.assertEqual(len(contract.sudo().late_fee_invoice_ids), 1)
+
+    def test_ac_05_9_fee_invoice_never_accrues(self):
+        """T11. AC-05.9: the late-fee invoice is not a schedule line: unpaid
+        for 44 days, then paid late, it accrues nothing and never makes the
+        contract at risk."""
+        contract, line = self._example_d_paid_25_may()
+        with freeze_time("2027-05-26"):
+            contract.with_user(self.manager).action_bill_late_fees()
+        fee_invoice = contract.sudo().late_fee_invoice_ids
+        self._night("2027-07-09")
+        with freeze_time("2027-07-09"):
+            self._register_payment(fee_invoice, payment_date="2027-07-09")
+        self._night("2027-07-09")
+        self.assertEqual(line.late_fee_accrued, 3619.695)
+        self.assertEqual(contract.late_fee_unbilled, 0)
         self.assertFalse(contract.at_risk)

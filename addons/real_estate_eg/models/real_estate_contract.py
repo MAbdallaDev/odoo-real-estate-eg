@@ -100,6 +100,26 @@ class RealEstateContract(models.Model):
     amount_outstanding = fields.Monetary(
         string="Total Outstanding", compute="_compute_amounts"
     )
+    # BR-30: late fees, summed from the lines' unrounded amounts and rounded
+    # once (Monetary rounds to piastres when it is set).
+    late_fee_accrued = fields.Monetary(
+        string="Accrued Late Fees", compute="_compute_late_fees"
+    )
+    late_fee_unbilled = fields.Monetary(
+        string="Unbilled Late Fees", compute="_compute_late_fees"
+    )
+    # BR-30: the late-fee invoices billed on this contract. Not schedule lines,
+    # so they never accrue a fee (AC-05.9). Accounting users only.
+    late_fee_invoice_ids = fields.Many2many(
+        "account.move",
+        "real_estate_contract_late_fee_invoice_rel",
+        "contract_id",
+        "move_id",
+        string="Late Fee Invoices",
+        readonly=True,
+        copy=False,
+        groups="account.group_account_invoice",
+    )
     # BR-31: flagged, never cancelled automatically. A stored compute on the
     # lines, so paying the late line clears it at once.
     at_risk = fields.Boolean(
@@ -181,6 +201,15 @@ class RealEstateContract(models.Model):
                 and line.days_past_due > limit
                 for line in contract.installment_ids
             )
+
+    @api.depends(
+        "installment_ids.late_fee_accrued", "installment_ids.late_fee_unbilled"
+    )
+    def _compute_late_fees(self):
+        for contract in self:
+            lines = contract.installment_ids
+            contract.late_fee_accrued = sum(lines.mapped("late_fee_accrued"))
+            contract.late_fee_unbilled = sum(lines.mapped("late_fee_unbilled"))
 
     def _check_unit_free(self, unit_ids):
         """BR-04 / AC-01.3: a clear message before the database refuses.
@@ -383,6 +412,85 @@ class RealEstateContract(models.Model):
     # ------------------------------------------------------------------
     # US-02: generate the schedule from a plan (BR-14 to BR-20).
     # ------------------------------------------------------------------
+
+    def action_bill_late_fees(self):
+        """US-05 / BR-30 / BR-35: a collections officer or a sales manager
+        bills a contract's unbilled late fees in one invoice. The system never
+        bills them on its own."""
+        # The manager group implies the collections group.
+        if not self.env.user.has_group("real_estate_eg.group_real_estate_collections"):
+            raise AccessError(
+                self.env._(
+                    "Only a collections officer or a sales manager can bill late fees."
+                )
+            )
+        if any(c.state not in ("confirmed", "delivered") for c in self):
+            raise UserError(
+                self.env._(
+                    "Late fees are billed only on confirmed or delivered contracts."
+                )
+            )
+        today = fields.Date.context_today(self)
+        for contract in self:
+            contract._bill_late_fees(today)
+        return True
+
+    def _bill_late_fees(self, invoice_date):
+        """BR-30: one invoice for the sum of the lines' unbilled fees, rounded
+        once, half up to whole EGP (BR-45). Each line's billed fee becomes its
+        accrued fee, unrounded, so billing again finds nothing (AC-05.7).
+        Created as superuser: collections officers have no invoicing rights.
+        Returns the invoice, or an empty recordset when nothing is due."""
+        self.ensure_one()
+        lines = self.installment_ids.sudo().filtered(
+            lambda line: line.late_fee_unbilled > 0
+        )
+        unbilled = [Decimal(str(x)) for x in lines.mapped("late_fee_unbilled")]
+        total = half_up(sum(unbilled, Decimal(0)))
+        Move = self.env["account.move"].sudo().with_company(self.company_id)
+        if total <= 0:
+            return Move
+        account = self.company_id.re_late_fee_account_id
+        if not account:
+            raise UserError(
+                self.env._("Set the Late Fees account in Settings > Real Estate first.")
+            )
+        product = self.env.ref("real_estate_eg.product_late_fee")
+        invoice = Move.create(
+            {
+                "move_type": "out_invoice",
+                "company_id": self.company_id.id,
+                "partner_id": self.partner_id.id,
+                "invoice_date": invoice_date,
+                "invoice_payment_term_id": False,
+                "invoice_origin": self.name,
+                "invoice_line_ids": [
+                    Command.create(
+                        {
+                            "product_id": product.id,
+                            "name": self.env._("%s - Late fees", self.name),
+                            "quantity": 1,
+                            "price_unit": total,
+                            "account_id": account.id,
+                            "tax_ids": [Command.clear()],
+                        }
+                    )
+                ],
+            }
+        )
+        invoice.action_post()
+        for line in lines:
+            line.late_fee_billed = line.late_fee_accrued
+        self.sudo().late_fee_invoice_ids = [Command.link(invoice.id)]
+        # Collections officers cannot open invoices: the chatter tells them.
+        self.message_post(
+            body=self.env._(
+                "Late fees billed: %(amount)s EGP (%(invoice)s).",
+                amount=f"{total:,}",
+                invoice=invoice.name,
+            )
+        )
+        return invoice
 
     def action_generate_schedule(self):
         """Open the dialog to pick a plan; the button shows on drafts only."""
