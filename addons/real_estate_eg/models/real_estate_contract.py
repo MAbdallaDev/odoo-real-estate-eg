@@ -571,17 +571,34 @@ class RealEstateContract(models.Model):
         # BR-33: the money first, while it still reads real payments only.
         self.write(self._cancellation_amounts())
         # BR-34: then credit what was invoiced but not paid.
-        self.installment_ids._credit_unpaid(fields.Date.context_today(self))
+        today = fields.Date.context_today(self)
+        self.installment_ids._credit_unpaid(today)
+        # BR-34: unpaid late-fee invoices too; paid ones are not refunded.
+        self._credit_unpaid_late_fees(today)
         # Every line now shows cancelled, set by the module (line state
         # follows the contract); the unit is available again (BR-03).
         self.write({"state": "cancelled", "cancel_reason": reason.strip()})
 
+    def _credit_unpaid_late_fees(self, credit_date):
+        """BR-34: credit what is still owed on each late-fee invoice, to the
+        account it was billed to. Fees never billed are simply dropped: the
+        contract is cancelled and no longer computed (BR-29)."""
+        self.ensure_one()
+        product = self.env.ref("real_estate_eg.product_late_fee")
+        invoices = self.sudo().late_fee_invoice_ids.filtered(
+            lambda move: move.state == "posted" and move.amount_residual > 0
+        )
+        Line = self.env["real.estate.installment"]
+        for invoice in invoices:
+            account = invoice.invoice_line_ids[:1].account_id
+            Line._credit_residual(invoice, product, account, credit_date)
+
     def _cancellation_amounts(self):
         """BR-33: retention = retention % of what was paid against the down
         payment and installments, half up to whole EGP; refundable = that paid
-        amount - retention + any paid maintenance deposit, in full. Late fees
-        are not refunded (Story 05). Line amount_paid counts payments only,
-        never credit notes."""
+        amount - retention + any paid maintenance deposit, in full. Paid late
+        fees are not refunded: late-fee invoices are not schedule lines. Line
+        amount_paid counts payments only, never credit notes."""
         self.ensure_one()
         lines = self.installment_ids
         price_lines = lines.filtered(lambda line: line.line_type != "maintenance")
