@@ -3,7 +3,8 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/06-record-rules/intake.md`
 - **Branch:** `story/06-record-rules`
-- **Status:** Done Criteria approved 2026-11-25; in progress
+- **Status:** Done Criteria approved 2026-11-25; the agent rule and its test written by Claude at
+  the maintainer's request; all steps done; Done Criteria met (83 tests green); in review
 
 ---
 
@@ -207,12 +208,12 @@ gh run list --branch main --limit 1                    # green after merge
 
 ## Done Criteria
 
-- [ ] **[AC-06.1](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.1: Given agent A owns contract X, when agent B opens the contracts list, X is not there, and opening X directly gives an access error.")** Agent A owns contract X: agent B does not see X (or its lines) in the list, and
+- [x] **[AC-06.1](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.1: Given agent A owns contract X, when agent B opens the contracts list, X is not there, and opening X directly gives an access error.")** Agent A owns contract X: agent B does not see X (or its lines) in the list, and
   opening X directly gives an access error. *Proof:* T3 (maintainer).
-- [ ] **[AC-06.2](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.2: A manager sees contracts of every agent.")** A manager sees the contracts of every agent. *Proof:* T2.
-- [ ] **[AC-06.3](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.3: A collections officer sees all contracts but cannot edit price, plan or schedule.")** A collections officer sees all contracts but cannot edit price, plan or
+- [x] **[AC-06.2](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.2: A manager sees contracts of every agent.")** A manager sees the contracts of every agent. *Proof:* T2.
+- [x] **[AC-06.3](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.3: A collections officer sees all contracts but cannot edit price, plan or schedule.")** A collections officer sees all contracts but cannot edit price, plan or
   schedule — with the rules on. *Proof:* T4.
-- [ ] **[AC-06.4](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.4: A user allowed only in company 2 cannot see company 1's contracts or units.")** A user allowed only in company 2 cannot see company 1's contracts or units.
+- [x] **[AC-06.4](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.4: A user allowed only in company 2 cannot see company 1's contracts or units.")** A user allowed only in company 2 cannot see company 1's contracts or units.
   *Proof:* T1.
-- [ ] **[AC-06.5](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.5: An accountant sees all contracts and schedules but cannot edit them.")** An accountant sees all contracts and schedules but cannot edit them — with the
+- [x] **[AC-06.5](../../../../docs/business-requirements.md#us-06--agents-see-only-their-own-contracts "AC-06.5: An accountant sees all contracts and schedules but cannot edit them.")** An accountant sees all contracts and schedules but cannot edit them — with the
   rules on. *Proof:* T4.
