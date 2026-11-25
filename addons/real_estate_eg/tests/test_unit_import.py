@@ -6,6 +6,7 @@ import openpyxl
 
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
+from odoo.tools.misc import file_open
 
 from .common import RealEstateCommon
 
@@ -252,6 +253,19 @@ class TestUnitImport(RealEstateCommon):
             with self.subTest(expected=expected):
                 self.assertIn(expected, self._import_error(content, filename))
         self.assertEqual(self._units(), before)
+
+    def test_sample_file_imports(self):
+        """US-08: the sample file offered in the dialog imports cleanly."""
+        self.env["real.estate.project"].create(
+            {"name": "Capital Business Park", "code": "CBP"}
+        )
+        path = "real_estate_eg/static/sample/real_estate_units_sample.csv"
+        with file_open(path, "rb") as sample:
+            content = sample.read()
+        wizard = self._wizard(self.manager, content, "real_estate_units_sample.csv")
+        counts = wizard._import_file()
+        # HNC-B07-0301 / 0302 already exist (common.py) with the same values.
+        self.assertEqual(counts, {"created": 6, "updated": 0, "unchanged": 2})
 
     # ------------------------------------------------------------------
     # Rights and companies

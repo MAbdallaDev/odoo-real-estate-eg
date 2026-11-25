@@ -25,6 +25,7 @@
         "views/real_estate_cheque_views.xml",
         "wizard/real_estate_contract_cancel_views.xml",
         "wizard/real_estate_schedule_generate_views.xml",
+        "wizard/real_estate_unit_import_views.xml",
         "views/res_config_settings_views.xml",
         "views/real_estate_menus.xml",
         "report/real_estate_contract_report.xml",
