@@ -212,7 +212,11 @@ existing ones needs a migration script or a manual `DROP INDEX`.
 | `test_s07_3_index_installed` | both indexes exist after install, with the model's definition (S07.3) |
 
 The Story 05 helpers (`_installment_1_invoiced()`, `_pay()`, `_night()`) moved to
-`tests/common.py`. Total: 90 tests. AC-04.4 is checked by hand (M1).
+`tests/common.py`. Total: 90 tests.
+
+**M1 (AC-04.4, by hand on `re_perf`):** Collections → At-Risk Contracts opens with the At Risk
+filter on, 7,713 contracts; removing the filter shows all 25,000; one click in Filters → At Risk
+brings back 7,713.
 
 **Negative checks** (seen failing, then undone before `git add`):
 

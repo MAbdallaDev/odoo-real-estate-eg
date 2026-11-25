@@ -3,8 +3,8 @@
 - **Feature:** `installments`
 - **Intake:** `.squad/stories/installments/07-collections-performance/intake.md`
 - **Branch:** `story/07-collections-performance`
-- **Status:** Done Criteria approved 2026-11-25; all steps done; 90 tests green; AC-04.4 waits for the
-  maintainer's manual check (M1); in review
+- **Status:** Done Criteria approved 2026-11-25; all steps done; Done Criteria met (90 tests green,
+  M1 checked by the maintainer); in review
 
 ---
 
@@ -266,7 +266,7 @@ gh run list --branch main --limit 1                    # green after merge
   fee. *Proof:* T4 (+ T5 for record rules).
 - [x] **[AC-04.3](../../../../docs/business-requirements.md#us-04--see-what-to-chase-today "AC-04.3: A pivot shows overdue amounts by project × aging bucket (1–30, 31–60, 61–90, 90+).")** A pivot shows overdue amounts by project × aging bucket (1–30, 31–60, 61–90,
   90+). *Proof:* T6, with T1–T2 for the buckets.
-- [ ] **[AC-04.4](../../../../docs/business-requirements.md#us-04--see-what-to-chase-today "AC-04.4: (manual) Contracts flagged at risk can be filtered in one click.")** *(manual)* Contracts flagged at risk can be filtered in one click. *Proof:* M1.
+- [x] **[AC-04.4](../../../../docs/business-requirements.md#us-04--see-what-to-chase-today "AC-04.4: (manual) Contracts flagged at risk can be filtered in one click.")** *(manual)* Contracts flagged at risk can be filtered in one click. *Proof:* M1.
 - [x] **S07.1** About 1,000,000 schedule lines are generated with SQL `generate_series` in a separate
   performance database (`re_perf`) — never in the test suite or CI. *Proof:* `scripts/perf/seed.sql`,
   the row count in the design note, no reference from `addons/` or the CI workflow.
