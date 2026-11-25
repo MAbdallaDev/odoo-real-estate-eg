@@ -211,7 +211,25 @@ Questions: [`design-notes/07-collections-performance.md`](design-notes/07-collec
 
 Questions: [`design-notes/09-post-dated-cheques.md`](design-notes/09-post-dated-cheques.md#explain-back-questions)
 
-*Waiting for the maintainer's answers.*
+*Drafted by the AI at the maintainer's request.*
+
+1. Showing each button only in the right state helps the user, but it guards nothing on the
+   server. A state can change without a click in many ways: an RPC call such as
+   `write({'state': 'cleared'})` from a script or the JSON-RPC API, an import of cheques with a
+   status column, or other Python code (a future cron or wizard). `write()` is the one place
+   every change passes through, so the check there holds for all of them, the superuser
+   included. The buttons only ask `write()` for the next state.
+2. The line's state is a stored compute that reads its invoice (BR-24). Its `@api.depends`
+   lists invoice fields only, so a cheque, cleared or not, cannot trigger it. "Cleared" is
+   only what the officer heard from the bank; BR-42 says cheque status is information only
+   and creates no entry. The line shows "Paid" when the accountant registers the payment in
+   accounting and it is matched with the line's invoice: then the invoice's amount due drops
+   to 0 and the line recomputes to paid.
+3. The manager group implies the collections group. Group rules are OR-ed, so for a manager
+   the agent rule (own contracts) OR the collections rule (every cheque, all permissions)
+   gives every cheque. For contracts, Story 06 needed its own manager rule because the
+   collections rule there is read only, and the manager must also write. The cheque
+   collections rule already allows writing, so it covers the manager.
 
 ## Mistakes caught
 
