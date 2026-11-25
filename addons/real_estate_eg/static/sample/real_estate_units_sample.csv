@@ -1,0 +1,9 @@
+code,project_code,unit_type,bedrooms,area,floor,list_price
+HNC-B07-0301,HNC,apartment,2,125,3,6500000
+HNC-B07-0302,HNC,apartment,3,165,3,8580000
+HNC-B08-1201,HNC,duplex,4,240,12,12480000
+PSS-B02-0101,PSS,chalet,2,95,1,6460000
+PSS-B05-0001,PSS,twin_house,4,210,0,14280000
+CBP-A02-0105,CBP,office,0,60,1,3660000
+CBP-A03-0702,CBP,office,0,140,7,8540000
+CBP-R01-0003,CBP,retail,0,45,0,4275000

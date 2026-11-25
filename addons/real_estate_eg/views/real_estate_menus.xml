@@ -96,4 +96,12 @@
     action="real_estate_plan_template_action"
     sequence="10"
   />
+    <!-- US-08: unit import, under Configuration (manager only). -->
+    <menuitem
+    id="real_estate_unit_import_menu"
+    name="Import Units"
+    parent="real_estate_config_menu"
+    action="real_estate_unit_import_action"
+    sequence="20"
+  />
 </odoo>

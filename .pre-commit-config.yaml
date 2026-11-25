@@ -52,6 +52,13 @@ repos:
         additional_dependencies:
           - "prettier@3.6.2"
           - "@prettier/plugin-xml@3.4.2"
+      # S10.4: every US-xx in the business document has a test naming it.
+      - id: check-us-tests
+        name: every user story has a test
+        entry: scripts/check_us_tests.sh
+        language: script
+        pass_filenames: false
+        always_run: true
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:

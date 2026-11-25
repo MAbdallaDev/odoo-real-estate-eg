@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <!--
+        S10.1: Nile Heights Developments (docs/business-requirements.md, Chapter 6).
+        Every name, number and person is invented. Tests never use this file:
+        `make test` runs without demo data, and the test suite builds its own records.
+        Contracts, payments and cheques are created by demo/real_estate_demo.py
+        (called at the end of this file).
+    -->
+
+    <!-- The company. Country Egypt, so the chart template gives it EGP. -->
+    <record id="base.EGP" model="res.currency">
+        <field name="active" eval="True" />
+    </record>
+    <record id="demo_company_nile_heights" model="res.company">
+        <field name="name">Nile Heights Developments</field>
+        <field name="country_id" ref="base.eg" />
+        <field name="currency_id" ref="base.EGP" />
+        <field name="city">Cairo</field>
+        <field name="email">info@nileheights.example</field>
+        <!-- §6.4 collection and cancellation policy -->
+        <field name="re_grace_days">7</field>
+        <field name="re_late_fee_rate">1</field>
+        <field name="re_late_fee_cap">10</field>
+        <field name="re_at_risk_days">60</field>
+        <field name="re_retention_percent">15</field>
+        <field name="re_invoice_lead_days">0</field>
+    </record>
+    <!-- The administrator may open the demo company too. -->
+    <record id="base.user_admin" model="res.users">
+        <field
+      name="company_ids"
+      eval="[Command.link(ref('demo_company_nile_heights'))]"
+    />
+    </record>
+
+    <!-- §6.5 people: login = first name, password "demo" (local demo only). -->
+    <record id="demo_user_omar" model="res.users" context="{'no_reset_password': True}">
+        <field name="name">Omar Fathy</field>
+        <field name="login">omar</field>
+        <field name="password">demo</field>
+        <field name="email">omar@nileheights.example</field>
+        <field name="tz">Africa/Cairo</field>
+        <field name="notification_type">inbox</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+        <field
+      name="company_ids"
+      eval="[Command.set([ref('demo_company_nile_heights')])]"
+    />
+        <field
+      name="group_ids"
+      eval="[Command.set([ref('group_real_estate_manager'), ref('mail.group_mail_notification_type_inbox')])]"
+    />
+    </record>
+    <record
+    id="demo_user_salma"
+    model="res.users"
+    context="{'no_reset_password': True}"
+  >
+        <field name="name">Salma Adel</field>
+        <field name="login">salma</field>
+        <field name="password">demo</field>
+        <field name="email">salma@nileheights.example</field>
+        <field name="tz">Africa/Cairo</field>
+        <field name="notification_type">inbox</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+        <field
+      name="company_ids"
+      eval="[Command.set([ref('demo_company_nile_heights')])]"
+    />
+        <field
+      name="group_ids"
+      eval="[Command.set([ref('group_real_estate_agent'), ref('mail.group_mail_notification_type_inbox')])]"
+    />
+    </record>
+    <record
+    id="demo_user_karim"
+    model="res.users"
+    context="{'no_reset_password': True}"
+  >
+        <field name="name">Karim Nabil</field>
+        <field name="login">karim</field>
+        <field name="password">demo</field>
+        <field name="email">karim@nileheights.example</field>
+        <field name="tz">Africa/Cairo</field>
+        <field name="notification_type">inbox</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+        <field
+      name="company_ids"
+      eval="[Command.set([ref('demo_company_nile_heights')])]"
+    />
+        <field
+      name="group_ids"
+      eval="[Command.set([ref('group_real_estate_agent'), ref('mail.group_mail_notification_type_inbox')])]"
+    />
+    </record>
+    <record id="demo_user_hoda" model="res.users" context="{'no_reset_password': True}">
+        <field name="name">Hoda Samir</field>
+        <field name="login">hoda</field>
+        <field name="password">demo</field>
+        <field name="email">hoda@nileheights.example</field>
+        <field name="tz">Africa/Cairo</field>
+        <field name="notification_type">inbox</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+        <field
+      name="company_ids"
+      eval="[Command.set([ref('demo_company_nile_heights')])]"
+    />
+        <field
+      name="group_ids"
+      eval="[Command.set([ref('group_real_estate_collections'), ref('mail.group_mail_notification_type_inbox')])]"
+    />
+    </record>
+    <record
+    id="demo_user_tarek"
+    model="res.users"
+    context="{'no_reset_password': True}"
+  >
+        <field name="name">Tarek Mansour</field>
+        <field name="login">tarek</field>
+        <field name="password">demo</field>
+        <field name="email">tarek@nileheights.example</field>
+        <field name="tz">Africa/Cairo</field>
+        <field name="notification_type">inbox</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+        <field
+      name="company_ids"
+      eval="[Command.set([ref('demo_company_nile_heights')])]"
+    />
+        <field
+      name="group_ids"
+      eval="[Command.set([ref('account.group_account_invoice'), ref('mail.group_mail_notification_type_inbox')])]"
+    />
+    </record>
+
+    <!-- §6.1 projects -->
+    <record id="demo_project_hnc" model="real.estate.project">
+        <field name="name">Horizon New Cairo</field>
+        <field name="code">HNC</field>
+        <field name="location">New Cairo</field>
+        <field name="expected_delivery_date">2029-12-31</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_project_pss" model="real.estate.project">
+        <field name="name">Palm Shores Sahel</field>
+        <field name="code">PSS</field>
+        <field name="location">North Coast</field>
+        <field name="expected_delivery_date">2030-06-30</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_project_cbp" model="real.estate.project">
+        <field name="name">Capital Business Park</field>
+        <field name="code">CBP</field>
+        <field name="location">New Administrative Capital</field>
+        <field name="expected_delivery_date">2028-12-31</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+
+    <!-- §6.2 unit types and list prices; codes <project>-<building>-<floor><unit> -->
+    <record id="demo_unit_hnc_b07_0301" model="real.estate.unit">
+        <field name="code">HNC-B07-0301</field>
+        <field name="project_id" ref="demo_project_hnc" />
+        <field name="unit_type">apartment</field>
+        <field name="bedrooms">2</field>
+        <field name="area">125</field>
+        <field name="floor">3</field>
+        <field name="list_price">6500000</field>
+    </record>
+    <record id="demo_unit_hnc_b07_0302" model="real.estate.unit">
+        <field name="code">HNC-B07-0302</field>
+        <field name="project_id" ref="demo_project_hnc" />
+        <field name="unit_type">apartment</field>
+        <field name="bedrooms">3</field>
+        <field name="area">165</field>
+        <field name="floor">3</field>
+        <field name="list_price">8580000</field>
+    </record>
+    <record id="demo_unit_hnc_b07_0401" model="real.estate.unit">
+        <field name="code">HNC-B07-0401</field>
+        <field name="project_id" ref="demo_project_hnc" />
+        <field name="unit_type">apartment</field>
+        <field name="bedrooms">2</field>
+        <field name="area">125</field>
+        <field name="floor">4</field>
+        <field name="list_price">6500000</field>
+    </record>
+    <record id="demo_unit_hnc_b07_0402" model="real.estate.unit">
+        <field name="code">HNC-B07-0402</field>
+        <field name="project_id" ref="demo_project_hnc" />
+        <field name="unit_type">apartment</field>
+        <field name="bedrooms">3</field>
+        <field name="area">165</field>
+        <field name="floor">4</field>
+        <field name="list_price">8580000</field>
+    </record>
+    <record id="demo_unit_hnc_b08_0101" model="real.estate.unit">
+        <field name="code">HNC-B08-0101</field>
+        <field name="project_id" ref="demo_project_hnc" />
+        <field name="unit_type">apartment</field>
+        <field name="bedrooms">2</field>
+        <field name="area">125</field>
+        <field name="floor">1</field>
+        <field name="list_price">6500000</field>
+    </record>
+    <record id="demo_unit_hnc_b08_0102" model="real.estate.unit">
+        <field name="code">HNC-B08-0102</field>
+        <field name="project_id" ref="demo_project_hnc" />
+        <field name="unit_type">apartment</field>
+        <field name="bedrooms">3</field>
+        <field name="area">165</field>
+        <field name="floor">1</field>
+        <field name="list_price">8580000</field>
+    </record>
+    <record id="demo_unit_hnc_b08_1201" model="real.estate.unit">
+        <field name="code">HNC-B08-1201</field>
+        <field name="project_id" ref="demo_project_hnc" />
+        <field name="unit_type">duplex</field>
+        <field name="bedrooms">4</field>
+        <field name="area">240</field>
+        <field name="floor">12</field>
+        <field name="list_price">12480000</field>
+    </record>
+    <record id="demo_unit_hnc_b08_1202" model="real.estate.unit">
+        <field name="code">HNC-B08-1202</field>
+        <field name="project_id" ref="demo_project_hnc" />
+        <field name="unit_type">duplex</field>
+        <field name="bedrooms">4</field>
+        <field name="area">240</field>
+        <field name="floor">12</field>
+        <field name="list_price">12480000</field>
+    </record>
+    <record id="demo_unit_pss_b01_0101" model="real.estate.unit">
+        <field name="code">PSS-B01-0101</field>
+        <field name="project_id" ref="demo_project_pss" />
+        <field name="unit_type">chalet</field>
+        <field name="bedrooms">2</field>
+        <field name="area">95</field>
+        <field name="floor">1</field>
+        <field name="list_price">6460000</field>
+    </record>
+    <record id="demo_unit_pss_b01_0102" model="real.estate.unit">
+        <field name="code">PSS-B01-0102</field>
+        <field name="project_id" ref="demo_project_pss" />
+        <field name="unit_type">chalet</field>
+        <field name="bedrooms">2</field>
+        <field name="area">95</field>
+        <field name="floor">1</field>
+        <field name="list_price">6460000</field>
+    </record>
+    <record id="demo_unit_pss_b01_0201" model="real.estate.unit">
+        <field name="code">PSS-B01-0201</field>
+        <field name="project_id" ref="demo_project_pss" />
+        <field name="unit_type">chalet</field>
+        <field name="bedrooms">2</field>
+        <field name="area">95</field>
+        <field name="floor">2</field>
+        <field name="list_price">6460000</field>
+    </record>
+    <record id="demo_unit_pss_b01_0202" model="real.estate.unit">
+        <field name="code">PSS-B01-0202</field>
+        <field name="project_id" ref="demo_project_pss" />
+        <field name="unit_type">chalet</field>
+        <field name="bedrooms">2</field>
+        <field name="area">95</field>
+        <field name="floor">2</field>
+        <field name="list_price">6460000</field>
+    </record>
+    <record id="demo_unit_pss_b05_0001" model="real.estate.unit">
+        <field name="code">PSS-B05-0001</field>
+        <field name="project_id" ref="demo_project_pss" />
+        <field name="unit_type">twin_house</field>
+        <field name="bedrooms">4</field>
+        <field name="area">210</field>
+        <field name="floor">0</field>
+        <field name="list_price">14280000</field>
+    </record>
+    <record id="demo_unit_pss_b05_0002" model="real.estate.unit">
+        <field name="code">PSS-B05-0002</field>
+        <field name="project_id" ref="demo_project_pss" />
+        <field name="unit_type">twin_house</field>
+        <field name="bedrooms">4</field>
+        <field name="area">210</field>
+        <field name="floor">0</field>
+        <field name="list_price">14280000</field>
+    </record>
+    <record id="demo_unit_pss_b06_0001" model="real.estate.unit">
+        <field name="code">PSS-B06-0001</field>
+        <field name="project_id" ref="demo_project_pss" />
+        <field name="unit_type">twin_house</field>
+        <field name="bedrooms">4</field>
+        <field name="area">210</field>
+        <field name="floor">0</field>
+        <field name="list_price">14280000</field>
+    </record>
+    <record id="demo_unit_pss_b06_0002" model="real.estate.unit">
+        <field name="code">PSS-B06-0002</field>
+        <field name="project_id" ref="demo_project_pss" />
+        <field name="unit_type">twin_house</field>
+        <field name="bedrooms">4</field>
+        <field name="area">210</field>
+        <field name="floor">0</field>
+        <field name="list_price">14280000</field>
+    </record>
+    <record id="demo_unit_cbp_a02_0105" model="real.estate.unit">
+        <field name="code">CBP-A02-0105</field>
+        <field name="project_id" ref="demo_project_cbp" />
+        <field name="unit_type">office</field>
+        <field name="bedrooms">0</field>
+        <field name="area">60</field>
+        <field name="floor">1</field>
+        <field name="list_price">3660000</field>
+    </record>
+    <record id="demo_unit_cbp_a02_0106" model="real.estate.unit">
+        <field name="code">CBP-A02-0106</field>
+        <field name="project_id" ref="demo_project_cbp" />
+        <field name="unit_type">office</field>
+        <field name="bedrooms">0</field>
+        <field name="area">60</field>
+        <field name="floor">1</field>
+        <field name="list_price">3660000</field>
+    </record>
+    <record id="demo_unit_cbp_a03_0701" model="real.estate.unit">
+        <field name="code">CBP-A03-0701</field>
+        <field name="project_id" ref="demo_project_cbp" />
+        <field name="unit_type">office</field>
+        <field name="bedrooms">0</field>
+        <field name="area">140</field>
+        <field name="floor">7</field>
+        <field name="list_price">8540000</field>
+    </record>
+    <record id="demo_unit_cbp_a03_0702" model="real.estate.unit">
+        <field name="code">CBP-A03-0702</field>
+        <field name="project_id" ref="demo_project_cbp" />
+        <field name="unit_type">office</field>
+        <field name="bedrooms">0</field>
+        <field name="area">140</field>
+        <field name="floor">7</field>
+        <field name="list_price">8540000</field>
+    </record>
+    <record id="demo_unit_cbp_a03_0801" model="real.estate.unit">
+        <field name="code">CBP-A03-0801</field>
+        <field name="project_id" ref="demo_project_cbp" />
+        <field name="unit_type">office</field>
+        <field name="bedrooms">0</field>
+        <field name="area">140</field>
+        <field name="floor">8</field>
+        <field name="list_price">8540000</field>
+    </record>
+    <record id="demo_unit_cbp_r01_0001" model="real.estate.unit">
+        <field name="code">CBP-R01-0001</field>
+        <field name="project_id" ref="demo_project_cbp" />
+        <field name="unit_type">retail</field>
+        <field name="bedrooms">0</field>
+        <field name="area">45</field>
+        <field name="floor">0</field>
+        <field name="list_price">4275000</field>
+    </record>
+    <record id="demo_unit_cbp_r01_0002" model="real.estate.unit">
+        <field name="code">CBP-R01-0002</field>
+        <field name="project_id" ref="demo_project_cbp" />
+        <field name="unit_type">retail</field>
+        <field name="bedrooms">0</field>
+        <field name="area">45</field>
+        <field name="floor">0</field>
+        <field name="list_price">4275000</field>
+    </record>
+    <record id="demo_unit_cbp_r01_0003" model="real.estate.unit">
+        <field name="code">CBP-R01-0003</field>
+        <field name="project_id" ref="demo_project_cbp" />
+        <field name="unit_type">retail</field>
+        <field name="bedrooms">0</field>
+        <field name="area">45</field>
+        <field name="floor">0</field>
+        <field name="list_price">4275000</field>
+    </record>
+
+    <!-- §6.3 payment plan templates -->
+    <record id="demo_plan_std_8q" model="real.estate.plan.template">
+        <field name="name">Standard 8 years</field>
+        <field name="code">NH-STD-8Q</field>
+        <field name="down_payment_percent">10</field>
+        <field name="installment_count">32</field>
+        <field name="frequency">quarterly</field>
+        <field name="first_installment_months">3</field>
+        <field name="maintenance_percent">8</field>
+        <field name="maintenance_due">delivery</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_plan_ext_10q" model="real.estate.plan.template">
+        <field name="name">Extended 10 years</field>
+        <field name="code">NH-EXT-10Q</field>
+        <field name="down_payment_percent">5</field>
+        <field name="installment_count">40</field>
+        <field name="frequency">quarterly</field>
+        <field name="first_installment_months">3</field>
+        <field name="maintenance_percent">8</field>
+        <field name="maintenance_due">delivery</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_plan_sahel_7q" model="real.estate.plan.template">
+        <field name="name">Sahel 7 years</field>
+        <field name="code">NH-SAHEL-7Q</field>
+        <field name="down_payment_percent">10</field>
+        <field name="installment_count">28</field>
+        <field name="frequency">quarterly</field>
+        <field name="first_installment_months">3</field>
+        <field name="maintenance_percent">10</field>
+        <field name="maintenance_due">delivery</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_plan_biz_5m" model="real.estate.plan.template">
+        <field name="name">Business 5 years</field>
+        <field name="code">NH-BIZ-5M</field>
+        <field name="down_payment_percent">20</field>
+        <field name="installment_count">60</field>
+        <field name="frequency">monthly</field>
+        <field name="first_installment_months">1</field>
+        <field name="maintenance_percent">10</field>
+        <field name="maintenance_due">signing</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_plan_cash" model="real.estate.plan.template">
+        <field name="name">Cash</field>
+        <field name="code">NH-CASH</field>
+        <field name="down_payment_percent">100</field>
+        <field name="installment_count">0</field>
+        <field name="first_installment_months">0</field>
+        <field name="maintenance_percent">8</field>
+        <field name="maintenance_due">delivery</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+
+    <!-- Customers: generated, obviously fictional names and national IDs. -->
+    <record id="demo_customer_ahmed" model="res.partner">
+        <field name="name">Ahmed Fictional Saleh</field>
+        <field name="phone">+20 100 000 0001</field>
+        <field name="nationality">egyptian</field>
+        <field name="national_id">28503150100231</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_customer_mona" model="res.partner">
+        <field name="name">Mona Fictional Ragab</field>
+        <field name="phone">+20 100 000 0002</field>
+        <field name="nationality">egyptian</field>
+        <field name="national_id">29007220201462</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_customer_youssef" model="res.partner">
+        <field name="name">Youssef Fictional Kamel</field>
+        <field name="phone">+20 100 000 0003</field>
+        <field name="nationality">egyptian</field>
+        <field name="national_id">29211050300573</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_customer_laila" model="res.partner">
+        <field name="name">Laila Fictional Hamdy</field>
+        <field name="phone">+20 100 000 0004</field>
+        <field name="nationality">egyptian</field>
+        <field name="national_id">28809300401684</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_customer_sherif" model="res.partner">
+        <field name="name">Sherif Fictional Anwar</field>
+        <field name="phone">+20 100 000 0005</field>
+        <field name="nationality">egyptian</field>
+        <field name="national_id">29502140502795</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_customer_nadia" model="res.partner">
+        <field name="name">Nadia Fictional Zaki</field>
+        <field name="phone">+20 100 000 0006</field>
+        <field name="nationality">egyptian</field>
+        <field name="national_id">28112010601806</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_customer_james" model="res.partner">
+        <field name="name">James Fictional Carter</field>
+        <field name="phone">+20 100 000 0007</field>
+        <field name="nationality">foreign</field>
+        <field name="passport_number">DEMO000117</field>
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+    <record id="demo_customer_delta" model="res.partner">
+        <field name="name">Delta Fictional Trading LLC</field>
+        <field name="phone">+20 100 000 0008</field>
+        <field name="is_company" eval="True" />
+        <field name="company_id" ref="demo_company_nile_heights" />
+    </record>
+
+    <!-- Contracts in every state, their payments and cheques (Python). -->
+    <function model="real.estate.contract" name="_demo_load" />
+</odoo>

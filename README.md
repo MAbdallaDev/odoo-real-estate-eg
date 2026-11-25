@@ -3,6 +3,8 @@
 [![CI](https://github.com/MAbdallaDev/odoo-real-estate-eg/actions/workflows/ci.yml/badge.svg)](https://github.com/MAbdallaDev/odoo-real-estate-eg/actions/workflows/ci.yml)
 ![Odoo 19.0](https://img.shields.io/badge/Odoo-19.0%20Community-714B67)
 ![License: LGPL-3](https://img.shields.io/badge/license-LGPL--3-blue)
+![Tests: 106](https://img.shields.io/badge/tests-106%20passing-brightgreen)
+![Coverage: 97%](https://img.shields.io/badge/coverage-97%25-brightgreen)
 
 `real_estate_eg` is an Odoo 19 Community addon for Egyptian real-estate developers who sell
 units on installment plans and then have to collect them.
@@ -12,35 +14,78 @@ quarterly or monthly installments, a maintenance deposit at delivery, and late f
 anything overdue. Odoo has no concept of any of this, so every implementation partner
 rebuilds it. This module does it once, on top of standard Odoo accounting.
 
-> **Status: Story 03 of 10 — payment plans and the schedule generator.** Projects, units and
-> contracts with their states and access rights; payment plan templates; a contract's
-> schedule (down payment, installments, maintenance deposit) generated in whole pounds that sum
-> exactly to the price, and required before a manager confirms. Business features land one
-> reviewed pull request at a time; see [Roadmap](#roadmap).
+> **Status: v1.0.0** — all ten stories shipped, each through a reviewed pull request. See the
+> [Roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
-## What v1 will do
+![A 60-second click-through of the demo data](docs/images/demo.gif)
+
+*A 60-second click-through of the demo data: a sales agent creates a contract and its
+schedule, the manager confirms it, then the collections screens, cheques, units, the import
+and the bilingual PDF. Built from real screenshots of `make demo`, one caption per screen.*
+
+## What v1 does
 
 - **Contracts** for project units, moving through draft → confirmed → delivered → closed,
-  or cancelled with the developer's retention computed.
+  or cancelled with the developer's retention computed from real payments.
 - **Payment schedules** generated from plan templates: down payment, N installments
-  (monthly or quarterly), the rounding difference on the last line, and the maintenance
-  deposit as its own scheduled amount.
-- **Invoicing through standard accounting:** each installment becomes a customer invoice on
-  its due date, booked to customer advances; paid / outstanding amounts are read from real
+  (monthly or quarterly), whole pounds with the rounding difference on the last line, and
+  the maintenance deposit as its own scheduled amount.
+- **Invoicing through standard accounting:** each line becomes a customer invoice on its due
+  date, booked to customer advances; paid and outstanding amounts are read from real
   payments.
 - **Collections:** overdue lines flagged nightly, late fees computed from payment history
-  (re-running the job never double-charges), due-this-month and aging views.
+  (re-running the job never double-charges), an at-risk flag, due-this-month, overdue and
+  aging views.
 - **Post-dated cheques** (شيكات آجلة): each cheque the buyer hands over is tracked on its
   schedule line, held → deposited → cleared or bounced, with a "to deposit" list. Status
   only: accounting alone decides what is paid.
-- **Security:** sales agents see only their own contracts; multi-company aware.
+- **Security:** sales agents see only their own contracts; collections officers and
+  accountants read everything; multi-company aware.
 - **Bilingual contract PDF**, Arabic and English side by side.
-- **Unit import** from a spreadsheet, re-runnable without duplicates.
+- **Unit import** from CSV or Excel: matched by unit code, so it can be re-run without
+  duplicates; all or nothing, with every bad row reported by row number and reason.
+- **Demo data:** an invented developer, *Nile Heights Developments*, with fifteen months of
+  history.
 
 The full specification — business rules `BR-xx`, user stories `US-xx` with acceptance
-criteria, and an invented developer, *Nile Heights Developments*, whose numbers become the
-demo data and test fixtures — is in
-[`docs/business-requirements.md`](docs/business-requirements.md).
+criteria, and the invented developer whose numbers become the demo data and test
+fixtures — is in [`docs/business-requirements.md`](docs/business-requirements.md).
+
+## Screenshots
+
+| | |
+|---|---|
+| ![A confirmed contract and its schedule](docs/images/10-contract-confirmed.png) | ![Contracts in every state](docs/images/10-contracts-all-states.png) |
+| A confirmed contract: the down payment invoiced at once, 32 quarterly installments | The manager's view: contracts in every state, one at risk |
+| ![Overdue lines with days past due and late fees](docs/images/10-overdue.png) | ![Overdue amounts by project and aging bucket](docs/images/10-aging-pivot.png) |
+| Overdue lines: days past due, late fee, aging bucket | Overdue amounts by project and aging bucket |
+| ![Post-dated cheques in every state](docs/images/10-cheques.png) | ![The unit import dialog](docs/images/10-import-dialog.png) |
+| Post-dated cheques: held, deposited, cleared, bounced | Unit import from CSV or `.xlsx` |
+| ![Arabic and English contract, page 1](docs/images/08-contract-example-a-page-1.png) | ![Arabic and English contract, last page](docs/images/08-contract-example-c-last-page.png) |
+| The contract PDF, Arabic and English side by side | The schedule table and signatures |
+
+## Try it with demo data
+
+After the [quick start](#quick-start):
+
+```bash
+make demo                    # fresh database re_demo with Nile Heights' demo data
+make run DB=re_demo          # http://localhost:8019
+```
+
+Log in as one of the five (fictional) people of Chapter 6. Every demo password is `demo`:
+these accounts are for a local demo database only.
+
+| Login | Person | Role | Try |
+|---|---|---|---|
+| `salma` | Salma Adel | Sales agent | Create a contract and generate its schedule; she sees only her own contracts |
+| `karim` | Karim Nabil | Sales agent | The other agent: none of Salma's contracts |
+| `omar` | Omar Fathy | Sales manager | Confirm, deliver or cancel a contract; **Configuration → Import Units** |
+| `hoda` | Hoda Samir | Collections officer | **Collections**: due this month, overdue, aging, at risk, cheques to deposit |
+| `tarek` | Tarek Mansour | Accountant | Register a payment on an invoice and watch the line turn paid |
+
+The demo company has contracts in every state, overdue and at-risk lines, billed late fees
+and cheques in every state, dated back from the day it is installed. Tests never use it.
 
 ## Requirements
 
@@ -101,7 +146,9 @@ Before the first contract is confirmed:
 | Command | What it does |
 |---|---|
 | `make run` | Odoo on database `re_dev`, port 8019 (`ARGS="..."` passes extra options) |
+| `make demo` | Fresh `re_demo` database with the demo data; fails on any warning in the log |
 | `make test` | Fresh `re_test` database, installs the module, runs its tests, checks the log |
+| `make coverage` | The same tests under `coverage.py`, then the coverage report |
 | `make test-ci` | The same test run inside Docker, exactly as CI runs it |
 | `make lint` | Every pre-commit check on all files |
 | `make shell` | Odoo Python shell on `re_dev` |
@@ -109,9 +156,14 @@ Before the first contract is confirmed:
 
 ## Quality gates
 
-- **Tests** — `make test` fails if a test fails, if the log contains any `WARNING`, `ERROR`
-  or `CRITICAL` line, or if no test of this module ran at all
-  ([`scripts/check_odoo_log.sh`](scripts/check_odoo_log.sh)).
+- **Tests** — 106 tests, all run as real agent, manager, collections or accountant users,
+  never as admin, and never relying on demo data. `make test` fails if a test fails, if the
+  log contains any `WARNING`, `ERROR` or `CRITICAL` line, or if no test of this module ran
+  at all ([`scripts/check_odoo_log.sh`](scripts/check_odoo_log.sh)).
+- **Coverage** — 97 % of the module's 990 statements (`make coverage`; tests, the demo
+  loader and the manifest are not counted).
+- **Traceability** — every user story `US-01`…`US-13` has at least one test naming it; a
+  pre-commit hook ([`scripts/check_us_tests.sh`](scripts/check_us_tests.sh)) fails otherwise.
 - **Lint** — the OCA pre-commit stack, pinned to the versions OCA uses for Odoo 19: `ruff`,
   `pylint-odoo` (OCA's mandatory checks), `oca-checks-odoo-module`,
   `oca-fix-manifest-website`, `prettier` with the XML plugin, and basic file checks. It runs
@@ -123,6 +175,43 @@ Before the first contract is confirmed:
   ([`scripts/perf/`](scripts/perf/README.md), never in CI); the Overdue list's query plan before
   and after its index is in the
   [design note](docs/design-notes/07-collections-performance.md#performance-s071--s073).
+
+## Design notes
+
+One per story: what was built, why this way, the alternatives, the tests and the negative
+checks that proved them.
+
+| # | Note | In one line |
+|---|---|---|
+| 01 | [Environment and module skeleton](docs/design-notes/01-environment.md) | Odoo source + venv, the Makefile, OCA lint, CI in Docker, a clean-log rule |
+| 02 | [Core models, views, states and access rights](docs/design-notes/02-core-models.md) | Projects, units, contracts; one live contract per unit enforced in the database |
+| 03 | [Payment plans and the schedule generator](docs/design-notes/03-schedule-generator.md) | Whole-pound schedules that sum exactly to the price |
+| 04 | [Accounting link](docs/design-notes/04-accounting-link.md) | Invoices per line, payment state from accounting, closing and cancellation money |
+| 05 | [Overdue lines, late fees and the at-risk flag](docs/design-notes/05-late-fees.md) | Late fees from payment history, so the nightly job is idempotent |
+| 06 | [Record rules](docs/design-notes/06-record-rules.md) | Agents see their own contracts; multi-company |
+| 07 | [Collections screens and query performance](docs/design-notes/07-collections-performance.md) | The collections lists, and their query plans on one million lines |
+| 08 | [Bilingual Arabic / English contract PDF](docs/design-notes/08-bilingual-pdf.md) | Arabic and English side by side in one QWeb report |
+| 09 | [Post-dated cheques](docs/design-notes/09-post-dated-cheques.md) | A state machine in `write()`; cheque status is information only |
+| 10 | [Ship v1.0.0](docs/design-notes/10-ship.md) | Unit import, demo data that replays history, the release checklist |
+
+## Possible next
+
+Deliberately left out of v1; each is described, with what it would touch, in
+[Chapter 7](docs/business-requirements.md#7-beyond-v1) of the business requirements.
+
+- **Revenue recognition at delivery** — planned for v1.1. v1 books every installment to
+  customer advances and records no revenue (BR-43); moving advances to revenue at delivery
+  needs an agreed accounting treatment.
+- **ETA e-invoicing** through Odoo's `l10n_eg_edi_eta` (OAuth2 client-credentials token,
+  signed documents, preproduction vs production environments); needs a registered taxpayer's
+  credentials and a tax advisor on how unit sales are treated.
+- **Post-dated cheque accounting** — journals for cheques under collection, entries on
+  deposit and bounce.
+- **Importing existing contracts** with their schedules and payment history.
+- **Reservation amount**, **late-fee waiver**, **broker commissions**, **discounts and
+  plan-based pricing**, **resale / assignment**, **developer-delay rights**.
+- **Customer portal**, **online payment** (Fawry, Paymob, InstaPay), **multi-currency**.
+- **A REST API** over contracts, schedules and payment state — a separate project.
 
 ## Roadmap
 
@@ -136,8 +225,8 @@ Before the first contract is confirmed:
 | 06 | Record rules: agents see their own contracts; multi-company | done |
 | 07 | Collections screens and query performance | done |
 | 08 | Bilingual Arabic / English contract PDF | done |
-| 09 | Post-dated cheques | in review |
-| 10 | Ship v1.0.0: unit import, demo data | planned |
+| 09 | Post-dated cheques | done |
+| 10 | Ship v1.0.0: unit import, demo data | done |
 
 ## How this is built
 
