@@ -4,7 +4,7 @@
 - **Intake:** `.squad/stories/installments/05-late-fees/intake.md`
 - **Branch:** `story/05-late-fees`
 - **Status:** Done Criteria approved 2026-11-25 (grace and at-risk days are settings; unpaid late-fee
-  invoices are credited on cancellation); all steps done; Done Criteria met (72 tests green,
+  invoices are credited on cancellation); all steps done; Done Criteria met (78 tests green after merging Story 08,
   test-ci green); in review
 
 ---

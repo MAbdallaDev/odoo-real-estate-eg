@@ -150,7 +150,7 @@ BR-44 covers schedule lines only, so this needs a tax advisor (open question).
 
 ## Tests
 
-72 tests (20 new). T2 (`test_late_fee_math.py`) checks the arithmetic with no database. T1
+78 tests (20 new in this story; 6 came with Story 08). T2 (`test_late_fee_math.py`) checks the arithmetic with no database. T1
 and T3–T11 (`test_late_fees.py`) run the real job, payments and billing. T12 is in
 `test_delivery_closing.py` and T13 in `test_cancellation.py`. Payments go through Odoo's
 register-payment wizard with an explicit `payment_date`. The job is called with an explicit
