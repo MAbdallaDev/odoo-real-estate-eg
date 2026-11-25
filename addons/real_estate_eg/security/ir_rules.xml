@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--
+        Record rules (US-06). Access rights (ir.model.access.csv) say which
+        tables a role may use; these rules say which rows.
+
+        How Odoo combines them (base/models/ir_rule.py, _compute_domain):
+        rules without groups are global and AND-ed; rules with groups apply
+        to members only and are OR-ed together, then AND-ed with the global
+        ones.
+    -->
+
+    <!-- BR-36: multi-company. Global rules, domain as sale_order_comp_rule. -->
+    <record id="real_estate_project_comp_rule" model="ir.rule">
+        <field name="name">Real Estate Project multi-company</field>
+        <field name="model_id" ref="model_real_estate_project" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_unit_comp_rule" model="ir.rule">
+        <field name="name">Real Estate Unit multi-company</field>
+        <field name="model_id" ref="model_real_estate_unit" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_plan_template_comp_rule" model="ir.rule">
+        <field name="name">Payment Plan multi-company</field>
+        <field name="model_id" ref="model_real_estate_plan_template" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_contract_comp_rule" model="ir.rule">
+        <field name="name">Real Estate Contract multi-company</field>
+        <field name="model_id" ref="model_real_estate_contract" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="real_estate_installment_comp_rule" model="ir.rule">
+        <field name="name">Payment Schedule Line multi-company</field>
+        <field name="model_id" ref="model_real_estate_installment" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

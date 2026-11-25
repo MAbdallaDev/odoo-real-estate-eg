@@ -188,7 +188,9 @@ collections officer, accountant or company-2 user — never as admin — and not
 **Negative checks** (seen failing once, then undone before `git add`; results in the design note):
 
 - N1: drop the manager "see all" rule → T2 fails (manager sees only own contracts).
-- N2: give the multi-company rule a group → T1 fails (company 1 visible).
+- N2: give the contract's multi-company rule a group the company 2 user is not in (the
+  accountant group) → T1 fails (company 1 visible). With the agent group it would still pass:
+  the manager has that group through `implied_ids`.
 - N3: drop the line rule (keep the contract rule) → T3 fails (agent B lists A's lines).
 
 ## Verification Steps
