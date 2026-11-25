@@ -126,3 +126,33 @@ class TestRecordRules(RealEstateCommon):
             with self.subTest(agent=contract.user_id.login):
                 contract.with_user(self.manager).partner_id = self.customer_foreign
                 self.assertEqual(contract.partner_id, self.customer_foreign)
+
+    def test_ac_06_1_agent_sees_own_only(self):
+        """AC-06.1 / BR-35: agent B does not see agent A's contract or its
+        schedule lines in a list, and opening them directly is refused.
+        Agent A still sees both. (Written by Claude at the maintainer's
+        request.)"""
+        lines_a = self.contract_a.installment_ids
+        self.assertTrue(lines_a)
+        Contract = self.env["real.estate.contract"]
+        Line = self.env["real.estate.installment"]
+
+        # Agent B: not in the lists...
+        self.assertNotIn(self.contract_a, Contract.with_user(self.agent_b).search([]))
+        self.assertFalse(
+            Line.with_user(self.agent_b).search([("id", "in", lines_a.ids)])
+        )
+        # ...and opening them directly gives an access error.
+        with self.assertRaises(AccessError):
+            self.contract_a.with_user(self.agent_b).read(["name"])
+        with self.assertRaises(AccessError):
+            lines_a[0].with_user(self.agent_b).read(["amount"])
+
+        # Agent A: sees the contract and every line.
+        self.assertIn(self.contract_a, Contract.with_user(self.agent_a).search([]))
+        self.assertEqual(
+            Line.with_user(self.agent_a).search(
+                [("contract_id", "=", self.contract_a.id)]
+            ),
+            lines_a,
+        )
