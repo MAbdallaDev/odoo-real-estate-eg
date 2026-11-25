@@ -185,11 +185,27 @@ Questions: [`design-notes/06-record-rules.md`](design-notes/06-record-rules.md#e
 
 Questions: [`design-notes/07-collections-performance.md`](design-notes/07-collections-performance.md#explain-back-questions)
 
-*To be answered by the maintainer.*
+*Drafted by the AI at the maintainer's request.*
 
-1.
-2.
-3.
+1. The bucket is a stored compute that depends on `days_past_due` and `is_overdue`. Nobody
+   edits the line, but the nightly job does: every night it rewrites `days_past_due` on every
+   unpaid invoiced line. That write is a change to a dependency, so the ORM recomputes the
+   bucket in the same run, and a line moves from "1–30" to "31–60" the night it reaches day 31.
+   A payment changes the line's state (read from the invoice). `is_overdue` depends on the
+   state, so it becomes False at once, and the bucket depends on `is_overdue`, so it is cleared
+   at once too, without waiting for the next night.
+2. Story 05's index on `is_overdue` only finds **which** lines are overdue, not in which
+   order. To show the 80 most late, PostgreSQL had to fetch all 12,556 overdue lines from the
+   table (one page each, about 7,450 buffers) and sort them to keep the top 80. The partial
+   index holds only the overdue lines, already sorted by days past due (most late first), so
+   PostgreSQL reads the first 80 entries in order and stops: no sort, 82 buffers, 9.1 ms down
+   to 0.11 ms. The cost no longer grows with the number of overdue lines.
+3. The count and the pivot must read **every** overdue line whatever the index, so the new
+   index cannot make them read less. When I tried the partial index alone, the planner used it
+   through a bitmap heap scan, and they got slower: the count went from 3.9 to 10.0 ms and the
+   pivot from 13.2 to 17.0 ms. With both indexes, the planner uses the partial one for the list
+   and the plain one for the count and the pivot, which stay close to before (4.8 and 13.9 ms,
+   same buffers). So the measurements said to keep both.
 
 ## Mistakes caught
 
