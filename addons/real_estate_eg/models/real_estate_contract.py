@@ -482,6 +482,7 @@ class RealEstateContract(models.Model):
         invoice.action_post()
         for line in lines:
             line.late_fee_billed = line.late_fee_accrued
+        # sudo(): late_fee_invoice_ids is for accounting users only.
         self.sudo().late_fee_invoice_ids = [Command.link(invoice.id)]
         # Collections officers cannot open invoices: the chatter tells them.
         self.message_post(
@@ -586,6 +587,7 @@ class RealEstateContract(models.Model):
         contract is cancelled and no longer computed (BR-29)."""
         self.ensure_one()
         product = self.env.ref("real_estate_eg.product_late_fee")
+        # sudo(): late_fee_invoice_ids is for accounting users only.
         invoices = self.sudo().late_fee_invoice_ids.filtered(
             lambda move: move.state == "posted" and move.amount_residual > 0
         )
@@ -672,6 +674,8 @@ class RealEstateContract(models.Model):
         paid, or was paid since its fee was last computed (not final yet).
         A fully paid line computed once is final and skipped. Recomputing is
         safe: the fee is overwritten from the payment history (BR-29)."""
+        # sudo(): the job covers every agent's contracts in every company, and
+        # invoice_id is an accounting-only field.
         lines = (
             self.env["real.estate.installment"]
             .sudo()
@@ -709,6 +713,7 @@ class RealEstateContract(models.Model):
         BR-24) and nothing left to bill. A rest under 0.50 EGP rounds to 0 and
         can never be billed (BR-30), so it does not block closing."""
         self.ensure_one()
+        # sudo(): late_fee_invoice_ids is for accounting users only.
         invoices = self.sudo().late_fee_invoice_ids
         unbilled = [
             Decimal(str(x)) for x in self.installment_ids.mapped("late_fee_unbilled")
@@ -722,6 +727,8 @@ class RealEstateContract(models.Model):
         """BR-21 / BR-22: invoice every line of these contracts that is due by
         today + the company's lead days and has no invoice yet (BR-25).
         Draft and cancelled contracts are never invoiced."""
+        # sudo(): invoice_id is an accounting-only field; the caller (the
+        # manager's action or the nightly job) already holds the contracts.
         lines = (
             self.env["real.estate.installment"]
             .sudo()

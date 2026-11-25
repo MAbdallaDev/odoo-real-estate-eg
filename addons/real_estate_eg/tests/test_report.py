@@ -2,6 +2,7 @@ import re
 
 from lxml import html as lxml_html
 
+from odoo.exceptions import AccessError
 from odoo.tests import tagged
 from odoo.tools import config
 
@@ -188,6 +189,14 @@ class TestContractReport(RealEstateCommon):
                 len(tree.xpath("//tr[contains(@class, 'o_re_line')]")),
                 len(confirmed.installment_ids),
             )
+
+    def test_agent_cannot_print_others(self):
+        """BR-35 / Story 06: the report reads the contract as the user, so the
+        agent record rule applies: agent B cannot print agent A's contract."""
+        contract = self.add_schedule(self.create_contract(user=self.agent_a))
+        self.assertTrue(self.render(contract, user=self.agent_a).xpath("//body"))
+        with self.assertRaises(AccessError):
+            self.render(contract, user=self.agent_b)
 
     def test_s08_1_arabic_font_embedded(self):
         """S08.1: a real PDF (wkhtmltopdf), not the HTML of the tests above,
