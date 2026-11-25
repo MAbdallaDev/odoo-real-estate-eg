@@ -311,3 +311,32 @@ class TestCheques(RealEstateCommon):
             to_deposit = Cheque.search(literal_eval(action.domain))
         # Oldest first, the model's order.
         self.assertEqual(to_deposit.ids, (yesterday | today).ids)
+
+    # ------------------------------------------------------------------
+    # BR-40: picking the schedule line. Typing in the cheque form's Schedule
+    # Line field runs name_search on the installment, whose `name` is computed
+    # and translated; before _rec_names_search that raised "Cannot convert
+    # real.estate.installment.name to SQL because it is not stored".
+    # ------------------------------------------------------------------
+
+    def test_schedule_line_name_search(self):
+        Line = self.env["real.estate.installment"].with_user(self.collections)
+
+        # Typing the line's own label finds nothing, but must not raise: the
+        # label is computed per language, so it is not in the database.
+        self.assertEqual(Line.name_search("Installment 1"), [])
+
+        # Typing the contract's reference finds that contract's lines, and only
+        # those. A second contract keeps its lines out of the result.
+        with freeze_time("2027-01-31"):
+            other = self._confirmed(self.add_schedule(self._example_c(), "2027-01-31"))
+        found = Line.name_search(self.contract.name)
+        self.assertEqual(
+            set(dict(found)), set(self.contract.installment_ids.ids), "its own lines"
+        )
+        self.assertFalse(
+            set(dict(found)) & set(other.installment_ids.ids), "not another contract's"
+        )
+
+        # The dropdown's own call: no search text at all.
+        self.assertTrue(Line.name_search(""), "the empty picker still lists lines")

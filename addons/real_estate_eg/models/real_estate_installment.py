@@ -38,6 +38,12 @@ class RealEstateInstallment(models.Model):
     _name = "real.estate.installment"
     _description = "Payment Schedule Line"
     _order = "contract_id, sequence, id"
+    # Typing in a Many2one to this model searches its display name, and `name`
+    # here is computed and translated, so it cannot go in SQL: the default
+    # search raised "Cannot convert real.estate.installment.name to SQL because
+    # it is not stored". Search the contract's reference instead, the way
+    # account.move.line searches through move_id.
+    _rec_names_search = ["contract_id"]
 
     # Same shape as sale.order.line.order_id: lines live and die with the contract.
     contract_id = fields.Many2one(
