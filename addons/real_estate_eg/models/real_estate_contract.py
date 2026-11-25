@@ -475,11 +475,27 @@ class RealEstateContract(models.Model):
     def _cron_nightly(self, today=None):
         """§5.5, the nightly job, run as superuser across all companies.
         Step 1: invoice every line that has fallen due (BR-22, BR-25).
-        Steps 2-3 (late fees, at risk) come with Story 05; step 4 (closing)
-        with Step 7. `today` is a parameter so tests can run any day."""
+        Steps 2-3 (late fees, at risk) come with Story 05.
+        Step 4: close delivered contracts that are fully paid (BR-12).
+        `today` is a parameter so tests can run any day."""
         today = today or fields.Date.context_today(self)
         contracts = self.search([("state", "in", ("confirmed", "delivered"))])
         contracts._invoice_due_lines(today)
+        self._cron_close_paid_contracts()
+
+    @api.model
+    def _cron_close_paid_contracts(self):
+        """BR-12 / AC-12.1: a delivered contract closes once every line is
+        paid. A line not invoiced yet is not paid, so a contract with future
+        installments stays open. AC-12.2: a confirmed contract never closes.
+        (Story 05 adds: no billed late fee unpaid, none left unbilled.)"""
+        delivered = self.search([("state", "=", "delivered")])
+        paid = delivered.filtered(
+            lambda contract: contract.installment_ids
+            and all(line.state == "paid" for line in contract.installment_ids)
+        )
+        paid.write({"state": "closed"})
+        return paid
 
     def _invoice_due_lines(self, today):
         """BR-21 / BR-22: invoice every line of these contracts that is due by
