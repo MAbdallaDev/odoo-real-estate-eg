@@ -1,7 +1,10 @@
+from datetime import timedelta
+from decimal import Decimal
+
 from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
-from ..tools.schedule import compute_schedule
+from ..tools.schedule import compute_schedule, half_up
 from .real_estate_plan_template import FREQUENCY_MONTHS
 
 # BR-09: the only states. Same shape as SALE_ORDER_STATE in sale/models/sale_order.py.
@@ -68,6 +71,11 @@ class RealEstateContract(models.Model):
     # filled with today by action_deliver() when left empty.
     delivery_date = fields.Date(copy=False, tracking=True)
     cancel_reason = fields.Text(readonly=True, copy=False, tracking=True)
+    # BR-33 / AC-09.3: computed from real payments when a confirmed contract is
+    # cancelled, before any credit note. Issuing the refund is the accountant's
+    # manual step.
+    retention_amount = fields.Monetary(readonly=True, copy=False, tracking=True)
+    refundable_amount = fields.Monetary(readonly=True, copy=False, tracking=True)
     # BR-08: frozen at the unit's list price; depends on unit_id only.
     price = fields.Monetary(
         compute="_compute_price", store=True, precompute=True, tracking=True
@@ -86,6 +94,12 @@ class RealEstateContract(models.Model):
     )
     # BR-10 / BR-18: down payment + installments; the deposit is not in the price.
     schedule_total = fields.Monetary(compute="_compute_schedule_total")
+    # AC-03.5 / BR-24: totals read from accounting through the lines.
+    # Outstanding = invoiced but not paid; lines not invoiced yet are not owed.
+    amount_paid = fields.Monetary(string="Total Paid", compute="_compute_amounts")
+    amount_outstanding = fields.Monetary(
+        string="Total Outstanding", compute="_compute_amounts"
+    )
     state = fields.Selection(
         CONTRACT_STATE,
         string="Status",
@@ -134,6 +148,13 @@ class RealEstateContract(models.Model):
                 for line in contract.installment_ids
                 if line.line_type != "maintenance"
             )
+
+    @api.depends("installment_ids.amount_paid", "installment_ids.amount_residual")
+    def _compute_amounts(self):
+        for contract in self:
+            lines = contract.installment_ids
+            contract.amount_paid = sum(lines.mapped("amount_paid"))
+            contract.amount_outstanding = sum(lines.mapped("amount_residual"))
 
     def _check_unit_free(self, unit_ids):
         """BR-04 / AC-01.3: a clear message before the database refuses.
@@ -273,12 +294,15 @@ class RealEstateContract(models.Model):
                     "date": contract.date or today,
                 }
             )
+        # BR-21: every line already due is invoiced at once (the down payment,
+        # a deposit due at signing, installments of a backdated contract).
+        self._invoice_due_lines(today)
         return True
 
     def action_deliver(self):
         """US-11 / BR-11: a manager records the handover of a confirmed contract.
-        Installments continue as scheduled; the maintenance deposit falling due
-        is Story 04."""
+        Installments continue as scheduled (AC-11.3); the maintenance deposit
+        due at delivery falls due on the delivery date and is invoiced."""
         self._check_manager()
         today = fields.Date.context_today(self)
         for contract in self:
@@ -291,6 +315,13 @@ class RealEstateContract(models.Model):
             contract.write(
                 {"state": "delivered", "delivery_date": contract.delivery_date or today}
             )
+        # BR-18 / AC-11.2: the deposit due at delivery gets the delivery date.
+        # As superuser: the schedule of a confirmed contract is locked (BR-19).
+        for line in self.installment_ids.sudo():
+            if line.line_type == "maintenance" and not line.date_due:
+                line.date_due = line.contract_id.delivery_date
+        # BR-23: invoiced at once, to the maintenance deposits account.
+        self._invoice_due_lines(today)
         return True
 
     def action_cancel(self):
@@ -394,8 +425,7 @@ class RealEstateContract(models.Model):
         )
 
     def _cancel_with_reason(self, reason):
-        """BR-32: called by the cancel dialog for a confirmed contract.
-        Retention and refunds from real payments are Story 04."""
+        """BR-32 / BR-33: called by the cancel dialog for a confirmed contract."""
         self.ensure_one()
         self._check_manager()
         if self.state != "confirmed":
@@ -404,7 +434,31 @@ class RealEstateContract(models.Model):
             )
         if not (reason or "").strip():
             raise UserError(self.env._("A written reason is required."))
+        # BR-33: the money first, while it still reads real payments only.
+        self.write(self._cancellation_amounts())
+        # BR-34: then credit what was invoiced but not paid.
+        self.installment_ids._credit_unpaid(fields.Date.context_today(self))
+        # Every line now shows cancelled, set by the module (line state
+        # follows the contract); the unit is available again (BR-03).
         self.write({"state": "cancelled", "cancel_reason": reason.strip()})
+
+    def _cancellation_amounts(self):
+        """BR-33: retention = retention % of what was paid against the down
+        payment and installments, half up to whole EGP; refundable = that paid
+        amount - retention + any paid maintenance deposit, in full. Late fees
+        are not refunded (Story 05). Line amount_paid counts payments only,
+        never credit notes."""
+        self.ensure_one()
+        lines = self.installment_ids
+        price_lines = lines.filtered(lambda line: line.line_type != "maintenance")
+        paid = Decimal(str(sum(price_lines.mapped("amount_paid"))))
+        deposit_paid = sum((lines - price_lines).mapped("amount_paid"))
+        percent = Decimal(str(self.company_id.re_retention_percent))
+        retention = half_up(paid * percent / Decimal(100))
+        return {
+            "retention_amount": retention,
+            "refundable_amount": float(paid) - retention + deposit_paid,
+        }
 
     def _confirmation_error_message(self):
         """Why this contract cannot be confirmed, or False. Same role as
@@ -437,4 +491,60 @@ class RealEstateContract(models.Model):
                 total=self.schedule_total,
                 price=self.price,
             )
+        # BR-43 / BR-23: checked here so nothing binds before it can be invoiced.
+        company = self.company_id
+        if not company.re_advance_account_id or not company.re_maintenance_account_id:
+            return self.env._(
+                "Set the Customer Advances and Maintenance Deposits accounts "
+                "in Settings > Real Estate first."
+            )
         return False
+
+    @api.model
+    def _cron_nightly(self, today=None):
+        """§5.5, the nightly job, run as superuser across all companies.
+        Step 1: invoice every line that has fallen due (BR-22, BR-25).
+        Steps 2-3 (late fees, at risk) come with Story 05.
+        Step 4: close delivered contracts that are fully paid (BR-12).
+        `today` is a parameter so tests can run any day."""
+        today = today or fields.Date.context_today(self)
+        contracts = self.search([("state", "in", ("confirmed", "delivered"))])
+        contracts._invoice_due_lines(today)
+        self._cron_close_paid_contracts()
+
+    @api.model
+    def _cron_close_paid_contracts(self):
+        """BR-12 / AC-12.1: a delivered contract closes once every line is
+        paid. A line not invoiced yet is not paid, so a contract with future
+        installments stays open. AC-12.2: a confirmed contract never closes.
+        (Story 05 adds: no billed late fee unpaid, none left unbilled.)"""
+        delivered = self.search([("state", "=", "delivered")])
+        paid = delivered.filtered(
+            lambda contract: contract.installment_ids
+            and all(line.state == "paid" for line in contract.installment_ids)
+        )
+        paid.write({"state": "closed"})
+        return paid
+
+    def _invoice_due_lines(self, today):
+        """BR-21 / BR-22: invoice every line of these contracts that is due by
+        today + the company's lead days and has no invoice yet (BR-25).
+        Draft and cancelled contracts are never invoiced."""
+        lines = (
+            self.env["real.estate.installment"]
+            .sudo()
+            .search(
+                [
+                    ("contract_id", "in", self.ids),
+                    ("contract_id.state", "in", ("confirmed", "delivered")),
+                    ("date_due", "!=", False),
+                    ("invoice_id", "=", False),
+                ],
+                order="date_due, id",
+            )
+        )
+        due = lines.filtered(
+            lambda line: line.date_due
+            <= today + timedelta(days=line.company_id.re_invoice_lead_days)
+        )
+        return due._create_invoices(today)

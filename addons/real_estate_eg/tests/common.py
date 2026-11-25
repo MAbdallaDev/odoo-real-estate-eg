@@ -1,16 +1,52 @@
-from odoo.tests import Form, TransactionCase, new_test_user
+from odoo.tests import Form, new_test_user
+
+from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 
 # Fixtures from docs/business-requirements.md §6.1, §6.2, §6.3 and §6.6 (example A).
 GROUP = "real_estate_eg.group_real_estate_"
 
 
-class RealEstateCommon(TransactionCase):
+class RealEstateCommon(AccountTestInvoicingCommon):
     """Shared fixtures. Records are set up here; every action under test runs
-    with_user() as one of the users below, never as admin."""
+    with_user() as one of the users below, never as admin.
+
+    Story 04: the base is Odoo's accounting test class. It gives a test company
+    with a chart of accounts and a bank journal whose inbound payments post to
+    Outstanding Receipts, so registered payments lower the invoice's amount due.
+    It also switches cls.env to its own user and company in super().setUpClass(),
+    so every fixture below is created after that call, in the test company."""
+
+    @classmethod
+    def get_default_groups(cls):
+        # The setup user also needs to create projects, units and plans.
+        return super().get_default_groups() | cls.env.ref(GROUP + "manager")
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # BR-43 / BR-23: the two liability accounts schedule-line invoices post to.
+        Account = cls.env["account.account"]
+        cls.advance_account = Account.create(
+            {
+                "code": "RE2101",
+                "name": "Customer Advances",
+                "account_type": "liability_current",
+            }
+        )
+        cls.maintenance_account = Account.create(
+            {
+                "code": "RE2102",
+                "name": "Maintenance Deposits",
+                "account_type": "liability_current",
+            }
+        )
+        cls.env.company.write(
+            {
+                "re_advance_account_id": cls.advance_account.id,
+                "re_maintenance_account_id": cls.maintenance_account.id,
+            }
+        )
+
         new_user = new_test_user
         cls.agent_a = new_user(cls.env, login="re_agent_a", groups=GROUP + "agent")
         cls.agent_b = new_user(cls.env, login="re_agent_b", groups=GROUP + "agent")
@@ -145,3 +181,32 @@ class RealEstateCommon(TransactionCase):
                 }
             )
         )
+
+    # Story 04 helpers
+
+    def _confirmed(self, contract):
+        contract.with_user(self.manager).action_confirm()
+        return contract
+
+    def _example_a(self):
+        """Example A, confirmed by the manager on its contract date 10 Jan
+        2027 (run it under freeze_time("2027-01-10"))."""
+        return self._confirmed(self.add_schedule(self.create_contract(), "2027-01-10"))
+
+    def _example_c(self):
+        """Example C as a draft: office 3,660,000 on NH-BIZ-5M, dated 31 Jan 2027."""
+        office = self.make_unit("CBP-A02-0105")
+        office.list_price = 3_660_000
+        contract = self.create_contract(unit=office)
+        contract.date = "2027-01-31"
+        contract._generate_schedule(self.plan_biz)
+        return contract
+
+    @staticmethod
+    def _line(contract, line_type):
+        return contract.installment_ids.filtered(lambda x: x.line_type == line_type)
+
+    def _invoiced(self, contract):
+        """Lines that have an invoice, read as superuser (invoice_id is an
+        accounting field)."""
+        return contract.installment_ids.sudo().filtered("invoice_id")

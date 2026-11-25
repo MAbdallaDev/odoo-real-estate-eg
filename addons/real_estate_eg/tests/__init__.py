@@ -6,3 +6,7 @@ from . import test_contract_states
 from . import test_schedule
 from . import test_schedule_math
 from . import test_access
+from . import test_invoicing
+from . import test_payment_state
+from . import test_delivery_closing
+from . import test_cancellation

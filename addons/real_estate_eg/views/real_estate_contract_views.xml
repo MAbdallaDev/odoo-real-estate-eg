@@ -119,17 +119,40 @@
                                     <field name="line_type" optional="hide" />
                                     <field name="date_due" />
                                     <field name="amount" />
+                                    <!-- BR-24: read from accounting. -->
+                                    <field name="amount_paid" optional="show" />
+                                    <field name="amount_residual" optional="show" />
+                                    <field
+                    name="state"
+                    widget="badge"
+                    decoration-info="state == 'invoiced'"
+                    decoration-warning="state == 'partially_paid'"
+                    decoration-success="state == 'paid'"
+                    decoration-muted="state == 'cancelled'"
+                  />
+                                    <!-- Only accounting users can open the invoice. -->
+                                    <field
+                    name="invoice_id"
+                    optional="show"
+                    groups="account.group_account_invoice"
+                  />
                                     <field name="currency_id" column_invisible="1" />
                                 </list>
                             </field>
                             <!-- BR-18: the deposit is not part of the total. -->
                             <group class="oe_subtotal_footer">
                                 <field name="schedule_total" />
+                                <!-- AC-03.5: totals from accounting. -->
+                                <field name="amount_paid" />
+                                <field name="amount_outstanding" />
                             </group>
                         </page>
                     </notebook>
                     <group string="Cancellation" invisible="state != 'cancelled'">
                         <field name="cancel_reason" />
+                        <!-- BR-33: kept and refundable, from real payments. -->
+                        <field name="retention_amount" />
+                        <field name="refundable_amount" />
                     </group>
                 </sheet>
                 <chatter />
