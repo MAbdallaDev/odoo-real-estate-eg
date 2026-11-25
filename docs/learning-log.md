@@ -235,11 +235,24 @@ Questions: [`design-notes/09-post-dated-cheques.md`](design-notes/09-post-dated-
 
 Questions: [`design-notes/10-ship.md`](design-notes/10-ship.md#explain-back-questions)
 
-*To be answered by the maintainer.*
+*Drafted by the AI at the maintainer's request.*
 
-1.
-2.
-3.
+1. For the manager: checking every row first means one message lists every bad row, so a
+   200-row file with ten mistakes is fixed in one go, not uploaded ten times. Nothing is
+   written by design, not only because a rollback happens to follow. For the tests: Odoo's
+   `assertRaises` rolls back a savepoint, so a test cannot tell "nothing was written" from
+   "rows were written and then rolled back". Checking first makes the rule visible in the
+   code, and the `try/except` tests (negative check N1) prove it.
+2. A row is the same unit when its code matches an existing unit's code, archived units
+   included. BR-01 makes a unit code unique within its company, not across companies, so two
+   companies may each have `HNC-B07-0302`. Searching only the current company stops an import
+   from updating another company's unit, and the user's record rules would hide that unit
+   anyway.
+3. The invoices, payments and late fees must look exactly like the ones the module makes
+   itself: posted to the right accounts, linked to their lines, with fees computed from the
+   payment history (BR-29). Calling the module's own methods with a past day gives that, and
+   it also tests those methods once more. Rows written straight into the database could skip
+   rules and drift from the real code after the next change.
 
 ## Mistakes caught
 
