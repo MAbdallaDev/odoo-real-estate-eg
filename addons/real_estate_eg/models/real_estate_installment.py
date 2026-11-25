@@ -132,6 +132,30 @@ class RealEstateInstallment(models.Model):
             line.date_effective_due = max(dates) if dates else False
 
     # ------------------------------------------------------------------
+    # BR-24 / BR-29: payment history, read from accounting
+    # ------------------------------------------------------------------
+
+    def _payment_history(self):
+        """(date, amount) of every payment matched with this line's invoice,
+        each from its own accounting date (BR-24), so a payment entered late
+        with an earlier date counts from that earlier date. Credit notes are
+        not payments (BR-33); exchange differences do not apply (EGP only).
+        Read as superuser: only accounting users can read invoices."""
+        self.ensure_one()
+        invoice = self.sudo().invoice_id
+        if not invoice:
+            return []
+        history = []
+        # One entry per partial reconciliation on the receivable line; "aml"
+        # is the other side (the payment's line), sorted by date.
+        for partial in invoice._get_all_reconciled_invoice_partials():
+            counterpart = partial["aml"]
+            if partial["is_exchange"] or counterpart.move_id.move_type == "out_refund":
+                continue
+            history.append((counterpart.date, partial["amount"]))
+        return history
+
+    # ------------------------------------------------------------------
     # BR-22 / BR-23 / BR-25 / BR-43 / BR-44: invoicing
     # ------------------------------------------------------------------
 
