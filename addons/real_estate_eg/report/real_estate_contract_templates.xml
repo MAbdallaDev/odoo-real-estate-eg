@@ -1,13 +1,34 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
+    <!-- AC-07.3: an amount as "8,580,000 EGP": whole pounds with the
+         language's thousands separator (float widget, precision 0) and the
+         currency code. The monetary widget would print "8,580,000.00 LE"
+         (EGP's symbol). dir="ltr" keeps the number before the code inside
+         an Arabic paragraph, where bidi would show "EGP 8,580,000". -->
+    <template id="report_contract_amount">
+        <span class="o_re_amount" dir="ltr"><t
+        t-out="amount"
+        t-options="{'widget': 'float', 'precision': 0}"
+      />&#160;<t t-out="currency.name" /></span>
+    </template>
+
     <!-- BR-38: one contract, English on the left and Arabic on the right of
          every row. Not Odoo's translation system: the Arabic words are fixed
-         labels here; the data is printed as stored on both sides. The body's
-         dir comes from the user's language (web.report_layout), so each
-         Arabic cell sets dir="rtl" itself. Dates print day/month/year on
+         labels here; the data is printed as stored on both sides (on the
+         Arabic side inside dir="ltr", so "Co." does not become ".Co"). The
+         body's dir comes from the user's language (web.report_layout), so
+         each Arabic cell sets dir="rtl" itself. Dates print day/month/year on
          both sides (the user's language could print 01/10/2027 for 10 Jan). -->
     <template id="report_contract_document">
         <t t-call="web.external_layout">
+            <t t-set="partner" t-value="doc.partner_id" />
+            <t t-set="unit" t-value="doc.unit_id" />
+            <t t-set="plan" t-value="doc.plan_id" />
+            <t t-set="currency" t-value="doc.currency_id" />
+            <t
+        t-set="date_options"
+        t-value="{'widget': 'date', 'format': 'dd/MM/yyyy'}"
+      />
             <div class="page o_re_contract">
                 <table class="o_re_bilingual">
                     <tr class="o_re_title">
@@ -24,10 +45,7 @@
                             <span t-field="doc.name" />
                             <br />
                             <strong>Contract date:</strong>
-                            <span
-                t-field="doc.date"
-                t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"
-              />
+                            <span t-field="doc.date" t-options="date_options" />
                         </td>
                         <td class="o_re_ar" dir="rtl">
                             <strong>رقم العقد:</strong>
@@ -37,8 +55,178 @@
                             <span
                 dir="ltr"
                 t-field="doc.date"
-                t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"
+                t-options="date_options"
               />
+                        </td>
+                    </tr>
+
+                    <!-- Parties -->
+                    <tr class="o_re_section">
+                        <td class="o_re_en"><h4>Parties</h4></td>
+                        <td class="o_re_ar" dir="rtl"><h4>الأطراف</h4></td>
+                    </tr>
+                    <tr>
+                        <td class="o_re_en">
+                            <strong>Seller:</strong>
+                            <span t-out="doc.company_id.name" />
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>البائع:</strong>
+                            <span dir="ltr" t-out="doc.company_id.name" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="o_re_en">
+                            <strong>Buyer:</strong>
+                            <span class="o_re_buyer" t-out="partner.name" />
+                            <t
+                t-if="partner.nationality == 'egyptian' and partner.national_id"
+              >
+                                <br />
+                                <strong>National ID:</strong>
+                                <span t-out="partner.national_id" />
+                            </t>
+                            <t
+                t-if="partner.nationality == 'foreign' and partner.passport_number"
+              >
+                                <br />
+                                <strong>Passport number:</strong>
+                                <span t-out="partner.passport_number" />
+                            </t>
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>المشتري:</strong>
+                            <span class="o_re_buyer" dir="ltr" t-out="partner.name" />
+                            <t
+                t-if="partner.nationality == 'egyptian' and partner.national_id"
+              >
+                                <br />
+                                <strong>الرقم القومي:</strong>
+                                <span dir="ltr" t-out="partner.national_id" />
+                            </t>
+                            <t
+                t-if="partner.nationality == 'foreign' and partner.passport_number"
+              >
+                                <br />
+                                <strong>رقم جواز السفر:</strong>
+                                <span dir="ltr" t-out="partner.passport_number" />
+                            </t>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="o_re_en">
+                            <strong>Sales agent:</strong>
+                            <span t-out="doc.user_id.name" />
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>مندوب المبيعات:</strong>
+                            <span dir="ltr" t-out="doc.user_id.name" />
+                        </td>
+                    </tr>
+
+                    <!-- Unit -->
+                    <tr class="o_re_section">
+                        <td class="o_re_en"><h4>Unit</h4></td>
+                        <td class="o_re_ar" dir="rtl"><h4>الوحدة</h4></td>
+                    </tr>
+                    <tr>
+                        <td class="o_re_en">
+                            <strong>Unit code:</strong>
+                            <span t-out="unit.code" />
+                            <br />
+                            <strong>Project:</strong>
+                            <span t-out="unit.project_id.name" />
+                            <br />
+                            <strong>Type:</strong>
+                            <span t-out="en['unit_type'][unit.unit_type]" />
+                            <br />
+                            <strong>Area:</strong>
+                            <span t-out="'%g' % unit.area" /> m²
+                            <br />
+                            <strong>Floor:</strong>
+                            <span t-out="unit.floor" />
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>كود الوحدة:</strong>
+                            <span dir="ltr" t-out="unit.code" />
+                            <br />
+                            <strong>المشروع:</strong>
+                            <span dir="ltr" t-out="unit.project_id.name" />
+                            <br />
+                            <strong>النوع:</strong>
+                            <span t-out="ar['unit_type'][unit.unit_type]" />
+                            <br />
+                            <strong>المساحة:</strong>
+                            <span dir="ltr"><t t-out="'%g' % unit.area" /> m²</span>
+                            <br />
+                            <strong>الدور:</strong>
+                            <span dir="ltr" t-out="unit.floor" />
+                        </td>
+                    </tr>
+
+                    <!-- Price and payment plan -->
+                    <tr class="o_re_section">
+                        <td class="o_re_en"><h4>Price and payment plan</h4></td>
+                        <td class="o_re_ar" dir="rtl"><h4>السعر ونظام السداد</h4></td>
+                    </tr>
+                    <tr>
+                        <td class="o_re_en">
+                            <strong>Contract price:</strong>
+                            <t t-call="real_estate_eg.report_contract_amount">
+                                <t t-set="amount" t-value="doc.price" />
+                            </t>
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>سعر العقد:</strong>
+                            <t t-call="real_estate_eg.report_contract_amount">
+                                <t t-set="amount" t-value="doc.price" />
+                            </t>
+                        </td>
+                    </tr>
+                    <tr t-if="plan">
+                        <td class="o_re_en">
+                            <strong>Payment plan:</strong>
+                            <span t-out="plan.name" /> (<span t-out="plan.code" />)
+                            <br />
+                            <strong>Down payment:</strong>
+                            <span t-out="'%g' % plan.down_payment_percent" />%
+                            <br />
+                            <strong>Installments:</strong>
+                            <t t-if="plan.installment_count">
+                                <span t-out="plan.installment_count" />,
+                                <span t-out="en['frequency'][plan.frequency]" />
+                            </t>
+                            <t t-else="">none (cash)</t>
+                            <br />
+                            <strong>Maintenance deposit:</strong>
+                            <span t-out="'%g' % plan.maintenance_percent" />%,
+                            <span
+                t-out="en['maintenance_due'][plan.maintenance_due].lower()"
+              />
+                        </td>
+                        <td class="o_re_ar" dir="rtl">
+                            <strong>نظام السداد:</strong>
+                            <span dir="ltr"><t t-out="plan.name" /> (<t
+                  t-out="plan.code"
+                />)</span>
+                            <br />
+                            <strong>المقدم:</strong>
+                            <span dir="ltr"><t
+                  t-out="'%g' % plan.down_payment_percent"
+                />%</span>
+                            <br />
+                            <strong>عدد الأقساط:</strong>
+                            <t t-if="plan.installment_count">
+                                <span dir="ltr" t-out="plan.installment_count" />،
+                                <span t-out="ar['frequency'][plan.frequency]" />
+                            </t>
+                            <t t-else="">بدون أقساط (كاش)</t>
+                            <br />
+                            <strong>وديعة الصيانة:</strong>
+                            <span dir="ltr"><t
+                  t-out="'%g' % plan.maintenance_percent"
+                />%</span>،
+                            <span t-out="ar['maintenance_due'][plan.maintenance_due]" />
                         </td>
                     </tr>
                 </table>
