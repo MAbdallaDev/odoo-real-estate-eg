@@ -7,4 +7,4 @@ for modules. It is rebuilt from `main` by `make release-apps`.
 
 Source, tests, documentation and issues: https://github.com/MAbdallaDev/odoo-real-estate-eg
 
-Built from `main` at `57c1d7e`, module version `19.0.1.0.1`.
+Built from `main` at `79f5fd1`, module version `19.0.1.0.1`.
