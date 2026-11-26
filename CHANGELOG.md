@@ -15,6 +15,12 @@ numbering: `19.0.x.y.z` in the manifest, tagged `vx.y.z` in git.
   with the module at the repository root where the store looks for it, from `origin/main`
   without touching the working tree; README → Releasing explains when to run it.
 
+### Fixed
+
+- The Odoo Apps page showed `â` in place of 16 arrows, dashes and quotes: the store reads
+  `static/description/index.html` without UTF-8. They are now HTML entities (`&rarr;`,
+  `&mdash;`, `&ldquo;`, `&rdquo;`), so the file is plain ASCII.
+
 ## [1.0.1] - 2026-11-25
 
 ### Fixed
