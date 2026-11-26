@@ -11,7 +11,9 @@ numbering: `19.0.x.y.z` in the manifest, tagged `vx.y.z` in git.
 - Odoo Apps listing: the module icon (`static/description/icon.png`, 100×100 like Odoo's own
   apps, with its SVG source), the store page (`static/description/index.html`) with real
   screenshots of the demo database, and a cover image in the manifest's `images`.
-- README: how to release to the `19.0` branch the store reads.
+- `make release-apps` (`scripts/release_apps.sh`): builds the `19.0` branch the store reads,
+  with the module at the repository root where the store looks for it, from `origin/main`
+  without touching the working tree; README → Releasing explains when to run it.
 
 ## [1.0.1] - 2026-11-25
 

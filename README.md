@@ -152,19 +152,26 @@ Before the first contract is confirmed:
 | `make test-ci` | The same test run inside Docker, exactly as CI runs it |
 | `make lint` | Every pre-commit check on all files |
 | `make shell` | Odoo Python shell on `re_dev` |
+| `make release-apps` | Rebuild and push the `19.0` branch the Odoo Apps store reads (`DRY_RUN=1` only builds) |
 | `make help` | List the targets |
 
 ### Releasing
 
-Work lands on `main` through pull requests. The Odoo Apps store reads the module from the
-`19.0` branch, so after a release is merged and tagged, bring that branch up to date:
+Work lands on `main` through pull requests. The Odoo Apps store reads the `19.0` branch,
+and it finds a module only in its own folder at the **root** of the repository, while here
+the module lives in `addons/real_estate_eg/`. So `19.0` is not a copy of `main`: it is
+generated, holding only `real_estate_eg/` (byte for byte the same as on `main`), `LICENSE`
+and a README pointing back here. Never commit to it by hand.
+
+After a release is merged and tagged:
 
 ```bash
-git checkout main && git pull && git push origin main:19.0
+make release-apps
 ```
 
-Then press **Scan** on the repository in the Odoo Apps dashboard. Until `19.0` is pushed,
-the store keeps showing the previous release.
+It builds `19.0` from `origin/main` without touching your working tree, and does nothing if
+`19.0` is already up to date. Then press **Scan** on the repository in the Odoo Apps
+dashboard; until then the store keeps showing the previous release.
 
 ## Quality gates
 

@@ -18,10 +18,10 @@ CI_LOG   := odoo-ci.log
 # Postgres role from odoo.conf, so dropdb connects as the same user as Odoo
 DB_USER   = $(shell sed -n 's/^db_user *= *//p' odoo.conf)
 
-.PHONY: help setup run test test-ci demo coverage shell lint
+.PHONY: help setup run test test-ci demo coverage shell lint release-apps
 
 help: ## List targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-8s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-12s %s\n", $$1, $$2}'
 
 setup: ## Clone Odoo 19, create venv, install requirements, create odoo.conf
 	[ -d odoo-src/odoo ] || git clone --depth 1 --branch 19.0 https://github.com/odoo/odoo.git odoo-src/odoo
@@ -66,3 +66,6 @@ shell: ## Odoo Python shell on database $(DB)
 
 lint: ## Run every pre-commit check on all files
 	venv/bin/pre-commit run --all-files
+
+release-apps: ## Rebuild and push the 19.0 branch the Odoo Apps store reads (DRY_RUN=1 to only build)
+	scripts/release_apps.sh
