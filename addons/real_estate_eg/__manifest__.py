@@ -6,6 +6,8 @@
     "license": "LGPL-3",
     "author": "Mostafa Abdallah",
     "website": "https://github.com/MAbdallaDev/odoo-real-estate-eg",
+    # Odoo Apps listing cover; the page is static/description/index.html.
+    "images": ["static/description/contracts.png"],
     "depends": ["account", "mail"],
     # US-08: .xlsx import; already in Odoo's own requirements.
     "external_dependencies": {"python": ["openpyxl"]},
