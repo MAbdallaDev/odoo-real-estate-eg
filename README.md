@@ -5,6 +5,7 @@
 [![License: LGPL-3](https://img.shields.io/badge/license-LGPL--3-blue)](LICENSE)
 [![Tests: 107](https://img.shields.io/badge/tests-107%20passing-brightgreen)](addons/real_estate_eg/tests/)
 [![Coverage: 97%](https://img.shields.io/badge/coverage-97%25-brightgreen)](#quality-gates)
+[![Odoo Apps](https://img.shields.io/badge/Odoo%20Apps-free%20download-714B67)](https://apps.odoo.com/apps/modules/19.0/real_estate_eg)
 
 `real_estate_eg` is an Odoo 19 Community addon for Egyptian real-estate developers who sell
 units on installment plans and then have to collect them.
@@ -14,7 +15,9 @@ quarterly or monthly installments, a maintenance deposit at delivery, and late f
 anything overdue. Odoo has no concept of any of this, so every implementation partner
 rebuilds it. This module does it once, on top of standard Odoo accounting.
 
-> **Status: v1.0.0** — all ten stories shipped, each through a reviewed pull request. See the
+> **Status: v1.0.1** — all ten stories shipped, each through a reviewed pull request, and the
+> module is listed free on the
+> [Odoo Apps store](https://apps.odoo.com/apps/modules/19.0/real_estate_eg). See the
 > [Roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
 ![A 60-second click-through of the demo data](docs/images/demo.gif)
@@ -66,7 +69,9 @@ fixtures — is in [`docs/business-requirements.md`](docs/business-requirements.
 
 ## Try it with demo data
 
-After the [quick start](#quick-start):
+To read about it without installing anything, see its
+[Odoo Apps page](https://apps.odoo.com/apps/modules/19.0/real_estate_eg). To run it, after the
+[quick start](#quick-start):
 
 ```bash
 make demo                    # fresh database re_demo with Nile Heights' demo data
