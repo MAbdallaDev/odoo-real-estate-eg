@@ -16,18 +16,18 @@
   <p>
     In Egypt a unit is rarely paid in cash. The buyer pays a down payment, then years of monthly
     or quarterly installments, a maintenance deposit at delivery, and late fees on anything
-    overdue — and usually hands over post-dated cheques for the whole schedule at signing.
+    overdue &mdash; and usually hands over post-dated cheques for the whole schedule at signing.
     Odoo has payment terms, which split one invoice over several dates; it has no installment
     contract, no deposit, no late fee and no collections screen.
   </p>
 
   <h3 style="color: #714b67; margin-top: 36px">What it does</h3>
   <ul>
-    <li><b>Contracts</b> for project units: draft → confirmed → delivered → closed, or cancelled with the developer's retention computed from what was actually paid. One live contract per unit, enforced in the database.</li>
+    <li><b>Contracts</b> for project units: draft &rarr; confirmed &rarr; delivered &rarr; closed, or cancelled with the developer's retention computed from what was actually paid. One live contract per unit, enforced in the database.</li>
     <li><b>Payment schedules</b> from plan templates: down payment, N monthly or quarterly installments in whole pounds with the rounding difference on the last line, and the maintenance deposit as its own line.</li>
-    <li><b>One customer invoice per schedule line</b>, created by a nightly job on its due date — not all at signing. Paid and outstanding amounts are read from real payments in accounting.</li>
+    <li><b>One customer invoice per schedule line</b>, created by a nightly job on its due date &mdash; not all at signing. Paid and outstanding amounts are read from real payments in accounting.</li>
     <li><b>Collections:</b> overdue lines after a grace period, late fees computed from payment history (running the job twice never double-charges), an at-risk flag, due-this-month, overdue and aging views.</li>
-    <li><b>Post-dated cheques:</b> each cheque tracked on its schedule line, held → deposited → cleared or bounced, with a “to deposit” list. Status only — accounting alone decides what is paid.</li>
+    <li><b>Post-dated cheques:</b> each cheque tracked on its schedule line, held &rarr; deposited &rarr; cleared or bounced, with a &ldquo;to deposit&rdquo; list. Status only &mdash; accounting alone decides what is paid.</li>
     <li><b>Security:</b> sales agents see only their own contracts; managers see all; collections officers and accountants read everything. Multi-company aware.</li>
     <li><b>Bilingual contract PDF</b>, Arabic and English side by side on the same page.</li>
     <li><b>Unit import</b> from CSV or Excel, matched by unit code so it can be re-run without duplicates; all or nothing, with every bad row reported by number and reason.</li>
@@ -37,7 +37,7 @@
   <p>
     Money received before delivery is not revenue. Down payment and installment invoices post to a
     configurable <b>customer advances</b> account, and the maintenance deposit to a <b>deposit
-    liability</b> account — never to income. Invoices carry no tax (residential unit sales are
+    liability</b> account &mdash; never to income. Invoices carry no tax (residential unit sales are
     VAT-exempt; confirm commercial units with your tax advisor). The module does not depend on a
     localisation, so it installs on any chart of accounts; for an Egyptian company,
     <code>l10n_eg</code> is recommended.
@@ -73,9 +73,9 @@
   <h3 style="color: #714b67; margin-top: 36px">Setup before the first contract</h3>
   <ol>
     <li>A chart of accounts (<code>l10n_eg</code> for an Egyptian company).</li>
-    <li>Two liability accounts — customer advances and maintenance deposits — in <i>Settings → Real Estate</i>. Confirmation is refused until both are set.</li>
+    <li>Two liability accounts &mdash; customer advances and maintenance deposits &mdash; in <i>Settings &rarr; Real Estate</i>. Confirmation is refused until both are set.</li>
     <li><b>Outstanding Receipts</b> on the bank journal's incoming payment method; without it a registered payment has no journal entry and no line ever shows paid.</li>
-    <li>A late-fee income account, and the late-fee rate, cap, grace period and at-risk days in <i>Settings → Real Estate → Collections</i>. The defaults are illustrative; set them with your lawyer.</li>
+    <li>A late-fee income account, and the late-fee rate, cap, grace period and at-risk days in <i>Settings &rarr; Real Estate &rarr; Collections</i>. The defaults are illustrative; set them with your lawyer.</li>
   </ol>
 
   <h3 style="color: #714b67; margin-top: 36px">Requirements</h3>
