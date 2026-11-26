@@ -1,0 +1,110 @@
+<section class="container" style="max-width: 980px; color: #2b2329; font-size: 15px; line-height: 1.65">
+  <div style="text-align: center; padding: 32px 0 8px">
+    <h2 style="color: #714b67; font-weight: 700; margin-bottom: 8px">Real Estate Installments (Egypt)</h2>
+    <p style="font-size: 17px; color: #5c4f58; max-width: 720px; margin: 0 auto">
+      Installment sales and collections for Egyptian real-estate developers: contracts, payment
+      schedules, one invoice per installment, late fees, post-dated cheques and a bilingual
+      Arabic / English contract. Odoo 19 Community, on standard accounting.
+    </p>
+  </div>
+
+  <div style="margin: 28px 0">
+    <img src="contracts.png" alt="Contracts in every state" class="img-fluid" style="border: 1px solid #e6dfe4; border-radius: 6px" />
+  </div>
+
+  <h3 style="color: #714b67; margin-top: 36px">The problem</h3>
+  <p>
+    In Egypt a unit is rarely paid in cash. The buyer pays a down payment, then years of monthly
+    or quarterly installments, a maintenance deposit at delivery, and late fees on anything
+    overdue — and usually hands over post-dated cheques for the whole schedule at signing.
+    Odoo has payment terms, which split one invoice over several dates; it has no installment
+    contract, no deposit, no late fee and no collections screen.
+  </p>
+
+  <h3 style="color: #714b67; margin-top: 36px">What it does</h3>
+  <ul>
+    <li><b>Contracts</b> for project units: draft → confirmed → delivered → closed, or cancelled with the developer's retention computed from what was actually paid. One live contract per unit, enforced in the database.</li>
+    <li><b>Payment schedules</b> from plan templates: down payment, N monthly or quarterly installments in whole pounds with the rounding difference on the last line, and the maintenance deposit as its own line.</li>
+    <li><b>One customer invoice per schedule line</b>, created by a nightly job on its due date — not all at signing. Paid and outstanding amounts are read from real payments in accounting.</li>
+    <li><b>Collections:</b> overdue lines after a grace period, late fees computed from payment history (running the job twice never double-charges), an at-risk flag, due-this-month, overdue and aging views.</li>
+    <li><b>Post-dated cheques:</b> each cheque tracked on its schedule line, held → deposited → cleared or bounced, with a “to deposit” list. Status only — accounting alone decides what is paid.</li>
+    <li><b>Security:</b> sales agents see only their own contracts; managers see all; collections officers and accountants read everything. Multi-company aware.</li>
+    <li><b>Bilingual contract PDF</b>, Arabic and English side by side on the same page.</li>
+    <li><b>Unit import</b> from CSV or Excel, matched by unit code so it can be re-run without duplicates; all or nothing, with every bad row reported by number and reason.</li>
+  </ul>
+
+  <h3 style="color: #714b67; margin-top: 36px">The accounting</h3>
+  <p>
+    Money received before delivery is not revenue. Down payment and installment invoices post to a
+    configurable <b>customer advances</b> account, and the maintenance deposit to a <b>deposit
+    liability</b> account — never to income. Invoices carry no tax (residential unit sales are
+    VAT-exempt; confirm commercial units with your tax advisor). The module does not depend on a
+    localisation, so it installs on any chart of accounts; for an Egyptian company,
+    <code>l10n_eg</code> is recommended.
+  </p>
+
+  <div class="row" style="margin-top: 28px">
+    <div class="col-md-6" style="margin-bottom: 20px">
+      <img src="contract_confirmed.png" alt="A confirmed contract and its schedule" class="img-fluid" style="border: 1px solid #e6dfe4; border-radius: 6px" />
+      <p style="font-size: 13px; color: #6d6069; margin-top: 6px">A confirmed contract and its payment schedule.</p>
+    </div>
+    <div class="col-md-6" style="margin-bottom: 20px">
+      <img src="overdue.png" alt="Overdue lines with days past due and late fees" class="img-fluid" style="border: 1px solid #e6dfe4; border-radius: 6px" />
+      <p style="font-size: 13px; color: #6d6069; margin-top: 6px">Overdue lines, days past due and late fees.</p>
+    </div>
+    <div class="col-md-6" style="margin-bottom: 20px">
+      <img src="aging_pivot.png" alt="Overdue amounts by project and aging bucket" class="img-fluid" style="border: 1px solid #e6dfe4; border-radius: 6px" />
+      <p style="font-size: 13px; color: #6d6069; margin-top: 6px">Overdue amounts by project and aging bucket.</p>
+    </div>
+    <div class="col-md-6" style="margin-bottom: 20px">
+      <img src="cheques.png" alt="Post-dated cheques" class="img-fluid" style="border: 1px solid #e6dfe4; border-radius: 6px" />
+      <p style="font-size: 13px; color: #6d6069; margin-top: 6px">Post-dated cheques and their states.</p>
+    </div>
+    <div class="col-md-6" style="margin-bottom: 20px">
+      <img src="contract_pdf.png" alt="The bilingual Arabic and English contract" class="img-fluid" style="border: 1px solid #e6dfe4; border-radius: 6px" />
+      <p style="font-size: 13px; color: #6d6069; margin-top: 6px">The contract, Arabic and English side by side.</p>
+    </div>
+    <div class="col-md-6" style="margin-bottom: 20px">
+      <img src="import.png" alt="Importing units from a spreadsheet" class="img-fluid" style="border: 1px solid #e6dfe4; border-radius: 6px" />
+      <p style="font-size: 13px; color: #6d6069; margin-top: 6px">Importing units from a spreadsheet.</p>
+    </div>
+  </div>
+
+  <h3 style="color: #714b67; margin-top: 36px">Setup before the first contract</h3>
+  <ol>
+    <li>A chart of accounts (<code>l10n_eg</code> for an Egyptian company).</li>
+    <li>Two liability accounts — customer advances and maintenance deposits — in <i>Settings → Real Estate</i>. Confirmation is refused until both are set.</li>
+    <li><b>Outstanding Receipts</b> on the bank journal's incoming payment method; without it a registered payment has no journal entry and no line ever shows paid.</li>
+    <li>A late-fee income account, and the late-fee rate, cap, grace period and at-risk days in <i>Settings → Real Estate → Collections</i>. The defaults are illustrative; set them with your lawyer.</li>
+  </ol>
+
+  <h3 style="color: #714b67; margin-top: 36px">Requirements</h3>
+  <ul>
+    <li>Odoo 19.0 Community. Depends on <code>account</code> and <code>mail</code>.</li>
+    <li>Python <code>openpyxl</code> for Excel import (already in Odoo's own requirements).</li>
+    <li>For the Arabic contract PDF: <b>wkhtmltopdf 0.12.6.1 with patched Qt</b> and the <b>Noto Naskh Arabic</b> font. Without the font, Arabic letters print unjoined.</li>
+  </ul>
+
+  <h3 style="color: #714b67; margin-top: 36px">Not in this version</h3>
+  <p>
+    Moving customer advances to revenue at delivery (planned for 1.1), ETA e-invoicing through
+    <code>l10n_eg_edi_eta</code>, cheque accounting entries, importing existing contracts, broker
+    commissions, resale, a customer portal and online payment.
+  </p>
+
+  <div style="background: #f6f1f5; border-radius: 6px; padding: 18px 22px; margin: 36px 0 12px">
+    <h4 style="color: #714b67; margin-top: 0">About this module</h4>
+    <p style="margin-bottom: 8px">
+      This is a reference implementation built in the open: a written business specification,
+      ten reviewed pull requests, and 107 automated tests run as real agent, manager, collections
+      and accountant users. <b>It has not been run at a real company.</b> The demo developer,
+      <i>Nile Heights Developments</i>, and all its data are invented.
+    </p>
+    <p style="margin-bottom: 0">
+      Built with AI assistance: every change was planned in writing, reviewed and merged by the
+      maintainer, with the mistakes caught in review logged in the repository. Source, design notes
+      and the full specification:
+      <a href="https://github.com/MAbdallaDev/odoo-real-estate-eg" target="_blank" rel="noopener">github.com/MAbdallaDev/odoo-real-estate-eg</a>.
+    </p>
+  </div>
+</section>

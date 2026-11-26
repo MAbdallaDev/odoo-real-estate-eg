@@ -154,6 +154,18 @@ Before the first contract is confirmed:
 | `make shell` | Odoo Python shell on `re_dev` |
 | `make help` | List the targets |
 
+### Releasing
+
+Work lands on `main` through pull requests. The Odoo Apps store reads the module from the
+`19.0` branch, so after a release is merged and tagged, bring that branch up to date:
+
+```bash
+git checkout main && git pull && git push origin main:19.0
+```
+
+Then press **Scan** on the repository in the Odoo Apps dashboard. Until `19.0` is pushed,
+the store keeps showing the previous release.
+
 ## Quality gates
 
 - **Tests** — 107 tests, all run as real agent, manager, collections or accountant users,
