@@ -1,3 +1,0 @@
-# Developer tools, installed into venv/ next to Odoo's own requirements (make setup)
-pre-commit==4.7.0
-coverage==7.17.4
