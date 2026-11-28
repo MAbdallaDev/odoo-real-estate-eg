@@ -1,10 +1,10 @@
 # 12 — Customer portal REST API (v1.1)
 
-- **Feature:** `installments`
-- **Intake:** `.squad/stories/installments/12-portal-api/intake.md`
+- **Feature:** `portal`
+- **Intake:** `.squad/stories/portal/12-portal-api/intake.md`
 - **Branch:** `story/12-portal-api`, pull request into **`release/1.1`** (never `main`)
-- **Status:** code and tests written 2026-11-28; CI on the branch; not yet tested locally by the
-  maintainer
+- **Status:** code and tests written 2026-11-28; CI green on the branch; not yet tested locally by
+  the maintainer
 
 ---
 

@@ -8,8 +8,8 @@
 
 ## Feature
 
-- **Feature name (display):** Real estate installments & collections
-- **Feature slug (folder under `plans/`):** `installments`
+- **Feature name (display):** Customer portal (addon `real_estate_eg_portal`)
+- **Feature slug (folder under `plans/`):** `portal`
 
 ## Tracker (metadata only)
 
