@@ -42,9 +42,15 @@ class RealEstateUnit(models.Model):
     # BR-03: derived from the live contract, never typed by hand. Stored, so it
     # can be searched and grouped; recomputed (as superuser) when a contract's
     # state changes.
+    # BR-50 (v1.1): the reservations of this unit; only a held one counts.
+    reservation_ids = fields.One2many(
+        "real.estate.reservation", "unit_id", string="Reservations"
+    )
     state = fields.Selection(
         [
             ("available", "Available"),
+            # BR-50 (v1.1): an agent-confirmed reservation holds the unit.
+            ("on_hold", "On Hold"),
             ("reserved", "Reserved"),
             ("sold", "Sold"),
             ("delivered", "Delivered"),
@@ -70,7 +76,7 @@ class RealEstateUnit(models.Model):
         "CHECK (list_price >= 0)", "The list price cannot be negative."
     )
 
-    @api.depends("contract_ids.state")
+    @api.depends("contract_ids.state", "reservation_ids.state")
     def _compute_state(self):
         # BR-03: the live contract is the one not cancelled (BR-04: at most one).
         contract_to_unit_state = {
@@ -79,9 +85,21 @@ class RealEstateUnit(models.Model):
             "delivered": "delivered",
             "closed": "delivered",
         }
+        # BR-50 (v1.1): read only when there is no live contract, so a unit
+        # with a contract, or with no reservation, gets exactly its v1 state.
+        reservation_to_unit_state = {
+            "agent_confirmed": "on_hold",
+            "reserved": "reserved",
+        }
         for unit in self:
             live = unit.contract_ids.filtered(lambda c: c.state != "cancelled")[:1]
-            unit.state = contract_to_unit_state[live.state] if live else "available"
+            if live:
+                unit.state = contract_to_unit_state[live.state]
+                continue
+            held = unit.reservation_ids.filtered(
+                lambda r: r.state in reservation_to_unit_state
+            )[:1]
+            unit.state = reservation_to_unit_state.get(held.state, "available")
 
     @api.depends("list_price", "area")
     def _compute_price_per_sqm(self):

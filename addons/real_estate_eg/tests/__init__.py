@@ -17,3 +17,4 @@ from . import test_record_rules
 from . import test_collections
 from . import test_cheques
 from . import test_unit_import
+from . import test_reservation

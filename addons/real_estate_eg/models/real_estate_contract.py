@@ -6,6 +6,7 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 
 from ..tools.schedule import compute_schedule, half_up
 from .real_estate_plan_template import FREQUENCY_MONTHS
+from .real_estate_reservation import HELD_STATES
 
 # BR-09: the only states. Same shape as SALE_ORDER_STATE in sale/models/sale_order.py.
 CONTRACT_STATE = [
@@ -60,6 +61,10 @@ class RealEstateContract(models.Model):
         index=True,
         tracking=True,
         default=lambda self: self.env.user,
+    )
+    # BR-54 (v1.1): the reservation this contract was created from, if any.
+    reservation_id = fields.Many2one(
+        "real.estate.reservation", readonly=True, copy=False, index="btree_not_null"
     )
     # The contract's company is its unit's company.
     company_id = fields.Many2one(related="unit_id.company_id", store=True, index=True)
@@ -239,10 +244,41 @@ class RealEstateContract(models.Model):
                 )
             )
 
+    def _check_unit_not_held(self, unit_ids):
+        """BR-54 / AC-14.6 (v1.1): no contract on a held unit. The reservation's
+        Create Contract converts the reservation first, so the unit is no
+        longer held when its contract is created; any other way is refused,
+        and a held reservation never sits beside a live contract (BR-49).
+        With no held reservation this does nothing, so v1 behaviour is
+        unchanged. sudo(): the agent may not see the reservation, but the
+        unit is still held; only its reference is named."""
+        held = (
+            self.env["real.estate.reservation"]
+            .sudo()
+            .search(
+                [("unit_id", "in", unit_ids), ("state", "in", HELD_STATES)], limit=1
+            )
+        )
+        if held:
+            raise ValidationError(
+                self.env._(
+                    "Unit %(unit)s is held by reservation %(reference)s. "
+                    "Create the contract from that reservation.",
+                    unit=held.unit_id.code,
+                    reference=held.name,
+                )
+            )
+
     @api.model_create_multi
     def create(self, vals_list):
+        # BR-54 (v1.1): the link is written by the reservation, never typed.
+        for vals in vals_list:
+            vals.pop("reservation_id", None)
         # BR-04: refuse a taken unit before drawing a reference (AC-01.3).
         self._check_unit_free(
+            [vals["unit_id"] for vals in vals_list if vals.get("unit_id")]
+        )
+        self._check_unit_not_held(
             [vals["unit_id"] for vals in vals_list if vals.get("unit_id")]
         )
         # Same pattern as sale.order.create(): draw the reference from the
@@ -292,6 +328,13 @@ class RealEstateContract(models.Model):
         if vals.get("unit_id"):
             # Writing one unit on several contracts would share it too.
             self._check_unit_free([vals["unit_id"]] * len(self))
+        if vals.get("unit_id"):
+            self._check_unit_not_held([vals["unit_id"]])
+        # BR-54 (v1.1): only the reservation writes the link (as superuser).
+        if "reservation_id" in vals and not self.env.su:
+            raise AccessError(
+                self.env._("The reservation link is set by the reservation only.")
+            )
         self._drop_stale_schedule(vals)
         return super().write(vals)
 

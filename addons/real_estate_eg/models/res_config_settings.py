@@ -40,3 +40,7 @@ class ResConfigSettings(models.TransientModel):
     re_at_risk_days = fields.Integer(
         related="company_id.re_at_risk_days", readonly=False
     )
+    # BR-53 (v1.1).
+    re_reservation_hold_days = fields.Integer(
+        related="company_id.re_reservation_hold_days", readonly=False
+    )

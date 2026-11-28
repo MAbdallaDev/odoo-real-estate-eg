@@ -26,3 +26,7 @@ access_real_estate_cheque_collections,real.estate.cheque collections,model_real_
 access_real_estate_cheque_manager,real.estate.cheque manager,model_real_estate_cheque,group_real_estate_manager,1,1,1,0
 access_real_estate_cheque_accountant,real.estate.cheque accountant,model_real_estate_cheque,account.group_account_invoice,1,0,0,0
 access_real_estate_unit_import_manager,real.estate.unit.import manager,model_real_estate_unit_import,group_real_estate_manager,1,1,1,1
+access_real_estate_reservation_agent,real.estate.reservation agent,model_real_estate_reservation,group_real_estate_agent,1,1,1,0
+access_real_estate_reservation_collections,real.estate.reservation collections,model_real_estate_reservation,group_real_estate_collections,1,0,0,0
+access_real_estate_reservation_manager,real.estate.reservation manager,model_real_estate_reservation,group_real_estate_manager,1,1,1,1
+access_real_estate_reservation_accountant,real.estate.reservation accountant,model_real_estate_reservation,account.group_account_invoice,1,1,0,0

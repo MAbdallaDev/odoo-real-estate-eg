@@ -28,6 +28,14 @@
     action="real_estate_contract_action"
     sequence="10"
   />
+    <!-- US-14 (v1.1): reservation requests, before the contract. -->
+    <menuitem
+    id="real_estate_reservation_menu"
+    name="Reservations"
+    parent="real_estate_menu_root"
+    action="real_estate_reservation_action"
+    sequence="12"
+  />
     <!-- US-04: the screens §4 gives collections; managers and accountants
          use them too. Agents see their own lines on the contract form, and the
          record rules hold on these screens either way. -->
