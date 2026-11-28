@@ -74,4 +74,36 @@
         <field name="perm_create" eval="False" />
         <field name="perm_unlink" eval="False" />
     </record>
+
+    <!-- BR-61 (US-17): photos. A project's photos are public like the project;
+         a unit's photos follow the unit rule above (same domain, through
+         unit_id), so a unit on hold for someone else shows no photo either. -->
+    <record id="real_estate_image_portal_rule" model="ir.rule">
+        <field
+      name="name"
+    >Real Estate Photo: portal sees projects' and visible units'</field>
+        <field name="model_id" ref="model_real_estate_image" />
+        <field name="domain_force">[
+            '|', ('unit_id', '=', False),
+            '|', '|',
+            ('unit_id.state', '=', 'available'),
+            ('unit_id.reservation_ids', 'any', [
+                ('partner_id', 'child_of', [user.commercial_partner_id.id]),
+                ('state', 'in', ['requested', 'agent_confirmed', 'reserved']),
+            ]),
+            ('unit_id.contract_ids.partner_id', 'child_of', [user.commercial_partner_id.id]),
+        ]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]" />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
+
+    <!-- BR-36: multi-company, as the other real-estate models. -->
+    <record id="real_estate_image_comp_rule" model="ir.rule">
+        <field name="name">Real Estate Photo multi-company</field>
+        <field name="model_id" ref="model_real_estate_image" />
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

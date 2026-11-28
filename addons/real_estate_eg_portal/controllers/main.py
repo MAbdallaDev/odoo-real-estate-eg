@@ -37,6 +37,8 @@ MAX_OPEN_REQUESTS = 5
 NATIONALITIES = ("egyptian", "foreign")
 MAX_TEXT = 2000
 MAX_PASSPORT = 32
+# BR-61: the photo sizes a client may ask for (image.mixin).
+IMAGE_SIZES = ("128", "256", "512", "1024", "1920")
 
 
 class ApiError(Exception):
@@ -198,7 +200,59 @@ class PortalApi(http.Controller):
             "price_per_sqm": unit.price_per_sqm,
             "currency": unit.currency_id.name,
             "state": unit.state,
+            # BR-61: the cover, the unit's first photo or its project's.
+            "image_url": self._image_url(unit._portal_images()[:1]),
         }
+
+    @staticmethod
+    def _image_url(image, size="1024"):
+        return f"{API_PREFIX}images/{image.id}?size={size}" if image else None
+
+    def _unit_details(self, unit):
+        """BR-61 / BR-62 / BR-63: everything the unit page shows, read as the
+        customer."""
+        project = unit.project_id
+        plans = [
+            preview
+            for plan in project.plan_template_ids
+            if (preview := plan._portal_preview(unit.list_price))
+        ]
+        return {
+            **self._unit(unit),
+            "images": [
+                {
+                    "id": image.id,
+                    "caption": image.name or None,
+                    "url": self._image_url(image),
+                    "thumbnail_url": self._image_url(image, "256"),
+                }
+                for image in unit._portal_images()
+            ],
+            "floor_plan_url": (
+                f"{API_PREFIX}units/{unit.id}/floor-plan" if unit.floor_plan else None
+            ),
+            "plans": plans,
+            "project": self._project(project),
+        }
+
+    def _project(self, project):
+        return {
+            "id": project.id,
+            "name": project.name,
+            "location": project.location or None,
+            "expected_delivery_date": project.expected_delivery_date or None,
+            "reservation_amount": project.reservation_amount,
+            "currency": project.currency_id.name,
+            "description": project.portal_description or None,
+            "image_url": self._image_url(project.image_ids[:1]),
+        }
+
+    def _image_response(self, record, field_name):
+        """BR-61: a stored image of a record the customer may read."""
+        if not record[field_name]:
+            raise ApiError(404, "not_found", request.env._("Not found."))
+        stream = request.env["ir.binary"]._get_image_stream_from(record, field_name)
+        return stream.get_response()
 
     def _reservation(self, reservation):
         return {
@@ -272,8 +326,54 @@ class PortalApi(http.Controller):
     @_route("units/<int:unit_id>")
     @api_endpoint
     def get_unit(self, unit_id, **kwargs):
+        """BR-63: one unit with its photos, floor plan, project and the
+        project's payment plans worked out on its price."""
         return request.make_json_response(
-            self._unit(self._one("real.estate.unit", unit_id))
+            self._unit_details(self._one("real.estate.unit", unit_id))
+        )
+
+    @_route("units/<int:unit_id>/floor-plan")
+    @api_endpoint
+    def get_floor_plan(self, unit_id, **kwargs):
+        """BR-61: the unit's floor plan image."""
+        return self._image_response(
+            self._one("real.estate.unit", unit_id), "floor_plan"
+        )
+
+    # ------------------------------------------------------------------
+    # Projects and photos (US-17)
+    # ------------------------------------------------------------------
+
+    @_route("projects")
+    @api_endpoint
+    def list_projects(self, **kwargs):
+        """BR-61: the projects that have an available unit, with their cover
+        and how many units are available, for the portal's banners."""
+        counts = dict(
+            request.env["real.estate.unit"]._read_group(
+                [("state", "=", "available")], ["project_id"], ["__count"]
+            )
+        )
+
+        def serialize(project):
+            return {**self._project(project), "available_units": counts[project]}
+
+        return self._page(
+            "real.estate.project",
+            [("id", "in", [project.id for project in counts])],
+            serialize,
+            kwargs,
+            order="name",
+        )
+
+    @_route("images/<int:image_id>")
+    @api_endpoint
+    def get_image(self, image_id, **kwargs):
+        """BR-61: one photo, if the customer may see it (a unit's photo
+        follows the unit rule)."""
+        size = self._choice(kwargs, "size", IMAGE_SIZES) or "1024"
+        return self._image_response(
+            self._one("real.estate.image", image_id), f"image_{size}"
         )
 
     # ------------------------------------------------------------------

@@ -37,27 +37,36 @@
 
     <!-- AC-16.2 -->
     <t t-name="real_estate_eg_portal.UnitList">
-        <div
-      t-if="state.sent"
-      class="alert alert-success d-flex gap-3 align-items-start"
-      role="status"
-    >
-            <i class="fa fa-check-circle fa-2x" />
-            <div>
-                <strong>
-                    Request <t t-esc="state.sent.reference" /> sent.
-                </strong>
-                <div>
-                    The sales agent of <t t-esc="state.sent.project.name" /> will
-                    call you to agree the terms. The unit is held for you once you
-                    pay the reservation amount.
-                </div>
-                <a
-          class="btn btn-sm btn-success mt-2"
-          href="/my/real-estate/reservations"
+        <RequestSent t-if="state.sent" reservation="state.sent" />
+
+        <div t-if="state.banners.length" class="row g-3 mb-4">
+            <div
+        t-foreach="state.banners"
+        t-as="project"
+        t-key="project.id"
+        class="col-md-6"
+      >
+                <button
+          type="button"
+          class="o_re_banner btn p-0 w-100 text-start"
+          t-on-click="() => this.filterProject(project)"
         >
-                    See my reservations
-                </a>
+                    <img
+            t-if="project.image_url"
+            t-att-src="project.image_url"
+            t-att-alt="project.name"
+            loading="lazy"
+          />
+                    <span class="o_re_banner_text">
+                        <strong t-esc="project.name" />
+                        <span>
+                            <t t-if="project.location"><t
+                  t-esc="project.location"
+                /> · </t>
+                            <t t-esc="project.available_units" /> available units
+                        </span>
+                    </span>
+                </button>
             </div>
         </div>
 
@@ -143,32 +152,45 @@
         class="col-md-6 col-lg-4"
       >
                 <div class="card h-100 o_re_unit_card">
+                    <a
+            class="o_re_unit_photo"
+            t-attf-href="/my/real-estate/units/{{ unit.id }}"
+          >
+                        <img
+              t-if="unit.image_url"
+              t-att-src="unit.image_url"
+              t-att-alt="unit.code"
+              loading="lazy"
+            />
+                        <span t-else="" class="o_re_no_photo fa fa-building-o" />
+                        <span
+              class="o_re_price_tag"
+              t-esc="formatMoney(unit.list_price, unit.currency)"
+            />
+                    </a>
                     <div class="card-body d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-start">
                             <h6 class="mb-0" t-esc="unit.code" />
                             <span class="badge text-bg-success">Available</span>
                         </div>
                         <div class="small text-muted mb-2" t-esc="unit.project.name" />
-                        <div class="small mb-2">
+                        <div class="small mb-3">
                             <t t-esc="unitTypeLabel(unit.unit_type)" /> ·
                             <t t-esc="unit.bedrooms" /> bedrooms ·
                             <t t-esc="unit.area" /> m² · floor <t t-esc="unit.floor" />
                         </div>
-                        <div
-              class="fs-5 fw-semibold mt-auto"
-              t-esc="formatMoney(unit.list_price, unit.currency)"
-            />
-                        <div class="small text-muted mb-3">
-                            <t
-                t-esc="formatMoney(unit.price_per_sqm, unit.currency)"
-              /> / m²
+                        <div class="d-flex gap-2 mt-auto">
+                            <a
+                class="btn btn-light btn-sm flex-fill"
+                t-attf-href="/my/real-estate/units/{{ unit.id }}"
+              >View details</a>
+                            <button
+                class="btn btn-primary btn-sm flex-fill"
+                t-on-click="() => this.open(unit)"
+              >
+                                <i class="fa fa-bookmark-o me-1" />Request
+                            </button>
                         </div>
-                        <button
-              class="btn btn-primary btn-sm"
-              t-on-click="() => this.open(unit)"
-            >
-                            <i class="fa fa-bookmark-o me-1" />Request reservation
-                        </button>
                     </div>
                 </div>
             </div>
@@ -181,6 +203,306 @@
       onSent.bind="onSent"
       onClose.bind="close"
     />
+    </t>
+
+    <!-- AC-16.2 / BR-57: after a request is sent. -->
+    <t t-name="real_estate_eg_portal.RequestSent">
+        <div class="alert alert-success d-flex gap-3 align-items-start" role="status">
+            <i class="fa fa-check-circle fa-2x" />
+            <div>
+                <strong>Request <t t-esc="props.reservation.reference" /> sent.</strong>
+                <div>
+                    The sales agent of <t t-esc="props.reservation.project.name" /> will
+                    call you to agree the terms. The unit is held for you once you pay
+                    the reservation amount.
+                </div>
+                <a
+          class="btn btn-sm btn-success mt-2"
+          href="/my/real-estate/reservations"
+        >
+                    See my reservations
+                </a>
+            </div>
+        </div>
+    </t>
+
+    <!-- US-17 / BR-63: one unit's page. -->
+    <t t-name="real_estate_eg_portal.UnitDetail">
+        <t t-call="real_estate_eg_portal.Loading" />
+        <t t-set="unit" t-value="state.unit" />
+        <t t-if="unit">
+            <RequestSent t-if="state.sent" reservation="state.sent" />
+            <div
+        class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3"
+      >
+                <div>
+                    <div class="small text-muted text-uppercase">
+                        <t t-esc="unit.project.name" />
+                        <t t-if="unit.project.location"> · <t
+                t-esc="unit.project.location"
+              /></t>
+                    </div>
+                    <h3 class="mb-0"><t t-esc="unitTypeLabel" /> <t
+              t-esc="unit.code"
+            /></h3>
+                </div>
+                <span
+          t-if="unit.state === 'available'"
+          class="badge text-bg-success fs-6"
+        >Available</span>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div t-if="unit.images.length" class="o_re_gallery">
+                        <img
+              class="o_re_gallery_main rounded"
+              t-att-src="unit.images[state.photo].url"
+              t-att-alt="unit.images[state.photo].caption or unit.code"
+            />
+                        <div t-if="unit.images.length > 1" class="o_re_gallery_thumbs">
+                            <button
+                t-foreach="unit.images"
+                t-as="image"
+                t-key="image.id"
+                type="button"
+                t-attf-class="btn p-0 {{ image_index === state.photo ? 'active' : '' }}"
+                t-att-aria-label="image.caption or ('Photo ' + (image_index + 1))"
+                t-on-click="() => this.showPhoto(image_index)"
+              >
+                                <img
+                  t-att-src="image.thumbnail_url"
+                  alt=""
+                  loading="lazy"
+                />
+                            </button>
+                        </div>
+                        <div
+              t-if="unit.images[state.photo].caption"
+              class="small text-muted mt-1"
+              t-esc="unit.images[state.photo].caption"
+            />
+                    </div>
+
+                    <div class="o_re_facts mt-4">
+                        <div><span>Type</span><b t-esc="unitTypeLabel" /></div>
+                        <div><span>Area</span><b><t t-esc="unit.area" /> m²</b></div>
+                        <div><span>Bedrooms</span><b t-esc="unit.bedrooms" /></div>
+                        <div><span>Floor</span><b t-esc="unit.floor" /></div>
+                        <div>
+                            <span>Price per m²</span>
+                            <b t-esc="formatMoney(unit.price_per_sqm, unit.currency)" />
+                        </div>
+                        <div t-if="unit.project.expected_delivery_date">
+                            <span>Expected delivery</span>
+                            <b
+                t-esc="formatDate(unit.project.expected_delivery_date)"
+              />
+                        </div>
+                    </div>
+
+                    <t t-if="unit.floor_plan_url">
+                        <h5 class="mt-4">Floor plan</h5>
+                        <a t-att-href="unit.floor_plan_url" target="_blank">
+                            <img
+                class="o_re_floor_plan rounded border w-100"
+                t-att-src="unit.floor_plan_url"
+                t-attf-alt="Floor plan of {{ unit.code }}"
+                loading="lazy"
+              />
+                        </a>
+                    </t>
+
+                    <t t-if="unit.plans.length">
+                        <h5 class="mt-4">Payment plans</h5>
+                        <p class="small text-muted">
+                            The plans this project is sold with, worked out on this unit's
+                            price for a contract signed today. The agent agrees the final
+                            plan with you.
+                        </p>
+                        <div class="d-flex flex-wrap gap-2 mb-2" role="tablist">
+                            <button
+                t-foreach="unit.plans"
+                t-as="plan"
+                t-key="plan.id"
+                type="button"
+                role="tab"
+                t-att-aria-selected="plan_index === state.plan ? 'true' : 'false'"
+                t-attf-class="btn btn-sm rounded-pill {{ plan_index === state.plan ? 'btn-primary' : 'btn-outline-secondary' }}"
+                t-on-click="() => this.showPlan(plan_index)"
+                t-esc="plan.name"
+              />
+                        </div>
+                        <t t-set="plan" t-value="currentPlan" />
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="o_re_plan_grid">
+                                    <div>
+                                        <span>
+                                            Down payment (<t
+                        t-esc="plan.down_payment_percent"
+                      />%)
+                                        </span>
+                                        <b
+                      t-esc="formatMoney(plan.down_payment, unit.currency)"
+                    />
+                                    </div>
+                                    <div t-if="plan.installment_count">
+                                        <span>
+                                            <t
+                        t-esc="plan.installment_count"
+                      /> installments,
+                                            <t t-esc="frequencyLabel(plan.frequency)" />
+                                        </span>
+                                        <b
+                      t-esc="formatMoney(plan.installment_amount, unit.currency)"
+                    />
+                                        <span
+                      t-if="plan.last_installment_amount !== plan.installment_amount"
+                    >
+                                            last one
+                                            <t
+                        t-esc="formatMoney(plan.last_installment_amount)"
+                      />
+                                        </span>
+                                    </div>
+                                    <div t-if="plan.installment_count">
+                                        <span>First installment</span>
+                                        <b>
+                                            <t
+                        t-esc="plan.first_installment_months"
+                      /> months
+                                            after signing
+                                        </b>
+                                    </div>
+                                    <div t-if="plan.maintenance">
+                                        <span>
+                                            Maintenance deposit
+                                            (<t t-esc="plan.maintenance_percent" />%)
+                                        </span>
+                                        <b
+                      t-esc="formatMoney(plan.maintenance, unit.currency)"
+                    />
+                                        <span
+                      t-if="plan.maintenance_due === 'signing'"
+                    >at signing</span>
+                                        <span t-else="">at delivery</span>
+                                    </div>
+                                </div>
+                                <div class="o_re_plan_bar" aria-hidden="true">
+                                    <i
+                    t-foreach="planShares(plan)"
+                    t-as="share"
+                    t-key="share[0]"
+                    t-att-class="share[0]"
+                    t-attf-style="width: {{ share[1] }}%"
+                  />
+                                </div>
+                                <div class="o_re_plan_legend small text-muted">
+                                    <span><i class="o_re_bar_down" />Down payment</span>
+                                    <span><i
+                      class="o_re_bar_installments"
+                    />Installments</span>
+                                    <span><i
+                      class="o_re_bar_maintenance"
+                    />Maintenance</span>
+                                </div>
+                                <p class="small text-muted mt-3 mb-0">
+                                    Total <t
+                    t-esc="formatMoney(plan.total, unit.currency)"
+                  />,
+                                    the maintenance deposit included.
+                                </p>
+                            </div>
+                        </div>
+                    </t>
+
+                    <h5 class="mt-4">About the project</h5>
+                    <div class="card overflow-hidden">
+                        <div class="d-flex flex-wrap">
+                            <img
+                t-if="unit.project.image_url"
+                class="o_re_project_cover"
+                t-att-src="unit.project.image_url"
+                t-att-alt="unit.project.name"
+                loading="lazy"
+              />
+                            <div class="card-body o_re_project_text">
+                                <h6 t-esc="unit.project.name" />
+                                <p class="small text-muted mb-2">
+                                    <t t-esc="unit.project.location" />
+                                    <t t-if="unit.project.expected_delivery_date">
+                                        · delivery expected
+                                        <t
+                      t-esc="formatDate(unit.project.expected_delivery_date)"
+                    />
+                                    </t>
+                                </p>
+                                <div
+                  t-if="description"
+                  class="small"
+                  t-out="description"
+                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card o_re_buy_box">
+                        <div class="card-body">
+                            <div class="small text-muted">List price</div>
+                            <div
+                class="fs-3 fw-bold"
+                t-esc="formatMoney(unit.list_price, unit.currency)"
+              />
+                            <div class="small text-muted mb-3">
+                                <t
+                  t-esc="formatMoney(unit.price_per_sqm, unit.currency)"
+                /> / m²
+                            </div>
+                            <div
+                t-if="lowestDownPayment !== null"
+                class="d-flex justify-content-between border-top py-2 small"
+              >
+                                <span class="text-muted">Down payment from</span>
+                                <b
+                  t-esc="formatMoney(lowestDownPayment, unit.currency)"
+                />
+                            </div>
+                            <div
+                class="d-flex justify-content-between border-top py-2 small"
+              >
+                                <span class="text-muted">Reservation amount</span>
+                                <b
+                  t-esc="formatMoney(unit.project.reservation_amount, unit.currency)"
+                />
+                            </div>
+                            <t t-if="unit.state === 'available'">
+                                <button
+                  class="btn btn-primary w-100 mt-3"
+                  t-on-click="() => this.openRequest()"
+                >
+                                    <i
+                    class="fa fa-bookmark-o me-1"
+                  />Request reservation
+                                </button>
+                                <p class="small text-muted mt-2 mb-0">
+                                    A request, not a booking: the project's sales agent
+                                    calls you. The unit is held for you once you pay the
+                                    reservation amount.
+                                </p>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <ReserveForm
+        t-if="state.requesting"
+        unit="unit"
+        onSent.bind="onSent"
+        onClose.bind="closeRequest"
+      />
+        </t>
     </t>
 
     <!-- AC-16.2: the request dialog. -->

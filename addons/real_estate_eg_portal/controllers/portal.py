@@ -78,14 +78,42 @@ class RealEstatePortal(CustomerPortal):
                     {"id": project.id, "name": project.name}
                     for project in projects.sorted("name")
                 ],
-                "unitTypes": [
-                    {"value": value, "label": label}
-                    for value, label in Unit._fields[
-                        "unit_type"
-                    ]._description_selection(env)
-                ],
+                "unitTypes": self._unit_types(),
             },
         )
+
+    @route(
+        "/my/real-estate/units/<int:unit_id>",
+        type="http",
+        auth="user",
+        website=True,
+        readonly=True,
+    )
+    def portal_my_re_unit(self, unit_id, **kwargs):
+        """BR-63: one unit's page. A unit the customer may not see (e.g. on
+        hold for someone else) is not found, read as the customer."""
+        env = request.env
+        if not env.user._is_portal():
+            return request.redirect("/my")
+        unit = env["real.estate.unit"].search([("id", "=", unit_id)])
+        if not unit:
+            raise NotFound()
+        return self._re_page(
+            "re_unit",
+            "real_estate_eg_portal.UnitDetail",
+            {"unitId": unit.id, "unitTypes": self._unit_types()},
+            re_unit=unit,
+        )
+
+    @staticmethod
+    def _unit_types():
+        env = request.env
+        return [
+            {"value": value, "label": label}
+            for value, label in env["real.estate.unit"]
+            ._fields["unit_type"]
+            ._description_selection(env)
+        ]
 
     @route(
         "/my/real-estate/reservations",

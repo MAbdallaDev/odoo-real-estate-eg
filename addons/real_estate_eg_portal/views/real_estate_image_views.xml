@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- US-17: what staff fill in for the customer portal: photos, floor plan,
+     the project's description and the plans it is sold with. -->
+<odoo>
+    <record id="real_estate_image_view_form" model="ir.ui.view">
+        <field name="name">real.estate.image.form</field>
+        <field name="model">real.estate.image</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <field
+            name="image_1920"
+            widget="image"
+            class="d-block mx-auto mb-3"
+            options="{'preview_image': 'image_1024'}"
+          />
+                    <group>
+                        <field name="name" placeholder="e.g. Living room" />
+                        <field name="sequence" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="real_estate_image_view_kanban" model="ir.ui.view">
+        <field name="name">real.estate.image.kanban</field>
+        <field name="model">real.estate.image</field>
+        <field name="arch" type="xml">
+            <kanban default_order="sequence, id">
+                <field name="sequence" />
+                <templates>
+                    <t t-name="card">
+                        <field
+              name="image_256"
+              widget="image"
+              class="d-block text-center"
+              options="{'size': [180, 120]}"
+            />
+                        <field name="name" class="small text-muted px-2 py-1" />
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="real_estate_project_view_form_portal" model="ir.ui.view">
+        <field name="name">real.estate.project.form.portal</field>
+        <field name="model">real.estate.project</field>
+        <field name="inherit_id" ref="real_estate_eg.real_estate_project_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Customer Portal" name="portal">
+                    <group>
+                        <field
+              name="plan_template_ids"
+              widget="many2many_tags"
+              options="{'no_create': True}"
+            />
+                    </group>
+                    <label for="portal_description" />
+                    <field
+            name="portal_description"
+            placeholder="Area, buildings, services, transport…"
+          />
+                    <label for="image_ids" string="Photos (the first is the cover)" />
+                    <field name="image_ids" mode="kanban" />
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="real_estate_unit_view_form_portal" model="ir.ui.view">
+        <field name="name">real.estate.unit.form.portal</field>
+        <field name="model">real.estate.unit</field>
+        <field name="inherit_id" ref="real_estate_eg.real_estate_unit_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <notebook>
+                    <page string="Customer Portal" name="portal">
+                        <label
+              for="image_ids"
+              string="Photos (empty: the project's photos are shown)"
+            />
+                        <field name="image_ids" mode="kanban" />
+                        <label for="floor_plan" />
+                        <field
+              name="floor_plan"
+              widget="image"
+              options="{'size': [0, 320]}"
+            />
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -4,3 +4,9 @@ access_real_estate_unit_portal,real.estate.unit portal,real_estate_eg.model_real
 access_real_estate_reservation_portal,real.estate.reservation portal,real_estate_eg.model_real_estate_reservation,base.group_portal,1,0,0,0
 access_real_estate_contract_portal,real.estate.contract portal,real_estate_eg.model_real_estate_contract,base.group_portal,1,0,0,0
 access_real_estate_installment_portal,real.estate.installment portal,real_estate_eg.model_real_estate_installment,base.group_portal,1,0,0,0
+access_real_estate_plan_template_portal,real.estate.plan.template portal,real_estate_eg.model_real_estate_plan_template,base.group_portal,1,0,0,0
+access_real_estate_image_portal,real.estate.image portal,model_real_estate_image,base.group_portal,1,0,0,0
+access_real_estate_image_agent,real.estate.image agent,model_real_estate_image,real_estate_eg.group_real_estate_agent,1,0,0,0
+access_real_estate_image_collections,real.estate.image collections,model_real_estate_image,real_estate_eg.group_real_estate_collections,1,0,0,0
+access_real_estate_image_accountant,real.estate.image accountant,model_real_estate_image,account.group_account_invoice,1,0,0,0
+access_real_estate_image_manager,real.estate.image manager,model_real_estate_image,real_estate_eg.group_real_estate_manager,1,1,1,1

@@ -5,4 +5,4 @@ One row per feature folder under `.squad/plans/`. `NN` continues as a global exe
 | Feature | Overview | NN range |
 |---------|----------|----------|
 | installments | [`installments/00-overview.md`](installments/00-overview.md) | 01–11 |
-| portal | [`portal/00-overview.md`](portal/00-overview.md) | 12–13 |
+| portal | [`portal/00-overview.md`](portal/00-overview.md) | 12–14 |

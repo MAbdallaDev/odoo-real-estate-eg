@@ -14,6 +14,7 @@ sequence after the installments stories (`naming.globalSequence` in `config.yaml
 |----|------|-------|------------|------------|
 | 12 | `12-portal-api/plan.md` | Customer portal REST API (v1.1) | — | installments 11 |
 | 13 | `13-portal-owl/plan.md` | Customer screens in OWL under `/my/...` (v1.1) | — | 12 |
+| 14 | `14-unit-details/plan.md` | Unit photos, plans offered and unit page (v1.1) | — | 13 |
 
 ## Dependency notes
 
@@ -30,3 +31,6 @@ sequence after the installments stories (`naming.globalSequence` in `config.yaml
   service (`real_estate_eg_portal.api`). The auth method is `auth="re_portal_api"`
   (`models/ir_http.py`), CSRF header `X-CSRF-Token`. CI has no Chrome, so no tours: the browser
   side is checked by hand (design note `docs/design-notes/13-portal-owl.md`).
+- **Story 14** (US-17, BR-61–BR-63): photos (`real.estate.image`), floor plan, project description
+  and plans offered, all added by `real_estate_eg_portal` (`_inherit`); the API serves the images
+  under the customer's rights; the unit page `/my/real-estate/units/<id>`.

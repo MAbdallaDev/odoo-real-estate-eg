@@ -73,6 +73,30 @@ def _one(name, param):
     }
 
 
+def _image(param, description, extra_params=()):
+    """BR-61: an endpoint that answers an image, not JSON."""
+    return {
+        "parameters": [
+            {
+                "name": param,
+                "in": "path",
+                "required": True,
+                "schema": {"type": "integer"},
+            },
+            *extra_params,
+        ],
+        "responses": {
+            "200": {
+                "description": description,
+                "content": {
+                    "image/*": {"schema": {"type": "string", "format": "binary"}}
+                },
+            },
+            **ERRORS,
+        },
+    }
+
+
 def _query(name, schema):
     return {"name": name, "in": "query", "schema": schema}
 
@@ -98,7 +122,7 @@ def openapi_spec():
         "info": {
             "title": "Real Estate Installments (Egypt): Customer API",
             "version": "1.0.0",
-            "description": "US-15, US-16. For customers with a portal account. "
+            "description": "US-15, US-16, US-17. For customers with a portal account. "
             "Authenticate with an Odoo API key: Authorization: Bearer <key>. "
             "The portal pages call the same API with the browser session "
             "instead; a POST then needs the page's CSRF token in the "
@@ -121,7 +145,41 @@ def openapi_spec():
                 }
             },
             "/units/{unit_id}": {
-                "get": {"summary": "One unit", **_one("Unit", "unit_id")}
+                "get": {
+                    "summary": "One unit, with photos, floor plan, project and plans",
+                    **_one("UnitDetails", "unit_id"),
+                }
+            },
+            "/units/{unit_id}/floor-plan": {
+                "get": {
+                    "summary": "The unit's floor plan",
+                    **_image("unit_id", "The floor plan image."),
+                }
+            },
+            "/projects": {
+                "get": {
+                    "summary": "Projects with an available unit",
+                    **_list("Project"),
+                }
+            },
+            "/images/{image_id}": {
+                "get": {
+                    "summary": "One photo of a project or unit",
+                    **_image(
+                        "image_id",
+                        "The photo.",
+                        [
+                            _query(
+                                "size",
+                                {
+                                    "type": "string",
+                                    "enum": ["128", "256", "512", "1024", "1920"],
+                                    "default": "1024",
+                                },
+                            )
+                        ],
+                    ),
+                }
             },
             "/reservations": {
                 "get": {
@@ -230,6 +288,94 @@ def openapi_spec():
                         "price_per_sqm": MONEY,
                         "currency": {"type": "string"},
                         "state": {"type": "string"},
+                        "image_url": {"type": "string", "nullable": True},
+                    },
+                },
+                "UnitDetails": {
+                    "allOf": [
+                        _ref("Unit"),
+                        {
+                            "type": "object",
+                            "properties": {
+                                "images": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {"type": "integer"},
+                                            "caption": {
+                                                "type": "string",
+                                                "nullable": True,
+                                            },
+                                            "url": {"type": "string"},
+                                            "thumbnail_url": {"type": "string"},
+                                        },
+                                    },
+                                },
+                                "floor_plan_url": {"type": "string", "nullable": True},
+                                "plans": {
+                                    "type": "array",
+                                    "items": _ref("PlanPreview"),
+                                },
+                                "project": _ref("Project"),
+                            },
+                        },
+                    ]
+                },
+                "Project": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "name": {"type": "string"},
+                        "location": {"type": "string", "nullable": True},
+                        "expected_delivery_date": {
+                            "type": "string",
+                            "format": "date",
+                            "nullable": True,
+                        },
+                        "reservation_amount": MONEY,
+                        "currency": {"type": "string"},
+                        "description": {
+                            "type": "string",
+                            "nullable": True,
+                            "description": "Sanitized HTML.",
+                        },
+                        "image_url": {"type": "string", "nullable": True},
+                        "available_units": {
+                            "type": "integer",
+                            "description": "In the /projects list only.",
+                        },
+                    },
+                },
+                "PlanPreview": {
+                    "type": "object",
+                    "description": "BR-62: a plan worked out on the unit's price, "
+                    "as the schedule of a contract signed today.",
+                    "properties": {
+                        "id": {"type": "integer"},
+                        "name": {"type": "string"},
+                        "down_payment_percent": {"type": "number"},
+                        "down_payment": MONEY,
+                        "installment_count": {"type": "integer"},
+                        "frequency": {
+                            "type": "string",
+                            "nullable": True,
+                            "enum": ["monthly", "quarterly", "semi_annual", "annual"],
+                        },
+                        "installment_amount": MONEY,
+                        "last_installment_amount": MONEY,
+                        "first_installment_months": {
+                            "type": "integer",
+                            "nullable": True,
+                        },
+                        "maintenance_percent": {"type": "number"},
+                        "maintenance": MONEY,
+                        "maintenance_due": {
+                            "type": "string",
+                            "nullable": True,
+                            "enum": ["signing", "delivery"],
+                        },
+                        "total": MONEY,
                     },
                 },
                 "ReservationRequest": {

@@ -65,6 +65,12 @@
             <li t-if="page_name == 're_units'" class="breadcrumb-item active">
                 Available Units
             </li>
+            <t t-if="page_name == 're_unit'">
+                <li class="breadcrumb-item">
+                    <a href="/my/real-estate/units">Available Units</a>
+                </li>
+                <li class="breadcrumb-item active" t-out="re_unit.code" />
+            </t>
             <li t-if="page_name == 're_reservations'" class="breadcrumb-item active">
                 My Reservations
             </li>

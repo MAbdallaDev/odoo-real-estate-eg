@@ -21,7 +21,12 @@ contract's installment schedule. The pages are OWL components that call the
 same API with the browser session instead of a key; a request that changes data
 also sends the page's CSRF token in the ``X-CSRF-Token`` header.
 
-Business rules: US-15, US-16, BR-55 to BR-60 in ``docs/business-requirements.md``.
+Each unit has its own page with its photos, floor plan, project and the payment
+plans its project is sold with, worked out on the unit's price. Managers add the
+photos, the floor plan, the project's description and its plans on the project
+and unit forms (tab *Customer Portal*).
+
+Business rules: US-15 to US-17, BR-55 to BR-63 in ``docs/business-requirements.md``.
 
 License
 =======

@@ -9,6 +9,7 @@
 | Scope change | 2026-11-28: **v1.1** adds reservations (US-14, BR-47–BR-54, Story 11), moved out of Chapter 7, as the base for the customer portal. |
 | Scope change | 2026-11-28: **v1.1** adds the customer portal REST API (US-15, BR-55–BR-58, Story 12) in a separate addon, `real_estate_eg_portal`. The portal screens follow in Story 13. |
 | Scope change | 2026-11-28: **v1.1** adds the customer portal pages (US-16, BR-59–BR-60, Story 13) in the same addon: OWL pages under `/my/real-estate/` that call the same API with the browser session. |
+| Scope change | 2026-11-28: **v1.1** adds photos, floor plans, project descriptions, the plans each project is sold with and a unit page to the portal (US-17, BR-61–BR-63, Story 14), in the same addon. |
 | Company in this document | **Nile Heights Developments** (نايل هايتس للتطوير العقاري) — invented. Every name, number and person here is fictional. |
 
 **How to read this document.** Chapter 1 is the build contract: what v1 does, as user stories and
@@ -174,6 +175,9 @@ Built in a separate addon, `real_estate_eg_portal`, so `real_estate_eg` works wi
 | BR-58 | The API is JSON under `/api/v1/`. Lists are paginated (`page`, `limit` up to 100, default 20; the answer gives the total). Every error is `{"error": {"code", "message"}}` with its HTTP code: 400 bad parameter or body, 401 no or invalid key, 403 not a customer, 404 not found, 409 conflict (unit not available, duplicate, too many open requests), 422 invalid value, 500 server error, never a traceback. A record the customer may not read is **not found**, so the answer does not reveal that it exists. An OpenAPI 3 description is served at `/api/v1/openapi.json`. |
 | BR-59 | The portal pages call the **same API** with the customer's **browser session** instead of a key. A request with an `Authorization` header is checked as in BR-55, exactly as before. Without one, the logged-in user's session is used; a request that **changes data** (POST) must also carry the page's **CSRF token** in the `X-CSRF-Token` header, else it is refused with **403** (`csrf_failed`) and nothing changes. No session and no key is **401**; a staff session is **403**, as a staff key. No API key is ever stored in the browser. |
 | BR-60 | The customer's pages are Odoo **portal pages** under `/my/real-estate/`, linked from cards on the portal home page (`/my`): **available units** (filters, request form), **my reservations**, **my contracts** and **one contract** with its installment schedule. Each page is one OWL component that reads and writes only through the API, so the pages show exactly what the API allows (BR-56–BR-58). The reservation and contract cards show the customer's count and stay hidden at 0, as Odoo's own cards. A visitor who is not logged in is sent to the login page; a staff user is sent back to `/my`; another customer's contract is **not found**. |
+| BR-61 | Staff (sales managers) add **photos** to a project and to a unit, in order (the first is the cover), and a **floor plan** image to a unit. A unit without photos shows its project's. A customer sees a unit's photos and floor plan only when they may see the unit (BR-56), and a project's photos always; anything else is **not found**. The API serves the images itself (`/api/v1/images/<id>`, `/api/v1/units/<id>/floor-plan`), with the same authentication as the rest of the API, and lists the projects that have an available unit with their cover and number of available units, for the portal's banners. |
+| BR-62 | A project lists the **payment plans it is sold with** (plan templates, chosen by a manager). For a unit, the customer sees only those plans, each **worked out on the unit's list price** with the same rules as a contract's schedule signed today (BR-15–BR-18): down payment, number and amount of installments (the last one absorbing the rounding), how often, the first one's delay, the maintenance deposit and when it is due, and the total. Nothing is saved; the agent agrees the final plan with the customer. A plan that would give a line of 0 or less at that price is not shown. |
+| BR-63 | Each unit has a **portal page** (`/my/real-estate/units/<id>`): photos, facts (type, area, bedrooms, floor, price per m², expected delivery), floor plan, the plans of BR-62, the project (location, delivery, description written by staff, cover) and the reservation amount, with the request form of BR-57 while the unit is available. The unit list shows each unit's cover photo and links to this page. A unit the customer may not see is **not found**. |
 
 ### 1.3 User stories
 
@@ -435,6 +439,24 @@ Rules: BR-59, BR-60
 - **AC-16.4** Staff rights and the v1, US-14 and US-15 behaviour are unchanged (their suites pass
   unchanged).
 
+#### US-17 — See a unit before I ask for it *(v1.1)*
+*As a **customer**, I want to see photos, the floor plan, the project and what each payment plan
+would cost me for a unit, so that I can choose before I ask for a reservation.*
+Rules: BR-61, BR-62, BR-63
+
+- **AC-17.1** A unit's details give its photos in order, its floor plan and its project (location,
+  delivery, description, reservation amount, cover); a unit without photos gives the project's.
+- **AC-17.2** Only the plans its project is sold with are given, with the schedule generator's
+  numbers for that price (same down payment, installments, last installment and total as a
+  contract's schedule).
+- **AC-17.3** A photo or floor plan of a unit the customer may not see is not found; a wrong size is
+  400; the projects list gives the projects with an available unit, their cover and count.
+- **AC-17.4** The unit page opens for a customer with its component; a unit held for someone else
+  is not found; staff go back to `/my`. *(manual: the gallery, the plan tabs and the request in a
+  browser.)*
+- **AC-17.5** Customers and agents only read photos; managers add them; a photo belongs to exactly
+  one project or one unit. The US-15 and US-16 suites pass unchanged.
+
 ### 1.4 Story → build story map
 
 | User story | Built in |
@@ -455,6 +477,7 @@ Rules: BR-59, BR-60
 | US-14 Reservations *(v1.1)* | Story 11 |
 | US-15 Customer portal API *(v1.1)* | Story 12 (REST API), Story 13 (session auth for the pages) |
 | US-16 Customer portal pages *(v1.1)* | Story 13 |
+| US-17 Unit photos, plans and page *(v1.1)* | Story 14 |
 
 ---
 
@@ -572,7 +595,7 @@ Every Egyptian Odoo partner serving real estate rebuilds these.
 | **Collections officer** | Yes | Reads all contracts and schedules; works the due/overdue screens; bills late fees; records post-dated cheques. Cannot change price, plan or schedule. |
 | **Accountant** | Yes (Odoo Accounting) | Registers payments on invoices, reconciles, issues refunds after cancellation. Uses standard Odoo accounting rights; reads contracts and schedules. |
 | **Administrator** | Yes | Configuration, imports, user rights. |
-| **Customer (buyer)** | v1: no. v1.1: a portal user (US-15, US-16) | Signs the contract, pays. In v1.1, lists available units, requests a reservation and follows their reservations, contracts and installments. |
+| **Customer (buyer)** | v1: no. v1.1: a portal user (US-15, US-16, US-17) | Signs the contract, pays. In v1.1, lists available units, requests a reservation and follows their reservations, contracts and installments. |
 | **System (scheduled jobs)** | — | Nightly: invoices due lines, flags overdue lines, recomputes late fees, flags at-risk contracts, closes fully paid delivered contracts. |
 
 **Rights matrix (v1).** R = read, W = create/edit, — = none. Collections officers bill late fees
