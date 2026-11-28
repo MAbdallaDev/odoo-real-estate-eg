@@ -21,8 +21,9 @@ the first:
    - an `Authorization` header present → Odoo's `_auth_method_bearer`, unchanged, so API-key clients
      and the Story 12 tests see no difference;
    - otherwise the session's user, refused with 401 when there is none (or it is the public user);
-   - for a method that changes data (POST), the session's **CSRF token** must be in the
-     `X-CSRF-Token` header (`request.validate_csrf`), else **403** `csrf_failed`.
+   - for any method but GET and HEAD, the session's **CSRF token** must be in the
+     `X-CSRF-Token` header (`request.validate_csrf`), else **403** `csrf_failed`. OPTIONS too:
+     Odoo adds it to every route and, as the routes have no CORS, sends it to the endpoint.
 2. Separate jsonrpc routes for the pages: every endpoint twice, two sets of tests.
 3. An API key stored in the browser: anyone who steals it (an extension, a shared computer) can use
    it anywhere until it is revoked.
@@ -58,8 +59,8 @@ BR-58 error into an `ApiError` (status, code, message), and the components show 
 The request form therefore needs no validation of its own: the server's messages (invalid national
 ID, unit no longer available, too many open requests) appear in the dialog.
 
-**The request form** is a small modal rendered by `UnitList` itself (Bootstrap classes), not
-Odoo's dialog service: it keeps the component independent of which overlay services the frontend
+**The request form** is a small modal component (`ReserveForm`) that `UnitList` shows itself
+(Bootstrap classes), not through Odoo's dialog service: it keeps the component independent of which overlay services the frontend
 starts.
 
 ## Who sees what

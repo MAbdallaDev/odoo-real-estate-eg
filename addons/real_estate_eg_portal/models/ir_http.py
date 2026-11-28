@@ -13,8 +13,10 @@ _logger = logging.getLogger(__name__)
 API_PREFIX = "/api/v1/"
 # BR-59: the header that carries the CSRF token of a browser session.
 CSRF_HEADER = "X-CSRF-Token"
-# BR-59: methods that change nothing, allowed with the session alone.
-SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
+# BR-59: methods that change nothing, allowed with the session alone. Not
+# OPTIONS: Odoo adds it to every route and, without CORS, sends it to the
+# endpoint like any other method.
+SAFE_METHODS = ("GET", "HEAD")
 
 
 class CsrfError(Forbidden):
@@ -84,10 +86,17 @@ class IrHttp(models.AbstractModel):
         if isinstance(exception, (SessionExpiredException, AccessDenied)) or (
             isinstance(exception, HTTPException) and exception.code == 401
         ):
+            if "Authorization" in request.httprequest.headers:
+                message = env._("Send a valid API key: Authorization: Bearer <key>.")
+            else:
+                # BR-59: a browser whose session has expired.
+                message = env._(
+                    "You are not logged in or your session has expired: log in again."
+                )
             return json_error(
                 401,
                 "unauthorized",
-                env._("Log in, or send a valid API key: Authorization: Bearer <key>."),
+                message,
                 headers=[("WWW-Authenticate", "Bearer")],
             )
         if isinstance(exception, HTTPException) and (exception.code or 0) >= 400:

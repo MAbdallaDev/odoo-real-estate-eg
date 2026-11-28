@@ -164,6 +164,17 @@ class TestPortalPages(HttpCase):
             403,
             "csrf_failed",
         )
+        # Odoo routes every method to the endpoint, OPTIONS too: it needs the
+        # token as well (review finding).
+        self._error(
+            self._open(
+                "/api/v1/reservations",
+                method="OPTIONS",
+                json={"unit_id": self.unit_free.id},
+            ),
+            403,
+            "csrf_failed",
+        )
         self.assertEqual(self._requests_on_free_unit(), 0)
 
         response = self._post_request({"X-CSRF-Token": self._csrf_token()})

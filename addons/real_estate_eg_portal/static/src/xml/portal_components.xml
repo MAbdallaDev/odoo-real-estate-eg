@@ -314,7 +314,7 @@
         <div class="modal-backdrop show" />
     </t>
 
-    <!-- AC-16.3 -->
+    <!-- AC-16.2: my reservations. -->
     <t t-name="real_estate_eg_portal.ReservationList">
         <div
       class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"
@@ -401,7 +401,7 @@
         </p>
     </t>
 
-    <!-- AC-16.4 -->
+    <!-- AC-16.2: my contracts / one contract. -->
     <t t-name="real_estate_eg_portal.ContractList">
         <t t-call="real_estate_eg_portal.Loading" />
         <p
@@ -470,7 +470,7 @@
         <Pager meta="state.meta" onChange.bind="onPage" />
     </t>
 
-    <!-- AC-16.4 -->
+    <!-- AC-16.2: my contracts / one contract. -->
     <t t-name="real_estate_eg_portal.ContractDetail">
         <t t-set="contract" t-value="state.contract" />
         <t t-if="contract">

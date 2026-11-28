@@ -12,8 +12,7 @@ import {
 
 /**
  * US-16: the customer's own records, read through the API as the customer
- * (BR-56): reservations (AC-16.3), contracts and one contract's schedule
- * (AC-16.4).
+ * (BR-56): reservations, contracts and one contract's schedule (AC-16.2).
  */
 
 class ApiList extends Component {
@@ -70,7 +69,7 @@ class ApiList extends Component {
   }
 }
 
-/** AC-16.3: my reservations and where each one stands. */
+/** AC-16.2: my reservations and where each one stands. */
 export class ReservationList extends ApiList {
   static template = "real_estate_eg_portal.ReservationList";
   static components = {Pager};
@@ -102,7 +101,7 @@ export class ReservationList extends ApiList {
   }
 }
 
-/** AC-16.4: my contracts, with what is paid and what is left. */
+/** AC-16.2: my contracts, with what is paid and what is left. */
 export class ContractList extends ApiList {
   static template = "real_estate_eg_portal.ContractList";
   static components = {Pager};
@@ -116,7 +115,7 @@ export class ContractList extends ApiList {
   }
 }
 
-/** AC-16.4: one contract and its installment schedule. */
+/** AC-16.2: one contract and its installment schedule. */
 export class ContractDetail extends ApiList {
   static template = "real_estate_eg_portal.ContractDetail";
   static components = {Pager};
@@ -141,15 +140,7 @@ export class ContractDetail extends ApiList {
     if (!this.state.contract) {
       try {
         this.state.contract = await this.api.get(`contracts/${this.props.contractId}`);
-        const overdue = await this.api.get("installments", {
-          contract_id: this.props.contractId,
-          overdue: "1",
-          limit: 100,
-        });
-        this.state.overdueTotal = overdue.data.reduce(
-          (total, line) => total + line.amount_residual,
-          0
-        );
+        this.state.overdueTotal = await this.overdueTotal();
       } catch (error) {
         this.state.error = error.message;
         this.state.loading = false;
@@ -157,6 +148,23 @@ export class ContractDetail extends ApiList {
       }
     }
     return super.load();
+  }
+
+  /** What is overdue on the contract, over every page of overdue lines. */
+  async overdueTotal() {
+    let total = 0;
+    for (let page = 1; ; page++) {
+      const result = await this.api.get("installments", {
+        contract_id: this.props.contractId,
+        overdue: "1",
+        page,
+        limit: 100,
+      });
+      total += result.data.reduce((sum, line) => sum + line.amount_residual, 0);
+      if (page * 100 >= result.meta.total || !result.data.length) {
+        return total;
+      }
+    }
   }
 
   onToggleOverdue() {

@@ -4,7 +4,13 @@ import {_t} from "@web/core/l10n/translation";
 /** US-16: what the portal pages share: formats, labels, the pager. */
 
 function locale() {
-  return document.documentElement.lang || undefined;
+  // A lang Intl does not know (e.g. "sr@latin") would throw: use the default.
+  const lang = (document.documentElement.lang || "").replace("_", "-");
+  try {
+    return Intl.NumberFormat.supportedLocalesOf(lang).length ? lang : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** An amount in whole units, e.g. "EGP 6,525,000". */
