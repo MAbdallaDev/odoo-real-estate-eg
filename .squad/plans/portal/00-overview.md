@@ -20,5 +20,8 @@ sequence after the installments stories (`naming.globalSequence` in `config.yaml
 - **The business rules stay in `real_estate_eg`.** The portal addon only exposes them to customers
   (access rights, record rules, controllers, screens) and never edits backend files, so the backend
   installs and works without it.
-- **Story 13** first decides how the OWL screens call the Story 12 API with the browser session
-  (`auth="bearer"` accepts a session only for page navigation, not for `fetch()`).
+- **Story 13** calls the Story 12 API from the OWL screens with the browser session.
+  `auth="bearer"` accepts a session only for page navigation, not for `fetch()`, so Story 13 adds
+  its own auth method on the same `/api/v1/` routes (decided 2026-11-28): a Bearer key if sent,
+  otherwise the logged-in portal user's session, with the CSRF token in a header for POST. One API
+  for both kinds of client.
