@@ -555,6 +555,23 @@ flowchart LR
     D -. manager, with reason .-> X2[Cancelled<br/>retention + refund computed<br/>unit → available]
 ```
 
+**v1.1 (US-14): a reservation comes first.** The v1 flow above starts at "Create Contract".
+
+```mermaid
+flowchart LR
+    R[Customer or agent<br/>creates a request<br/>unit stays available] --> AC{Project's agent<br/>agrees terms?}
+    AC -- yes --> H[Agent confirmed<br/>unit → on hold<br/>3-day hold]
+    AC -- no --> RJ[Rejected]
+    H --> P[Customer pays the reservation amount<br/>accountant links the payment]
+    P --> M{Manager reserves?}
+    M -- yes --> RS[Reserved<br/>unit → reserved<br/>hold restarts]
+    M -- no --> RJ
+    RS --> CC[Agent: Create Contract<br/>reservation → converted]
+    CC --> A[v1 flow: draft contract,<br/>schedule, confirm ...]
+    H -. hold date passed .-> EX[Expired<br/>unit → available]
+    RS -. hold date passed .-> EX
+```
+
 ### 5.2 Contract states
 
 ```mermaid
@@ -623,6 +640,36 @@ stateDiagram-v2
 3. Flag contracts with a line more than 60 days past due as at risk; clear the flag when no such line
    remains (BR-31).
 4. Close delivered contracts whose lines are all paid and have no unbilled late fee (BR-12).
+
+v1.1: expiring held reservations (BR-53) is a **separate** nightly job, so this one is unchanged.
+
+### 5.6 Reservation states (v1.1, BR-48)
+
+Who moves each step is in brackets. Converted, rejected and expired are final.
+
+```mermaid
+stateDiagram-v2
+    [*] --> requested: customer or agent (project's agent assigned)
+    requested --> agent_confirmed: Confirm Request (agent or manager)
+    requested --> rejected: Reject (agent or manager)
+    agent_confirmed --> reserved: Reserve (manager, payment linked)
+    agent_confirmed --> rejected: Reject (agent or manager)
+    agent_confirmed --> expired: nightly job, hold date passed
+    reserved --> converted: Create Contract (agent or manager)
+    reserved --> rejected: Reject (manager only)
+    reserved --> expired: nightly job, hold date passed
+    converted --> [*]
+    rejected --> [*]
+    expired --> [*]
+```
+
+| Reservation state | Unit shows | Can another customer take the unit? |
+|---|---|---|
+| requested | available | Yes, other requests may wait |
+| agent_confirmed | **on hold** | No |
+| reserved | **reserved** | No |
+| converted | follows the contract (v1) | No while the contract is live |
+| rejected / expired | available | Yes |
 
 ---
 
