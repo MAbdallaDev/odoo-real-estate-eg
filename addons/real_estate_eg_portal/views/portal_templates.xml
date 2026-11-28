@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- US-16 / BR-60: the customer's real-estate pages in Odoo's portal. -->
+<odoo>
+    <!-- The cards on the portal home page (/my), for customers only. The
+         reservation and contract cards show their number and stay hidden at 0,
+         as Odoo's own cards (counters of controllers/portal.py). -->
+    <template
+    id="portal_my_home_real_estate"
+    name="Real Estate cards"
+    inherit_id="portal.portal_my_home"
+    priority="40"
+  >
+        <xpath expr="//div[@id='portal_common_category']" position="before">
+            <div
+        t-if="request.env.user.has_group('base.group_portal')"
+        class="o_portal_category row g-2 mt-3"
+        id="portal_real_estate_category"
+      >
+                <t t-call="portal.portal_docs_entry">
+                    <t
+            t-set="icon"
+            t-value="'/real_estate_eg_portal/static/src/img/units.svg'"
+          />
+                    <t t-set="title">Available Units</t>
+                    <t t-set="text">
+                        Browse the units for sale and request a reservation
+                    </t>
+                    <t t-set="url" t-value="'/my/real-estate/units'" />
+                    <t t-set="config_card" t-value="True" />
+                </t>
+                <t t-call="portal.portal_docs_entry">
+                    <t
+            t-set="icon"
+            t-value="'/real_estate_eg_portal/static/src/img/reservations.svg'"
+          />
+                    <t t-set="title">My Reservations</t>
+                    <t t-set="text">Follow your reservation requests</t>
+                    <t t-set="url" t-value="'/my/real-estate/reservations'" />
+                    <t t-set="placeholder_count" t-value="'re_reservation_count'" />
+                </t>
+                <t t-call="portal.portal_docs_entry">
+                    <t
+            t-set="icon"
+            t-value="'/real_estate_eg_portal/static/src/img/contracts.svg'"
+          />
+                    <t t-set="title">My Contracts</t>
+                    <t t-set="text">
+                        Your contracts, payments and installment schedule
+                    </t>
+                    <t t-set="url" t-value="'/my/real-estate/contracts'" />
+                    <t t-set="placeholder_count" t-value="'re_contract_count'" />
+                </t>
+            </div>
+        </xpath>
+    </template>
+
+    <!-- Breadcrumbs of the pages below. -->
+    <template
+    id="portal_breadcrumbs_real_estate"
+    name="Real Estate breadcrumbs"
+    inherit_id="portal.portal_breadcrumbs"
+    priority="40"
+  >
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 're_units'" class="breadcrumb-item active">
+                Available Units
+            </li>
+            <li t-if="page_name == 're_reservations'" class="breadcrumb-item active">
+                My Reservations
+            </li>
+            <li t-if="page_name == 're_contracts'" class="breadcrumb-item active">
+                My Contracts
+            </li>
+            <t t-if="page_name == 're_contract'">
+                <li class="breadcrumb-item">
+                    <a href="/my/real-estate/contracts">My Contracts</a>
+                </li>
+                <li class="breadcrumb-item active" t-out="re_contract.name" />
+            </t>
+        </xpath>
+    </template>
+
+    <!-- One page = the portal layout + one OWL component, which loads its data
+         from the /api/v1/ API with the browser session (BR-59). -->
+    <template id="portal_my_real_estate" name="My Real Estate">
+        <t t-call="portal.portal_layout">
+            <div class="o_re_portal">
+                <owl-component t-att-name="re_component" t-att-props="re_props" />
+            </div>
+        </t>
+    </template>
+</odoo>

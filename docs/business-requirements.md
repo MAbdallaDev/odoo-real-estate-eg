@@ -8,6 +8,7 @@
 | Scope change | 2026-11-25: US-13 (post-dated cheques, Story 09) moved from stretch into v1. Cheque *accounting* stays beyond v1 (Chapter 7). |
 | Scope change | 2026-11-28: **v1.1** adds reservations (US-14, BR-47–BR-54, Story 11), moved out of Chapter 7, as the base for the customer portal. |
 | Scope change | 2026-11-28: **v1.1** adds the customer portal REST API (US-15, BR-55–BR-58, Story 12) in a separate addon, `real_estate_eg_portal`. The portal screens follow in Story 13. |
+| Scope change | 2026-11-28: **v1.1** adds the customer portal pages (US-16, BR-59–BR-60, Story 13) in the same addon: OWL pages under `/my/real-estate/` that call the same API with the browser session. |
 | Company in this document | **Nile Heights Developments** (نايل هايتس للتطوير العقاري) — invented. Every name, number and person here is fictional. |
 
 **How to read this document.** Chapter 1 is the build contract: what v1 does, as user stories and
@@ -167,10 +168,12 @@ Built in a separate addon, `real_estate_eg_portal`, so `real_estate_eg` works wi
 
 | ID | Rule |
 |---|---|
-| BR-55 | A **customer** uses the portal as an Odoo **portal user** linked to their contact. The API authenticates them with an Odoo **API key** sent as `Authorization: Bearer <key>`; there is no other login. The API is for customers only: a staff user's key is refused. |
+| BR-55 | A **customer** uses the portal as an Odoo **portal user** linked to their contact. The API authenticates them with an Odoo **API key** sent as `Authorization: Bearer <key>`; the only other way in is the portal pages' browser session (BR-59). The API is for customers only: a staff user's key is refused. |
 | BR-56 | A customer sees **only their own** data, and only reads it: reservations and contracts whose customer is their contact or its company, the schedule lines of those contracts, and units that are **available** or that they have an open reservation or a contract on. A unit held for another customer is hidden (BR-50). Staff-only fields (the agent's notes on a reservation, the contract's at-risk flag) stay hidden, and a customer cannot post on the staff chatter of their records. This is enforced by Odoo access rights and record rules for portal users, never by code running as superuser. |
 | BR-57 | A customer **requests a reservation** of an available unit through the API. The request is theirs (their contact's company, if any, is the customer) and follows BR-47–BR-51 unchanged: state requested, assigned to the project's agent with an activity, the unit stays available. They may add a note and their nationality with a valid national ID (BR-06) or a passport number; these are kept **on the request** for the agent to check against the card and copy to the contact, and the portal never edits contacts. A customer has at most **one open reservation per unit** and at most **5 open reservations** (requested, agent confirmed or reserved). Creating the request is the only step done as superuser, because customers have no create right on reservations. |
 | BR-58 | The API is JSON under `/api/v1/`. Lists are paginated (`page`, `limit` up to 100, default 20; the answer gives the total). Every error is `{"error": {"code", "message"}}` with its HTTP code: 400 bad parameter or body, 401 no or invalid key, 403 not a customer, 404 not found, 409 conflict (unit not available, duplicate, too many open requests), 422 invalid value, 500 server error, never a traceback. A record the customer may not read is **not found**, so the answer does not reveal that it exists. An OpenAPI 3 description is served at `/api/v1/openapi.json`. |
+| BR-59 | The portal pages call the **same API** with the customer's **browser session** instead of a key. A request with an `Authorization` header is checked as in BR-55, exactly as before. Without one, the logged-in user's session is used; a request that **changes data** (POST) must also carry the page's **CSRF token** in the `X-CSRF-Token` header, else it is refused with **403** (`csrf_failed`) and nothing changes. No session and no key is **401**; a staff session is **403**, as a staff key. No API key is ever stored in the browser. |
+| BR-60 | The customer's pages are Odoo **portal pages** under `/my/real-estate/`, linked from cards on the portal home page (`/my`): **available units** (filters, request form), **my reservations**, **my contracts** and **one contract** with its installment schedule. Each page is one OWL component that reads and writes only through the API, so the pages show exactly what the API allows (BR-56–BR-58). The reservation and contract cards show the customer's count and stay hidden at 0, as Odoo's own cards. A visitor who is not logged in is sent to the login page; a staff user is sent back to `/my`; another customer's contract is **not found**. |
 
 ### 1.3 User stories
 
@@ -412,6 +415,26 @@ Rules: BR-55–BR-58
 - **AC-15.6** `/api/v1/openapi.json` describes every endpoint of the API.
 - **AC-15.7** Staff rights and the v1 and US-14 behaviour are unchanged (their suites pass unchanged).
 
+#### US-16 — Use the portal in my browser *(v1.1)*
+*As a **customer**, I want pages in the developer's portal where I see the available units, send a
+reservation request and follow my reservations, contracts and installments, so that I do not need
+an API key or another app.*
+Rules: BR-59, BR-60
+
+- **AC-16.1** With the browser session, the API answers the customer's reads as with their key. A
+  POST without the `X-CSRF-Token` header, with a wrong token or with another session's token is
+  refused (403 JSON) and creates nothing; with the page's token it creates the request. No session
+  is 401, a staff session 403. Calls with an API key are unchanged (the US-15 suite passes unchanged).
+- **AC-16.2** The units, reservations, contracts and contract pages open for a customer, each with
+  its component and the JavaScript, templates and styles it needs; the units page offers the
+  projects that have an available unit and the unit types. Visitors go to the login page, staff back
+  to `/my`; another customer's contract page is not found. *(manual: the request form, the lists and
+  the schedule in a browser.)*
+- **AC-16.3** The portal home shows the three cards to a customer, with the number of their own
+  reservations and contracts; staff see no card and get 0.
+- **AC-16.4** Staff rights and the v1, US-14 and US-15 behaviour are unchanged (their suites pass
+  unchanged).
+
 ### 1.4 Story → build story map
 
 | User story | Built in |
@@ -430,7 +453,8 @@ Rules: BR-55–BR-58
 | US-13 Post-dated cheques | Story 09 |
 | US-08 Import units | Story 10 |
 | US-14 Reservations *(v1.1)* | Story 11 |
-| US-15 Customer portal API *(v1.1)* | Story 12 (REST API), Story 13 (portal screens) |
+| US-15 Customer portal API *(v1.1)* | Story 12 (REST API), Story 13 (session auth for the pages) |
+| US-16 Customer portal pages *(v1.1)* | Story 13 |
 
 ---
 
@@ -548,7 +572,7 @@ Every Egyptian Odoo partner serving real estate rebuilds these.
 | **Collections officer** | Yes | Reads all contracts and schedules; works the due/overdue screens; bills late fees; records post-dated cheques. Cannot change price, plan or schedule. |
 | **Accountant** | Yes (Odoo Accounting) | Registers payments on invoices, reconciles, issues refunds after cancellation. Uses standard Odoo accounting rights; reads contracts and schedules. |
 | **Administrator** | Yes | Configuration, imports, user rights. |
-| **Customer (buyer)** | v1: no. v1.1: a portal user (US-15) | Signs the contract, pays. In v1.1, lists available units, requests a reservation and follows their reservations, contracts and installments. |
+| **Customer (buyer)** | v1: no. v1.1: a portal user (US-15, US-16) | Signs the contract, pays. In v1.1, lists available units, requests a reservation and follows their reservations, contracts and installments. |
 | **System (scheduled jobs)** | — | Nightly: invoices due lines, flags overdue lines, recomputes late fees, flags at-risk contracts, closes fully paid delivered contracts. |
 
 **Rights matrix (v1).** R = read, W = create/edit, — = none. Collections officers bill late fees
@@ -825,7 +849,7 @@ Each item is deliberately out of v1. The question for each: *what would it touch
 | **Developer-delay rights (Decree 2184/2022)** | Protects the buyer when delivery is late; needs delivery-delay tracking | Expected vs actual delivery, schedule postponement, refund obligations |
 | **Final contract and registration (الشهر العقاري)** | Legal process outside the developer's system | Document checklist on closed contracts |
 | **Annual service charges** | Facility management, a different product | Recurring invoices after delivery |
-| **Customer portal** — v1.1 covers viewing and reservation requests (US-15); still out: paying online, a contract link without login (`access_token`), login by mobile number + OTP, e-mails to the customer | Online payment needs gateway accounts; OTP needs an SMS provider | Portal views, payment providers, `portal.mixin` access tokens, an SMS provider |
+| **Customer portal** — v1.1 covers viewing and reservation requests, by API and portal pages (US-15, US-16); still out: paying online, a contract link without login (`access_token`), login by mobile number + OTP, e-mails to the customer | Online payment needs gateway accounts; OTP needs an SMS provider | Portal views, payment providers, `portal.mixin` access tokens, an SMS provider |
 | **Online payment** — Fawry, Paymob, InstaPay | Needs gateway accounts | Odoo payment providers, portal |
 | **Multi-currency** — e.g. USD-priced units for expatriate buyers | Exchange-rate rules on a multi-year schedule | Currency on contract and lines, FX gains/losses |
 | **ETA e-invoicing** | Needs registration and signing credentials no individual can get for a demo | Posted invoices submitted through `l10n_eg_edi_eta`: OAuth2 client-credentials token, signed documents, preproduction vs production environments. Tax treatment of unit sales must be confirmed with a tax advisor. |

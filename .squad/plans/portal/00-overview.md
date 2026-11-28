@@ -25,3 +25,8 @@ sequence after the installments stories (`naming.globalSequence` in `config.yaml
   its own auth method on the same `/api/v1/` routes (decided 2026-11-28): a Bearer key if sent,
   otherwise the logged-in portal user's session, with the CSRF token in a header for POST. One API
   for both kinds of client.
+- **Story 13 pages** (US-16, BR-59, BR-60): `/my/real-estate/units`, `/reservations`,
+  `/contracts`, `/contracts/<id>`, linked from cards on `/my`; one OWL component per page, one API
+  service (`real_estate_eg_portal.api`). The auth method is `auth="re_portal_api"`
+  (`models/ir_http.py`), CSRF header `X-CSRF-Token`. CI has no Chrome, so no tours: the browser
+  side is checked by hand (design note `docs/design-notes/13-portal-owl.md`).

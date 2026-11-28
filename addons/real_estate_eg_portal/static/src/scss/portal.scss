@@ -1,0 +1,14 @@
+// US-16: small touches on top of the portal's Bootstrap styles.
+.o_re_portal {
+  .o_re_unit_card {
+    transition: box-shadow 0.15s;
+
+    &:hover {
+      box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .o_re_modal {
+    overflow-y: auto;
+  }
+}
