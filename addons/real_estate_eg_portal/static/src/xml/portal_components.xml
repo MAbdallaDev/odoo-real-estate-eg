@@ -1,0 +1,601 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- US-16: the OWL templates of the customer pages (static/src/js). -->
+<templates xml:space="preserve">
+    <t t-name="real_estate_eg_portal.Pager">
+        <nav
+      t-if="pageCount > 1"
+      class="d-flex justify-content-center align-items-center gap-3 my-3"
+    >
+            <button
+        class="btn btn-sm btn-light"
+        t-att-disabled="props.meta.page &lt;= 1"
+        t-on-click="() => props.onChange(props.meta.page - 1)"
+      >
+                <i class="fa fa-chevron-left me-1" />Previous
+            </button>
+            <span class="small text-muted">
+                Page <t t-esc="props.meta.page" /> of <t t-esc="pageCount" />
+            </span>
+            <button
+        class="btn btn-sm btn-light"
+        t-att-disabled="props.meta.page &gt;= pageCount"
+        t-on-click="() => props.onChange(props.meta.page + 1)"
+      >
+                Next<i class="fa fa-chevron-right ms-1" />
+            </button>
+        </nav>
+    </t>
+
+    <t t-name="real_estate_eg_portal.Loading">
+        <div t-if="state.loading" class="text-center text-muted my-5">
+            <span class="spinner-border spinner-border-sm me-2" />Loading…
+        </div>
+        <div t-if="state.error" class="alert alert-danger" role="alert">
+            <t t-esc="state.error" />
+        </div>
+    </t>
+
+    <!-- AC-16.2 -->
+    <t t-name="real_estate_eg_portal.UnitList">
+        <div
+      t-if="state.sent"
+      class="alert alert-success d-flex gap-3 align-items-start"
+      role="status"
+    >
+            <i class="fa fa-check-circle fa-2x" />
+            <div>
+                <strong>
+                    Request <t t-esc="state.sent.reference" /> sent.
+                </strong>
+                <div>
+                    The sales agent of <t t-esc="state.sent.project.name" /> will
+                    call you to agree the terms. The unit is held for you once you
+                    pay the reservation amount.
+                </div>
+                <a
+          class="btn btn-sm btn-success mt-2"
+          href="/my/real-estate/reservations"
+        >
+                    See my reservations
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-2 align-items-end mb-3">
+            <div class="col-sm-4">
+                <label class="form-label small text-muted mb-1" for="re_project">
+                    Project
+                </label>
+                <select
+          id="re_project"
+          class="form-select"
+          t-model="state.filters.project_id"
+          t-on-change="onFilter"
+        >
+                    <option value="">All projects</option>
+                    <option
+            t-foreach="props.projects"
+            t-as="project"
+            t-key="project.id"
+            t-att-value="project.id"
+            t-esc="project.name"
+          />
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label
+          class="form-label small text-muted mb-1"
+          for="re_type"
+        >Type</label>
+                <select
+          id="re_type"
+          class="form-select"
+          t-model="state.filters.unit_type"
+          t-on-change="onFilter"
+        >
+                    <option value="">All types</option>
+                    <option
+            t-foreach="props.unitTypes"
+            t-as="type"
+            t-key="type.value"
+            t-att-value="type.value"
+            t-esc="type.label"
+          />
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label small text-muted mb-1" for="re_bedrooms">
+                    Bedrooms
+                </label>
+                <select
+          id="re_bedrooms"
+          class="form-select"
+          t-model="state.filters.bedrooms"
+          t-on-change="onFilter"
+        >
+                    <option value="">Any</option>
+                    <option
+            t-foreach="[1, 2, 3, 4, 5]"
+            t-as="count"
+            t-key="count"
+            t-att-value="count"
+            t-esc="count"
+          />
+                </select>
+            </div>
+            <div class="col-sm-2 text-sm-end small text-muted">
+                <t t-esc="state.meta.total" /> units
+            </div>
+        </div>
+
+        <t t-call="real_estate_eg_portal.Loading" />
+        <p
+      t-if="!state.loading and !state.error and !state.units.length"
+      class="text-muted my-5 text-center"
+    >
+            No available unit matches these filters.
+        </p>
+        <div t-if="!state.loading" class="row g-3">
+            <div
+        t-foreach="state.units"
+        t-as="unit"
+        t-key="unit.id"
+        class="col-md-6 col-lg-4"
+      >
+                <div class="card h-100 o_re_unit_card">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h6 class="mb-0" t-esc="unit.code" />
+                            <span class="badge text-bg-success">Available</span>
+                        </div>
+                        <div class="small text-muted mb-2" t-esc="unit.project.name" />
+                        <div class="small mb-2">
+                            <t t-esc="unitTypeLabel(unit.unit_type)" /> ·
+                            <t t-esc="unit.bedrooms" /> bedrooms ·
+                            <t t-esc="unit.area" /> m² · floor <t t-esc="unit.floor" />
+                        </div>
+                        <div
+              class="fs-5 fw-semibold mt-auto"
+              t-esc="formatMoney(unit.list_price, unit.currency)"
+            />
+                        <div class="small text-muted mb-3">
+                            <t
+                t-esc="formatMoney(unit.price_per_sqm, unit.currency)"
+              /> / m²
+                        </div>
+                        <button
+              class="btn btn-primary btn-sm"
+              t-on-click="() => this.open(unit)"
+            >
+                            <i class="fa fa-bookmark-o me-1" />Request reservation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <Pager meta="state.meta" onChange.bind="onPage" />
+
+        <ReserveForm
+      t-if="state.selected"
+      unit="state.selected"
+      onSent.bind="onSent"
+      onClose.bind="close"
+    />
+    </t>
+
+    <!-- AC-16.2: the request dialog. -->
+    <t t-name="real_estate_eg_portal.ReserveForm">
+        <div
+      class="modal d-block o_re_modal"
+      tabindex="-1"
+      role="dialog"
+      aria-modal="true"
+    >
+            <div class="modal-dialog modal-dialog-centered">
+                <form class="modal-content" t-on-submit.prevent="send">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Request a reservation</h5>
+                        <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              t-on-click="props.onClose"
+            />
+                    </div>
+                    <div class="modal-body">
+                        <div class="bg-light rounded p-2 mb-3 small">
+                            <strong t-esc="props.unit.code" /> ·
+                            <t t-esc="props.unit.project.name" /> ·
+                            <t t-esc="props.unit.bedrooms" /> bedrooms ·
+                            <t t-esc="props.unit.area" /> m² ·
+                            <strong
+                t-esc="formatMoney(props.unit.list_price, props.unit.currency)"
+              />
+                        </div>
+                        <p class="small text-muted">
+                            This is a request, not a booking. The project's sales agent
+                            calls you to agree the terms; the unit is held for you once
+                            you pay the reservation amount.
+                        </p>
+                        <div
+              t-if="state.error"
+              class="alert alert-danger py-2"
+              role="alert"
+            >
+                            <t t-esc="state.error" />
+                        </div>
+                        <div class="mb-2">
+                            <div class="form-label">Nationality</div>
+                            <div class="form-check form-check-inline">
+                                <input
+                  id="re_nat_eg"
+                  class="form-check-input"
+                  type="radio"
+                  value="egyptian"
+                  t-model="state.nationality"
+                />
+                                <label class="form-check-label" for="re_nat_eg">
+                                    Egyptian
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input
+                  id="re_nat_foreign"
+                  class="form-check-input"
+                  type="radio"
+                  value="foreign"
+                  t-model="state.nationality"
+                />
+                                <label class="form-check-label" for="re_nat_foreign">
+                                    Foreign
+                                </label>
+                            </div>
+                        </div>
+                        <div t-if="state.nationality === 'egyptian'" class="mb-2">
+                            <label class="form-label" for="re_national_id">
+                                National ID <span
+                  class="small text-muted"
+                >(14 digits)</span>
+                            </label>
+                            <input
+                id="re_national_id"
+                class="form-control"
+                inputmode="numeric"
+                maxlength="14"
+                required="required"
+                t-model="state.nationalId"
+              />
+                        </div>
+                        <div t-else="" class="mb-2">
+                            <label
+                class="form-label"
+                for="re_passport"
+              >Passport number</label>
+                            <input
+                id="re_passport"
+                class="form-control"
+                maxlength="32"
+                required="required"
+                t-model="state.passport"
+              />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label" for="re_note">
+                                Note <span class="small text-muted">(optional)</span>
+                            </label>
+                            <textarea
+                id="re_note"
+                class="form-control"
+                rows="2"
+                maxlength="2000"
+                t-model="state.note"
+              />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button
+              type="button"
+              class="btn btn-light"
+              t-on-click="props.onClose"
+            >
+                            Cancel
+                        </button>
+                        <button
+              type="submit"
+              class="btn btn-primary"
+              t-att-disabled="state.sending"
+            >
+                            <i class="fa fa-paper-plane me-1" />Send request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="modal-backdrop show" />
+    </t>
+
+    <!-- AC-16.2: my reservations. -->
+    <t t-name="real_estate_eg_portal.ReservationList">
+        <div
+      class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"
+    >
+            <div class="small text-muted">
+                Requested → Agent Confirmed → Reserved → Converted to a contract
+            </div>
+            <select
+        class="form-select form-select-sm w-auto"
+        aria-label="State"
+        t-model="state.stateFilter"
+        t-on-change="onFilter"
+      >
+                <option value="">All states</option>
+                <option
+          t-foreach="stateOptions"
+          t-as="option"
+          t-key="option.value"
+          t-att-value="option.value"
+          t-esc="option.label"
+        />
+            </select>
+        </div>
+        <t t-call="real_estate_eg_portal.Loading" />
+        <p
+      t-if="!state.loading and !state.error and !state.records.length"
+      class="text-muted my-5 text-center"
+    >
+            No reservation yet. <a
+        href="/my/real-estate/units"
+      >Browse the available units</a>.
+        </p>
+        <div t-if="!state.loading and state.records.length" class="table-responsive">
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Unit</th>
+                        <th>Project</th>
+                        <th>Requested on</th>
+                        <th>State</th>
+                        <th>Held until</th>
+                        <th class="text-end">Amount</th>
+                        <th />
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+            t-foreach="state.records"
+            t-as="reservation"
+            t-key="reservation.id"
+          >
+                        <td t-esc="reservation.reference" />
+                        <td t-esc="reservation.unit.name" />
+                        <td t-esc="reservation.project.name" />
+                        <td t-esc="formatDate(reservation.requested_on)" />
+                        <td>
+                            <span
+                t-attf-class="badge {{ reservationState(reservation.state).badge }}"
+                t-esc="reservationState(reservation.state).label"
+              />
+                        </td>
+                        <td t-esc="formatDate(reservation.hold_until) or '—'" />
+                        <td
+              class="text-end"
+              t-esc="formatMoney(reservation.amount, reservation.currency)"
+            />
+                        <td>
+                            <a
+                t-if="reservation.contract_id"
+                t-attf-href="/my/real-estate/contracts/{{ reservation.contract_id }}"
+              >
+                                Contract <i class="fa fa-arrow-right" />
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <Pager meta="state.meta" onChange.bind="onPage" />
+        <p class="small text-muted">
+            You can have up to 5 open requests, one per unit. To cancel a request,
+            call your sales agent.
+        </p>
+    </t>
+
+    <!-- AC-16.2: my contracts / one contract. -->
+    <t t-name="real_estate_eg_portal.ContractList">
+        <t t-call="real_estate_eg_portal.Loading" />
+        <p
+      t-if="!state.loading and !state.error and !state.records.length"
+      class="text-muted my-5 text-center"
+    >
+            You have no contract yet.
+        </p>
+        <div t-if="!state.loading and state.records.length" class="table-responsive">
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Unit</th>
+                        <th>Project</th>
+                        <th>Date</th>
+                        <th>State</th>
+                        <th class="text-end">Price</th>
+                        <th style="min-width: 10rem">Paid</th>
+                        <th class="text-end">Outstanding</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="state.records" t-as="contract" t-key="contract.id">
+                        <td>
+                            <a
+                t-attf-href="/my/real-estate/contracts/{{ contract.id }}"
+                t-esc="contract.reference"
+              />
+                        </td>
+                        <td t-esc="contract.unit.name" />
+                        <td t-esc="contract.project.name" />
+                        <td t-esc="formatDate(contract.date)" />
+                        <td>
+                            <span
+                t-attf-class="badge {{ contractState(contract.state).badge }}"
+                t-esc="contractState(contract.state).label"
+              />
+                        </td>
+                        <td
+              class="text-end"
+              t-esc="formatMoney(contract.price, contract.currency)"
+            />
+                        <td>
+                            <div class="progress" style="height: 8px">
+                                <div
+                  class="progress-bar bg-success"
+                  t-attf-style="width: {{ paidPercent(contract) }}%"
+                />
+                            </div>
+                            <div class="small text-muted">
+                                <t
+                  t-esc="formatMoney(contract.amount_paid, contract.currency)"
+                />
+                                (<t t-esc="paidPercent(contract)" />%)
+                            </div>
+                        </td>
+                        <td
+              class="text-end"
+              t-esc="formatMoney(contract.amount_outstanding, contract.currency)"
+            />
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <Pager meta="state.meta" onChange.bind="onPage" />
+    </t>
+
+    <!-- AC-16.2: my contracts / one contract. -->
+    <t t-name="real_estate_eg_portal.ContractDetail">
+        <t t-set="contract" t-value="state.contract" />
+        <t t-if="contract">
+            <div class="mb-3">
+                <h4 class="mb-0">
+                    <t t-esc="contract.reference" />
+                    <span
+            t-attf-class="badge fs-6 align-middle {{ contractState(contract.state).badge }}"
+            t-esc="contractState(contract.state).label"
+          />
+                </h4>
+                <div class="text-muted">
+                    <t t-esc="contract.unit.name" /> · <t
+            t-esc="contract.project.name"
+          />
+                    <t t-if="contract.date"> · <t
+              t-esc="formatDate(contract.date)"
+            /></t>
+                </div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-6 col-md-3">
+                    <div class="border rounded p-2 h-100">
+                        <div class="small text-muted">Price</div>
+                        <div
+              class="fs-5"
+              t-esc="formatMoney(contract.price, contract.currency)"
+            />
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="border rounded p-2 h-100">
+                        <div class="small text-muted">Paid</div>
+                        <div
+              class="fs-5 text-success"
+              t-esc="formatMoney(contract.amount_paid, contract.currency)"
+            />
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="border rounded p-2 h-100">
+                        <div class="small text-muted">Outstanding</div>
+                        <div
+              class="fs-5"
+              t-esc="formatMoney(contract.amount_outstanding, contract.currency)"
+            />
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div
+            t-attf-class="border rounded p-2 h-100 {{ state.overdueTotal ? 'border-danger' : '' }}"
+          >
+                        <div class="small text-muted">Overdue</div>
+                        <div
+              t-attf-class="fs-5 {{ state.overdueTotal ? 'text-danger' : '' }}"
+              t-esc="formatMoney(state.overdueTotal, contract.currency)"
+            />
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Installment schedule</h5>
+                <div class="form-check form-switch mb-0">
+                    <input
+            id="re_overdue_only"
+            class="form-check-input"
+            type="checkbox"
+            t-att-checked="state.overdueOnly"
+            t-on-change="onToggleOverdue"
+          />
+                    <label
+            class="form-check-label"
+            for="re_overdue_only"
+          >Overdue only</label>
+                </div>
+            </div>
+        </t>
+        <t t-call="real_estate_eg_portal.Loading" />
+        <p
+      t-if="contract and !state.loading and !state.error and !state.records.length"
+      class="text-muted my-4 text-center"
+    >
+            No installment to show.
+        </p>
+        <div t-if="!state.loading and state.records.length" class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Line</th>
+                        <th>Due date</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end">Paid</th>
+                        <th class="text-end">Remaining</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+            t-foreach="state.records"
+            t-as="line"
+            t-key="line.id"
+            t-att-class="line.is_overdue ? 'table-danger' : ''"
+          >
+                        <td t-esc="line.label" />
+                        <td t-esc="line.date_due ? formatDate(line.date_due) : '—'" />
+                        <td class="text-end" t-esc="formatMoney(line.amount)" />
+                        <td class="text-end" t-esc="formatMoney(line.amount_paid)" />
+                        <td
+              class="text-end"
+              t-esc="formatMoney(line.amount_residual)"
+            />
+                        <td>
+                            <span
+                t-attf-class="badge {{ installmentState(line).badge }}"
+                t-esc="installmentState(line).label"
+              />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <Pager meta="state.meta" onChange.bind="onPage" />
+        <p t-if="contract" class="small text-muted">
+            Amounts in <t t-esc="contract.currency" />. Pay at the sales office or by
+            bank transfer.
+        </p>
+    </t>
+</templates>

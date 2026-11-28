@@ -1,8 +1,10 @@
 """US-15: the customer portal REST API (BR-55 to BR-58).
 
-Every endpoint is ``auth="bearer"``: Odoo checks the API key in the
-``Authorization: Bearer <key>`` header and runs the request as its owner
-(odoo/addons/base/models/ir_http.py, ``_auth_method_bearer``). The caller must
+Every endpoint is ``auth="re_portal_api"`` (models/ir_http.py): with an
+``Authorization: Bearer <key>`` header, Odoo checks the API key and runs the
+request as its owner, exactly as ``auth="bearer"`` (BR-55); without it, the
+logged-in user's browser session is used, with the CSRF token in a header for
+POST, so the portal screens can call the same API (BR-59). The caller must
 be a portal user (BR-55). Reads run as that user, so Odoo's access rights and
 the portal record rules of this module decide what they see (BR-56); only the
 creation of a request runs as superuser, because customers have no create
@@ -86,9 +88,11 @@ def _route(path, methods=("GET",)):
     return http.route(
         API_PREFIX + path,
         type="http",
-        auth="bearer",
+        # BR-55 / BR-59: an API key, or the browser session + CSRF header.
+        auth="re_portal_api",
         methods=list(methods),
-        # The key is in a header, not a cookie: no CSRF token to check.
+        # Odoo's own check reads a csrf_token form field; the auth method
+        # checks the X-CSRF-Token header of session calls instead (BR-59).
         csrf=False,
         save_session=False,
     )

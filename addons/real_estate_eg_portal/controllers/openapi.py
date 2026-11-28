@@ -98,11 +98,14 @@ def openapi_spec():
         "info": {
             "title": "Real Estate Installments (Egypt): Customer API",
             "version": "1.0.0",
-            "description": "US-15. For customers with a portal account. "
-            "Authenticate with an Odoo API key: Authorization: Bearer <key>.",
+            "description": "US-15, US-16. For customers with a portal account. "
+            "Authenticate with an Odoo API key: Authorization: Bearer <key>. "
+            "The portal pages call the same API with the browser session "
+            "instead; a POST then needs the page's CSRF token in the "
+            "X-CSRF-Token header.",
         },
         "servers": [{"url": "/api/v1"}],
-        "security": [{"bearer": []}],
+        "security": [{"bearer": []}, {"session": []}],
         "paths": {
             "/units": {
                 "get": {
@@ -176,11 +179,20 @@ def openapi_spec():
             },
         },
         "components": {
-            "securitySchemes": {"bearer": {"type": "http", "scheme": "bearer"}},
+            "securitySchemes": {
+                "bearer": {"type": "http", "scheme": "bearer"},
+                # BR-59: the portal pages (Odoo's session cookie).
+                "session": {"type": "apiKey", "in": "cookie", "name": "session_id"},
+            },
             "responses": {
                 "BadRequest": _error_response("Invalid parameter or body."),
-                "Unauthorized": _error_response("Missing or invalid API key."),
-                "Forbidden": _error_response("Not a customer (portal) account."),
+                "Unauthorized": _error_response(
+                    "Missing or invalid API key, and no logged-in session."
+                ),
+                "Forbidden": _error_response(
+                    "Not a customer (portal) account, or a session POST "
+                    "without a valid X-CSRF-Token header."
+                ),
                 "NotFound": _error_response("No such record among yours."),
             },
             "schemas": {

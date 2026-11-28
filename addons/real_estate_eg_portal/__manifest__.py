@@ -1,8 +1,8 @@
 {
-    "name": "Real Estate Installments (Egypt): Customer Portal API",
-    "summary": "REST API for customers: available units, reservation requests, "
-    "their contracts and installments",
-    "version": "19.0.1.0.0",
+    "name": "Real Estate Installments (Egypt): Customer Portal",
+    "summary": "Customer portal pages and REST API: available units, reservation "
+    "requests, their contracts and installments",
+    "version": "19.0.1.1.0",
     "category": "Real Estate",
     "license": "LGPL-3",
     "author": "Mostafa Abdallah",
@@ -14,6 +14,15 @@
         "security/ir.model.access.csv",
         "security/ir_rules.xml",
         "views/real_estate_reservation_views.xml",
+        # US-16: the customer's pages under /my/real-estate/.
+        "views/portal_templates.xml",
     ],
+    "assets": {
+        "web.assets_frontend": [
+            "real_estate_eg_portal/static/src/scss/portal.scss",
+            "real_estate_eg_portal/static/src/js/**/*",
+            "real_estate_eg_portal/static/src/xml/**/*",
+        ],
+    },
     "installable": True,
 }
