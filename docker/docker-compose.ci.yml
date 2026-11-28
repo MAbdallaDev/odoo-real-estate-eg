@@ -45,7 +45,8 @@ services:
     command:
       - odoo
       - --database=re_test
-      - --init=real_estate_eg
-      - --test-tags=/real_estate_eg
+      # v1.1: the customer portal API addon (US-15) is installed and tested too.
+      - --init=real_estate_eg,real_estate_eg_portal
+      - --test-tags=/real_estate_eg,/real_estate_eg_portal
       - --stop-after-init
       - --http-interface=127.0.0.1

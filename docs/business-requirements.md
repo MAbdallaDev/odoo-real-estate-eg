@@ -7,6 +7,7 @@
 | Date | 2026-11-21 |
 | Scope change | 2026-11-25: US-13 (post-dated cheques, Story 09) moved from stretch into v1. Cheque *accounting* stays beyond v1 (Chapter 7). |
 | Scope change | 2026-11-28: **v1.1** adds reservations (US-14, BR-47–BR-54, Story 11), moved out of Chapter 7, as the base for the customer portal. |
+| Scope change | 2026-11-28: **v1.1** adds the customer portal REST API (US-15, BR-55–BR-58, Story 12) in a separate addon, `real_estate_eg_portal`. The portal screens follow in Story 13. |
 | Company in this document | **Nile Heights Developments** (نايل هايتس للتطوير العقاري) — invented. Every name, number and person here is fictional. |
 
 **How to read this document.** Chapter 1 is the build contract: what v1 does, as user stories and
@@ -159,6 +160,17 @@ customer advances; v1 records no sales revenue.
 | BR-52 | The **reservation amount** (جدية الحجز) defaults to the project's fixed amount and can be changed until the reservation is reserved. A manager moves it to **reserved** only once a posted **customer payment** from the same customer, of at least that amount, is linked to it by an accountant. One payment secures one reservation. The payment is an ordinary Odoo payment left as the customer's credit; the accountant later reconciles it with the down-payment invoice, so the down payment is paid in two parts. **The schedule is not changed** (BR-14–BR-20 hold as they are). |
 | BR-53 | A held reservation **expires** after a company-set number of days (**default 3**), counted from the agent's confirmation and counted again from the manager's. A manager can change the expiry date. The nightly job expires held reservations whose expiry date has passed, and the unit becomes available again. |
 | BR-54 | From a **reserved** reservation, its agent or a manager creates the **contract**: a draft for the reservation's customer, unit and agent, after which the reservation is **converted** and the v1 contract cycle runs unchanged. While a unit is held, the only contract allowed on it is the one its reservation creates, so a held reservation never sits beside a contract. |
+
+#### Customer portal API (v1.1)
+
+Built in a separate addon, `real_estate_eg_portal`, so `real_estate_eg` works without it.
+
+| ID | Rule |
+|---|---|
+| BR-55 | A **customer** uses the portal as an Odoo **portal user** linked to their contact. The API authenticates them with an Odoo **API key** sent as `Authorization: Bearer <key>`; there is no other login. The API is for customers only: a staff user's key is refused. |
+| BR-56 | A customer sees **only their own** data, and only reads it: reservations and contracts whose customer is their contact or its company, the schedule lines of those contracts, and units that are **available** or that they have an open reservation or a contract on. A unit held for another customer is hidden (BR-50). Staff-only fields (the agent's notes on a reservation, the contract's at-risk flag) stay hidden, and a customer cannot post on the staff chatter of their records. This is enforced by Odoo access rights and record rules for portal users, never by code running as superuser. |
+| BR-57 | A customer **requests a reservation** of an available unit through the API. The request is theirs (their contact's company, if any, is the customer) and follows BR-47–BR-51 unchanged: state requested, assigned to the project's agent with an activity, the unit stays available. They may add a note and their nationality with a valid national ID (BR-06) or a passport number; these are kept **on the request** for the agent to check against the card and copy to the contact, and the portal never edits contacts. A customer has at most **one open reservation per unit** and at most **5 open reservations** (requested, agent confirmed or reserved). Creating the request is the only step done as superuser, because customers have no create right on reservations. |
+| BR-58 | The API is JSON under `/api/v1/`. Lists are paginated (`page`, `limit` up to 100, default 20; the answer gives the total). Every error is `{"error": {"code", "message"}}` with its HTTP code: 400 bad parameter or body, 401 no or invalid key, 403 not a customer, 404 not found, 409 conflict (unit not available, duplicate, too many open requests), 422 invalid value, 500 server error, never a traceback. A record the customer may not read is **not found**, so the answer does not reveal that it exists. An OpenAPI 3 description is served at `/api/v1/openapi.json`. |
 
 ### 1.3 User stories
 
@@ -380,6 +392,26 @@ Rules: BR-47–BR-54
   reserved one. Rejected, expired and converted reservations cannot move again.
 - **AC-14.9** A unit with no reservations behaves exactly as in v1 (the v1 suite passes unchanged).
 
+#### US-15 — Follow my purchase online *(v1.1)*
+*As a **customer**, I want to see the available units, ask for a reservation and follow my
+reservations, contracts and installments online, so that I do not have to call the sales office for
+each step.*
+Rules: BR-55–BR-58
+
+- **AC-15.1** A customer lists the **available** units only, paginated and filtered by project,
+  bedrooms and unit type. A unit on hold for another customer is not shown.
+- **AC-15.2** Without a key or with an invalid key the API answers **401**; with a staff user's key,
+  **403**.
+- **AC-15.3** A request for an available unit creates a **requested** reservation for the customer,
+  assigned to the project's agent with an activity, and the unit stays available. A unit that is not
+  available, a second open request for the same unit, or a sixth open request is refused (409);
+  invalid values are refused (400 / 422) and nothing is created.
+- **AC-15.4** A customer reads their own reservations, contracts and installments; customer B's are
+  **not found** for customer A and never appear in A's lists. Customers cannot write any of them.
+- **AC-15.5** Errors, including an unknown `/api/v1/` path, are JSON with the right HTTP code.
+- **AC-15.6** `/api/v1/openapi.json` describes every endpoint of the API.
+- **AC-15.7** Staff rights and the v1 and US-14 behaviour are unchanged (their suites pass unchanged).
+
 ### 1.4 Story → build story map
 
 | User story | Built in |
@@ -398,6 +430,7 @@ Rules: BR-47–BR-54
 | US-13 Post-dated cheques | Story 09 |
 | US-08 Import units | Story 10 |
 | US-14 Reservations *(v1.1)* | Story 11 |
+| US-15 Customer portal API *(v1.1)* | Story 12 (REST API), Story 13 (portal screens) |
 
 ---
 
@@ -515,7 +548,7 @@ Every Egyptian Odoo partner serving real estate rebuilds these.
 | **Collections officer** | Yes | Reads all contracts and schedules; works the due/overdue screens; bills late fees; records post-dated cheques. Cannot change price, plan or schedule. |
 | **Accountant** | Yes (Odoo Accounting) | Registers payments on invoices, reconciles, issues refunds after cancellation. Uses standard Odoo accounting rights; reads contracts and schedules. |
 | **Administrator** | Yes | Configuration, imports, user rights. |
-| **Customer (buyer)** | No — portal is outside v1 | Signs the contract, pays. |
+| **Customer (buyer)** | v1: no. v1.1: a portal user (US-15) | Signs the contract, pays. In v1.1, lists available units, requests a reservation and follows their reservations, contracts and installments. |
 | **System (scheduled jobs)** | — | Nightly: invoices due lines, flags overdue lines, recomputes late fees, flags at-risk contracts, closes fully paid delivered contracts. |
 
 **Rights matrix (v1).** R = read, W = create/edit, — = none. Collections officers bill late fees
@@ -792,11 +825,11 @@ Each item is deliberately out of v1. The question for each: *what would it touch
 | **Developer-delay rights (Decree 2184/2022)** | Protects the buyer when delivery is late; needs delivery-delay tracking | Expected vs actual delivery, schedule postponement, refund obligations |
 | **Final contract and registration (الشهر العقاري)** | Legal process outside the developer's system | Document checklist on closed contracts |
 | **Annual service charges** | Facility management, a different product | Recurring invoices after delivery |
-| **Customer portal** | Customers viewing their schedule and paying | Odoo portal views and access rules |
+| **Customer portal** — v1.1 covers viewing and reservation requests (US-15); still out: paying online, a contract link without login (`access_token`), login by mobile number + OTP, e-mails to the customer | Online payment needs gateway accounts; OTP needs an SMS provider | Portal views, payment providers, `portal.mixin` access tokens, an SMS provider |
 | **Online payment** — Fawry, Paymob, InstaPay | Needs gateway accounts | Odoo payment providers, portal |
 | **Multi-currency** — e.g. USD-priced units for expatriate buyers | Exchange-rate rules on a multi-year schedule | Currency on contract and lines, FX gains/losses |
 | **ETA e-invoicing** | Needs registration and signing credentials no individual can get for a demo | Posted invoices submitted through `l10n_eg_edi_eta`: OAuth2 client-credentials token, signed documents, preproduction vs production environments. Tax treatment of unit sales must be confirmed with a tax advisor. |
-| **REST API** | Project 2 | Contracts, schedules and payment state over REST, through Odoo security |
+| **Staff REST API** — the customer API is v1.1 (US-15) | Employees use Odoo itself and its mobile app | Contracts, schedules and payment state over REST for staff, through Odoo security |
 
 ---
 

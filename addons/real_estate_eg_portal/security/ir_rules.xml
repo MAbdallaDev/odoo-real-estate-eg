@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--
+        BR-56 (US-15): a customer (portal user) reads only their own rows.
+        "Own" is the customer's commercial partner and its contacts, the same
+        domain as Odoo's sale_order_rule_portal. Read only: the access rights
+        give portal users no write, create or delete on these models.
+
+        These rules have the portal group, so they apply to portal users only;
+        staff rules in real_estate_eg are untouched. The global multi-company
+        rules of real_estate_eg still apply on top of them.
+    -->
+
+    <!-- Units: the available ones (the catalogue) and the ones the customer
+         has an open reservation or a contract on. A unit on hold for another
+         customer is hidden (BR-50), and so is a unit whose request was
+         rejected or expired. The open states are OPEN_STATES in
+         controllers/main.py: keep both lists the same. -->
+    <record id="real_estate_unit_portal_rule" model="ir.rule">
+        <field name="name">Real Estate Unit: portal sees available and own</field>
+        <field name="model_id" ref="real_estate_eg.model_real_estate_unit" />
+        <field name="domain_force">[
+            '|', '|',
+            ('state', '=', 'available'),
+            ('reservation_ids', 'any', [
+                ('partner_id', 'child_of', [user.commercial_partner_id.id]),
+                ('state', 'in', ['requested', 'agent_confirmed', 'reserved']),
+            ]),
+            ('contract_ids.partner_id', 'child_of', [user.commercial_partner_id.id]),
+        ]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]" />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
+
+    <record id="real_estate_reservation_portal_rule" model="ir.rule">
+        <field name="name">Reservation: portal sees own</field>
+        <field name="model_id" ref="real_estate_eg.model_real_estate_reservation" />
+        <field
+      name="domain_force"
+    >[('partner_id', 'child_of', [user.commercial_partner_id.id])]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]" />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
+
+    <record id="real_estate_contract_portal_rule" model="ir.rule">
+        <field name="name">Real Estate Contract: portal sees own</field>
+        <field name="model_id" ref="real_estate_eg.model_real_estate_contract" />
+        <field
+      name="domain_force"
+    >[('partner_id', 'child_of', [user.commercial_partner_id.id])]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]" />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
+
+    <!-- A schedule line follows its contract. -->
+    <record id="real_estate_installment_portal_rule" model="ir.rule">
+        <field name="name">Payment Schedule Line: portal sees own</field>
+        <field name="model_id" ref="real_estate_eg.model_real_estate_installment" />
+        <field
+      name="domain_force"
+    >[('contract_id.partner_id', 'child_of', [user.commercial_partner_id.id])]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]" />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+    </record>
+</odoo>

@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_real_estate_project_portal,real.estate.project portal,real_estate_eg.model_real_estate_project,base.group_portal,1,0,0,0
+access_real_estate_unit_portal,real.estate.unit portal,real_estate_eg.model_real_estate_unit,base.group_portal,1,0,0,0
+access_real_estate_reservation_portal,real.estate.reservation portal,real_estate_eg.model_real_estate_reservation,base.group_portal,1,0,0,0
+access_real_estate_contract_portal,real.estate.contract portal,real_estate_eg.model_real_estate_contract,base.group_portal,1,0,0,0
+access_real_estate_installment_portal,real.estate.installment portal,real_estate_eg.model_real_estate_installment,base.group_portal,1,0,0,0
