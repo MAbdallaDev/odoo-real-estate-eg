@@ -7,6 +7,9 @@ PYTHON   := venv/bin/python
 ODOO_BIN := $(PYTHON) odoo-src/odoo/odoo-bin
 ODOO     := $(ODOO_BIN) -c odoo.conf
 MODULE   := real_estate_eg
+# v1.1: the backend and the customer portal API addon, installed and tested together
+MODULES  := real_estate_eg,real_estate_eg_portal
+TEST_TAGS := /real_estate_eg,/real_estate_eg_portal
 DB       ?= re_dev
 TEST_DB  ?= re_test
 TEST_LOG := odoo-test.log
@@ -35,8 +38,8 @@ run: ## Start Odoo on database $(DB) (extra options: ARGS="...")
 
 test: ## Fresh $(TEST_DB), install the module, run its tests, check the log
 	dropdb -U $(DB_USER) --if-exists --force $(TEST_DB)
-	@echo "Installing $(MODULE) in a fresh $(TEST_DB) and running its tests (full log: $(TEST_LOG)) ..."
-	@status=0; $(ODOO) -d $(TEST_DB) -i $(MODULE) --test-tags /$(MODULE) --stop-after-init $(ARGS) > $(TEST_LOG) 2>&1 || status=$$?; \
+	@echo "Installing $(MODULES) in a fresh $(TEST_DB) and running its tests (full log: $(TEST_LOG)) ..."
+	@status=0; $(ODOO) -d $(TEST_DB) -i $(MODULES) --test-tags $(TEST_TAGS) --stop-after-init $(ARGS) > $(TEST_LOG) 2>&1 || status=$$?; \
 	grep -E 'odoo\.tests\.result|post-tests in' $(TEST_LOG) | tail -n 2 || true; \
 	scripts/check_odoo_log.sh $(TEST_LOG) && exit $$status
 
@@ -49,7 +52,7 @@ demo: ## Fresh $(DEMO_DB) with demo data (Nile Heights), then check the install 
 coverage: ## Same as make test, measured by coverage.py (.coveragerc); prints the module's coverage
 	dropdb -U $(DB_USER) --if-exists --force $(TEST_DB)
 	@echo "Running the tests under coverage (full log: $(TEST_LOG)) ..."
-	@status=0; venv/bin/coverage run odoo-src/odoo/odoo-bin -c odoo.conf -d $(TEST_DB) -i $(MODULE) --test-tags /$(MODULE) --stop-after-init $(ARGS) > $(TEST_LOG) 2>&1 || status=$$?; \
+	@status=0; venv/bin/coverage run odoo-src/odoo/odoo-bin -c odoo.conf -d $(TEST_DB) -i $(MODULES) --test-tags $(TEST_TAGS) --stop-after-init $(ARGS) > $(TEST_LOG) 2>&1 || status=$$?; \
 	grep -E 'odoo\.tests\.result' $(TEST_LOG) | tail -n 1 || true; \
 	scripts/check_odoo_log.sh $(TEST_LOG) && venv/bin/coverage report && exit $$status
 

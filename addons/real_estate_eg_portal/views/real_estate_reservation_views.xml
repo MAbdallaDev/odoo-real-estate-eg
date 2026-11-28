@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- BR-57: what the customer typed on the portal, for the agent to check
+         against the card and copy to the contact. Read only here. -->
+    <record id="real_estate_reservation_view_form_portal" model="ir.ui.view">
+        <field name="name">real.estate.reservation.form.portal</field>
+        <field name="model">real.estate.reservation</field>
+        <field
+      name="inherit_id"
+      ref="real_estate_eg.real_estate_reservation_view_form"
+    />
+        <field name="arch" type="xml">
+            <field name="project_id" position="after">
+                <field
+          name="customer_nationality"
+          invisible="not customer_nationality"
+        />
+                <field
+          name="customer_national_id"
+          invisible="not customer_national_id"
+        />
+                <field
+          name="customer_passport_number"
+          invisible="not customer_passport_number"
+        />
+            </field>
+        </field>
+    </record>
+</odoo>
