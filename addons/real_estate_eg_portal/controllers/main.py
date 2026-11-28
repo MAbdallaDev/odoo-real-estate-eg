@@ -15,6 +15,7 @@ import json
 from odoo import http
 from odoo.exceptions import AccessError, MissingError, UserError
 from odoo.http import request
+from odoo.tools import SQL
 
 from odoo.addons.real_estate_eg.models.real_estate_reservation import (
     RESERVATION_STATE,
@@ -26,6 +27,8 @@ from .openapi import openapi_spec
 # BR-58: pagination.
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
+# Far beyond any real list; a larger offset would overflow in the database.
+MAX_PAGE = 10_000
 # BR-57: the reservations that are still open for a customer.
 OPEN_STATES = ("requested", "agent_confirmed", "reserved")
 MAX_OPEN_REQUESTS = 5
@@ -133,7 +136,7 @@ class PortalApi(http.Controller):
 
     def _page(self, model, domain, serialize, kwargs, order=None):
         """BR-58: one page of a list, as the current user (record rules apply)."""
-        page = self._int(kwargs, "page", default=1)
+        page = self._int(kwargs, "page", default=1, maximum=MAX_PAGE)
         limit = self._int(kwargs, "limit", default=DEFAULT_LIMIT, maximum=MAX_LIMIT)
         Model = request.env[model]
         records = Model.search(
@@ -311,6 +314,11 @@ class PortalApi(http.Controller):
                 env._("Unit %(unit)s is not available.", unit=unit.code),
             )
         customer = env.user.partner_id.commercial_partner_id
+        # Two requests sent at the same moment wait for each other here, so
+        # the two checks below cannot both pass on stale counts.
+        env.cr.execute(
+            SQL("SELECT id FROM res_partner WHERE id = %s FOR UPDATE", customer.id)
+        )
         Reservation = env["real.estate.reservation"]
         mine = [("partner_id", "child_of", customer.id), ("state", "in", OPEN_STATES)]
         if Reservation.search_count([*mine, ("unit_id", "=", unit.id)]):
@@ -329,7 +337,9 @@ class PortalApi(http.Controller):
                 ),
             )
         # The one sudo() of the API (BR-57): customers have no create right on
-        # reservations. Only these values are written; the model's create()
+        # reservations. Only these values are written (as superuser create()
+        # would accept any field, the dict is built here, never from the
+        # body); the model's create()
         # still checks the unit (BR-49), assigns the project's agent and gives
         # them a to-do (BR-51). The customer is not made a follower, so the
         # staff chatter sends them no e-mail.

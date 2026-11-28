@@ -43,7 +43,7 @@ class IrHttp(models.AbstractModel):
                 env._("Send a valid API key: Authorization: Bearer <key>."),
                 headers=[("WWW-Authenticate", "Bearer")],
             )
-        if isinstance(exception, HTTPException) and exception.code:
+        if isinstance(exception, HTTPException) and (exception.code or 0) >= 400:
             return json_error(
                 exception.code,
                 exception.name.lower().replace(" ", "_"),
@@ -55,5 +55,8 @@ class IrHttp(models.AbstractModel):
             return json_error(403, "forbidden", env._("Access denied."))
         if isinstance(exception, UserError):
             return json_error(422, "validation_error", exception.args[0])
+        if isinstance(exception, HTTPException):
+            # Not an error (e.g. a redirect): Odoo's own answer.
+            return super()._handle_error(exception)
         # A bug: Odoo logs the traceback; the client gets no detail.
         return json_error(500, "internal_error", env._("Internal server error."))

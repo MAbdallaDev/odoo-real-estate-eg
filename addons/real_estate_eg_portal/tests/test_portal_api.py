@@ -1,3 +1,4 @@
+from odoo.exceptions import AccessError
 from odoo.tests import HttpCase, new_test_user, tagged
 
 from ..controllers.openapi import openapi_spec
@@ -163,6 +164,23 @@ class TestPortalApi(HttpCase):
         response = self._call(f"units/{self.unit_free.id}", self.key_b)
         self.assertEqual(response.json()["state"], "on_hold")
 
+    def test_ac_15_1_unit_of_closed_request_is_hidden(self):
+        """BR-56: a unit is the customer's only while their reservation is
+        open; once rejected, a unit held for someone else disappears."""
+        request_a = self._request().json()
+        Reservation = self.env["real.estate.reservation"]
+        held_b = Reservation.create(
+            {"partner_id": self.customer_b.partner_id.id, "unit_id": self.unit_free.id}
+        )
+        held_b.with_user(self.agent).action_agent_confirm()
+        self.assertEqual(
+            self._call(f"units/{self.unit_free.id}", self.key_a).status_code, 200
+        )
+        Reservation.browse(request_a["id"]).with_user(self.agent).action_reject()
+        self._error(
+            self._call(f"units/{self.unit_free.id}", self.key_a), 404, "not_found"
+        )
+
     # AC-15.2
 
     def test_ac_15_2_authentication(self):
@@ -297,11 +315,51 @@ class TestPortalApi(HttpCase):
         self.assertFalse(self.contract_a.with_user(self.customer_a).has_access("write"))
         Reservation = self.env["real.estate.reservation"].with_user(self.customer_a)
         self.assertFalse(Reservation.has_access("create"))
+        # BR-56: internal fields stay internal, through any RPC too.
+        reservation = self.env["real.estate.reservation"].browse(
+            self._request(note="Call me").json()["id"]
+        )
+        with self.assertRaises(AccessError):
+            reservation.with_user(self.customer_a).read(["note"])
+        with self.assertRaises(AccessError):
+            self.contract_a.with_user(self.customer_a).read(["at_risk"])
         # Staff rules are untouched: the agent still sees both contracts.
         self.assertEqual(
             self.env["real.estate.contract"].with_user(self.agent).search([]),
             self.contract_a | self.contract_b,
         )
+
+    def test_ac_15_4_customer_cannot_post_on_the_chatter(self):
+        """BR-56: reading a reservation or contract does not let a customer
+        post on its staff chatter; staff keep the real_estate_eg rule."""
+        reservation = self.env["real.estate.reservation"].browse(
+            self._request().json()["id"]
+        )
+        comment = self.env.ref("mail.mt_comment")
+        for record in (reservation, self.contract_a):
+            self.assertEqual(
+                record.with_user(self.customer_a)
+                .sudo()
+                ._mail_get_operation_for_mail_message_operation("create")[record],
+                "write",
+            )
+            with self.assertRaises(AccessError):
+                self.env["mail.message"].with_user(self.customer_a).create(
+                    {
+                        "model": record._name,
+                        "res_id": record.id,
+                        "body": "Hello",
+                        "message_type": "comment",
+                        "subtype_id": comment.id,
+                    }
+                )
+            # The agent still posts with read access, as before.
+            self.assertEqual(
+                record.with_user(
+                    self.agent
+                )._mail_get_operation_for_mail_message_operation("create")[record],
+                "read",
+            )
 
     # AC-15.5
 
@@ -313,6 +371,9 @@ class TestPortalApi(HttpCase):
         )
         self._error(
             self._call("units", self.key_a, params={"page": "x"}), 400, "bad_request"
+        )
+        self._error(
+            self._call("units", self.key_a, params={"page": 10**18}), 400, "bad_request"
         )
         self._error(
             self._call("reservations", self.key_a, params={"state": "nope"}),
