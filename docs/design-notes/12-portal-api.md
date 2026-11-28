@@ -58,8 +58,10 @@ internal notes stay hidden by Odoo's own mail rules.
 
 Customers have no create right on reservations, so `POST /reservations` creates the request as
 superuser. Before that, as the customer, it checks that the unit is visible and available, and it
-counts the customer's open reservations (one per unit, 5 in all), after locking the customer's
-contact row so two requests sent at the same moment cannot both pass the counts. It passes only the customer,
+counts the customer's open reservations (one per unit, 5 in all), after a no-op update of the
+customer's contact row: of two requests sent at the same moment, the second fails with a
+serialization error and Odoo replays it with fresh data, so both cannot pass the counts (a plain
+row lock would not do, the transaction's snapshot is already taken). It passes only the customer,
 the unit, the note and the identity fields; the model's own `create()` still refuses a unit that is
 not available (BR-49), assigns the project's agent and schedules the to-do (BR-51). The reservation
 is then read back as the customer, through the record rule. The customer is not made a follower

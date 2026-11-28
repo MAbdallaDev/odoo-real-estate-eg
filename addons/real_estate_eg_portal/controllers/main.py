@@ -314,10 +314,15 @@ class PortalApi(http.Controller):
                 env._("Unit %(unit)s is not available.", unit=unit.code),
             )
         customer = env.user.partner_id.commercial_partner_id
-        # Two requests sent at the same moment wait for each other here, so
-        # the two checks below cannot both pass on stale counts.
+        # Two requests sent at the same moment: both write the customer's row
+        # (a no-op update), so the second one fails with a serialization error
+        # and Odoo replays it with fresh data, where it sees the first request.
+        # A lock alone would not do: the transaction already read a snapshot.
         env.cr.execute(
-            SQL("SELECT id FROM res_partner WHERE id = %s FOR UPDATE", customer.id)
+            SQL(
+                "UPDATE res_partner SET write_date = write_date WHERE id = %s",
+                customer.id,
+            )
         )
         Reservation = env["real.estate.reservation"]
         mine = [("partner_id", "child_of", customer.id), ("state", "in", OPEN_STATES)]

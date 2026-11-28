@@ -14,7 +14,8 @@
     <!-- Units: the available ones (the catalogue) and the ones the customer
          has an open reservation or a contract on. A unit on hold for another
          customer is hidden (BR-50), and so is a unit whose request was
-         rejected or expired. -->
+         rejected or expired. The open states are OPEN_STATES in
+         controllers/main.py: keep both lists the same. -->
     <record id="real_estate_unit_portal_rule" model="ir.rule">
         <field name="name">Real Estate Unit: portal sees available and own</field>
         <field name="model_id" ref="real_estate_eg.model_real_estate_unit" />
