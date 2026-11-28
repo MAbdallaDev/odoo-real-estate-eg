@@ -361,7 +361,7 @@
                     >
                                             last one
                                             <t
-                        t-esc="formatMoney(plan.last_installment_amount)"
+                        t-esc="formatMoney(plan.last_installment_amount, unit.currency)"
                       />
                                         </span>
                                     </div>

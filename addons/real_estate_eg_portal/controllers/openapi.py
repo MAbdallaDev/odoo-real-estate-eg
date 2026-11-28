@@ -116,6 +116,22 @@ REF = {
 MONEY = {"type": "number"}
 
 
+UNIT_PROPERTIES = {
+    "id": {"type": "integer"},
+    "code": {"type": "string"},
+    "project": REF,
+    "unit_type": {"type": "string"},
+    "bedrooms": {"type": "integer"},
+    "area": {"type": "number"},
+    "floor": {"type": "integer"},
+    "list_price": MONEY,
+    "price_per_sqm": MONEY,
+    "currency": {"type": "string"},
+    "state": {"type": "string"},
+    "image_url": {"type": "string", "nullable": True},
+}
+
+
 def openapi_spec():
     return {
         "openapi": "3.0.3",
@@ -276,51 +292,34 @@ def openapi_spec():
                 },
                 "Unit": {
                     "type": "object",
-                    "properties": {
-                        "id": {"type": "integer"},
-                        "code": {"type": "string"},
-                        "project": REF,
-                        "unit_type": {"type": "string"},
-                        "bedrooms": {"type": "integer"},
-                        "area": {"type": "number"},
-                        "floor": {"type": "integer"},
-                        "list_price": MONEY,
-                        "price_per_sqm": MONEY,
-                        "currency": {"type": "string"},
-                        "state": {"type": "string"},
-                        "image_url": {"type": "string", "nullable": True},
-                    },
+                    "properties": UNIT_PROPERTIES,
                 },
                 "UnitDetails": {
-                    "allOf": [
-                        _ref("Unit"),
-                        {
-                            "type": "object",
-                            "properties": {
-                                "images": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "id": {"type": "integer"},
-                                            "caption": {
-                                                "type": "string",
-                                                "nullable": True,
-                                            },
-                                            "url": {"type": "string"},
-                                            "thumbnail_url": {"type": "string"},
-                                        },
+                    "type": "object",
+                    "properties": {
+                        **UNIT_PROPERTIES,
+                        "images": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {"type": "integer"},
+                                    "caption": {
+                                        "type": "string",
+                                        "nullable": True,
                                     },
+                                    "url": {"type": "string"},
+                                    "thumbnail_url": {"type": "string"},
                                 },
-                                "floor_plan_url": {"type": "string", "nullable": True},
-                                "plans": {
-                                    "type": "array",
-                                    "items": _ref("PlanPreview"),
-                                },
-                                "project": _ref("Project"),
                             },
                         },
-                    ]
+                        "floor_plan_url": {"type": "string", "nullable": True},
+                        "plans": {
+                            "type": "array",
+                            "items": _ref("PlanPreview"),
+                        },
+                        "project": _ref("Project"),
+                    },
                 },
                 "Project": {
                     "type": "object",

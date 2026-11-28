@@ -50,7 +50,8 @@ each photo once.
 Plan templates were not linked to projects; a contract's plan is chosen by the agent. To show a
 customer only what a project is sold with, a project now lists **Plans Offered** (a many2many to
 plan templates; the maintainer chose this over showing every plan). Portal users get read access
-to plan templates: their terms are what the page shows anyway.
+to plan templates, limited by a rule to the plans some project offers (through the reverse field
+`project_ids`), so internal or discount plans stay hidden, also by RPC.
 
 The preview runs `compute_schedule()`, the same pure function the contract's **Generate schedule**
 runs (BR-15–BR-18), on the unit's list price with today as the contract date. So the down payment,

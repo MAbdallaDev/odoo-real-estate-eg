@@ -363,3 +363,10 @@ class TestUnitDetails(HttpCase):
             Photo.create({**values, "project_id": self.project.id})
         with self.assertRaises(ValidationError):
             Photo.create({"image_1920": _png("gray")})
+
+    def test_ac_17_customers_read_only_offered_plans(self):
+        """BR-62: a customer reading plan templates (e.g. by RPC) sees only
+        the plans a project is sold with."""
+        plans = self.env["real.estate.plan.template"].with_user(self.customer_a)
+        visible = plans.search([("code", "like", "IMG-")])
+        self.assertEqual(visible, self.plan_standard | self.plan_fast)

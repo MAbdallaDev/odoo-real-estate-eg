@@ -9,6 +9,16 @@ from odoo.addons.real_estate_eg.tools.schedule import compute_schedule
 class RealEstatePlanTemplate(models.Model):
     _inherit = "real.estate.plan.template"
 
+    # BR-62: the reverse of Plans Offered; the portal rule shows customers
+    # only the plans a project is sold with.
+    project_ids = fields.Many2many(
+        "real.estate.project",
+        relation="real_estate_project_plan_template_rel",
+        column1="plan_template_id",
+        column2="project_id",
+        string="Offered in Projects",
+    )
+
     def _portal_preview(self, price):
         """BR-62: what this plan means for a unit at `price`, for the
         customer: the same numbers the schedule generator would give a

@@ -31,7 +31,9 @@ class RealEstateImage(models.Model):
         for image in self:
             image.company_id = image.unit_id.company_id or image.project_id.company_id
 
-    @api.constrains("project_id", "unit_id")
+    # image_1920 is always written on create, so the check also runs when
+    # neither owner is given (Odoo checks only the fields written).
+    @api.constrains("project_id", "unit_id", "image_1920")
     def _check_owner(self):
         for image in self:
             if bool(image.project_id) == bool(image.unit_id):
@@ -56,6 +58,9 @@ class RealEstateProject(models.Model):
     # unit page, worked out on the unit's price.
     plan_template_ids = fields.Many2many(
         "real.estate.plan.template",
+        relation="real_estate_project_plan_template_rel",
+        column1="project_id",
+        column2="plan_template_id",
         string="Plans Offered",
         help="The payment plans customers see on this project's unit pages.",
     )

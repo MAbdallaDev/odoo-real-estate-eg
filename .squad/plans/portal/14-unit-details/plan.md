@@ -46,8 +46,10 @@ New files: `models/real_estate_image.py` (photo model; project and unit fields),
 4. API and OpenAPI. **Done.**
 5. Portal: banners, photo cards, unit page. **Done.**
 6. Tests. **Done.**
-7. Independent review, CI green.
-8. Maintainer: upload photos, a floor plan and plans on a project locally; open the unit page as a
+7. Independent review. Fixed: the owner check did not run when no owner was given; customers
+   could read every plan template (now only plans offered); OpenAPI details schema; nits.
+8. CI green.
+9. Maintainer: upload photos, a floor plan and plans on a project locally; open the unit page as a
    customer. **Pending (rule 1).**
 
 ## Tests
@@ -61,6 +63,7 @@ New files: `models/real_estate_image.py` (photo model; project and unit fields),
 | `test_ac_17_projects_with_available_units` | AC-17.3 |
 | `test_ac_17_unit_page` | AC-17.4, BR-63 |
 | `test_ac_17_rights_on_photos` | AC-17.5 |
+| `test_ac_17_customers_read_only_offered_plans` | AC-17.2, BR-62 (review fix) |
 | **the v1, Story 11, 12 and 13 tests, unchanged** | AC-17.5 |
 
 ## Done Criteria
@@ -68,4 +71,4 @@ New files: `models/real_estate_image.py` (photo model; project and unit fields),
 - [ ] AC-17.1 – AC-17.5 proven by the tests above, green in CI.
 - [ ] `git diff origin/release/1.1 -- addons/real_estate_eg/ addons/real_estate_eg_portal/tests/test_portal_api.py addons/real_estate_eg_portal/tests/test_portal_pages.py` is empty.
 - [ ] CI log clean.
-- [ ] Maintainer's local check (step 8).
+- [ ] Maintainer's local check (step 9).

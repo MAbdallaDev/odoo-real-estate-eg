@@ -249,7 +249,7 @@ class PortalApi(http.Controller):
 
     def _image_response(self, record, field_name):
         """BR-61: a stored image of a record the customer may read."""
-        if not record[field_name]:
+        if not record.with_context(bin_size=True)[field_name]:
             raise ApiError(404, "not_found", request.env._("Not found."))
         stream = request.env["ir.binary"]._get_image_stream_from(record, field_name)
         return stream.get_response()
