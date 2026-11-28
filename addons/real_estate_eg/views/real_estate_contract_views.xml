@@ -130,6 +130,10 @@
                             <field name="unit_id" readonly="state != 'draft'" />
                             <field name="project_id" />
                             <field name="user_id" readonly="state != 'draft'" />
+                            <field
+                name="reservation_id"
+                invisible="not reservation_id"
+              />
                         </group>
                         <group>
                             <field name="date" readonly="state != 'draft'" />

@@ -181,6 +181,22 @@ specific enough to write a test against.
 > **Superseded mapping:** the "Covers" column above was drafted before the business document. The
 > authoritative user-story → build-story map is `business-requirements.md` §1.4 (US-01…US-13).
 
+## v1.1 — Stories 11–14: reservations and the customer portal
+
+Added 2026-11-28. Goal: customers take part. A customer requests a unit; staff approve and take the
+reservation amount; the reservation becomes a contract and the v1 cycle runs unchanged. Then a
+customer portal: a REST API with customer authentication and OWL screens, in its own addon.
+
+**Rule for v1.1:** `main` and `19.0` (the Odoo Apps branch) are not touched until the maintainer has
+tested the whole of v1.1 locally. Stories merge into `release/1.1`. No v1 test is edited.
+
+| # | Story | Covers | Delivers | Done Criteria headline |
+|---|---|---|---|---|
+| 11 | **Reservations** | US-14 | `real.estate.reservation` (requested → agent confirmed → reserved → converted / rejected / expired), unit `on_hold`, one agent per project, reservation amount per project, payment linked by the accountant, 3-day hold with its own expiry job, Create Contract | v1 suite passes unchanged; a unit is never held for two customers; no contract on a held unit except through Create Contract |
+| 12 | **Portal API** | (to write) | New addon `real_estate_eg_portal`: REST controllers under `/api/v1/` (units, reservations, my contracts, my installments), customer token auth, portal record rules, OpenAPI, tests | A customer reads only their own data; every error is JSON with the right HTTP code |
+| 13 | **Portal screens (OWL)** | (to write) | OWL components served by Odoo under `/my/...`: available units, reserve dialog, my contract, installment table | A customer requests a unit and follows their schedule in the browser |
+| 14 | **Release 1.1.0** | — | Maintainer's local test, demo data for reservations, README and CHANGELOG, merge `release/1.1` → `main`, rebuild `19.0` | Upgrading a v1.0.1 database to 1.1.0 keeps every contract and unit as it was |
+
 ---
 
 ## Reuse, not reinvention

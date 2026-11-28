@@ -47,6 +47,17 @@ class ResCompany(models.Model):
     re_grace_days = fields.Integer(string="Grace Period (days)", default=7)
     # BR-31: more than this many days past due flags the contract at risk.
     re_at_risk_days = fields.Integer(string="At Risk After (days)", default=60)
+    # BR-53 (v1.1): how long a held reservation keeps its unit.
+    re_reservation_hold_days = fields.Integer(
+        string="Reservation Hold (days)", default=3
+    )
+
+    @api.constrains("re_reservation_hold_days")
+    def _check_reservation_hold_days(self):
+        if any(company.re_reservation_hold_days < 0 for company in self):
+            raise ValidationError(
+                self.env._("Reservation hold days cannot be negative.")
+            )
 
     @api.constrains(
         "re_retention_percent",

@@ -6,6 +6,7 @@
 | Status | **v0.2 — Chapter 8 answered (Checkpoint 1 passed); stories next (Checkpoint 2)** |
 | Date | 2026-11-21 |
 | Scope change | 2026-11-25: US-13 (post-dated cheques, Story 09) moved from stretch into v1. Cheque *accounting* stays beyond v1 (Chapter 7). |
+| Scope change | 2026-11-28: **v1.1** adds reservations (US-14, BR-47–BR-54, Story 11), moved out of Chapter 7, as the base for the customer portal. |
 | Company in this document | **Nile Heights Developments** (نايل هايتس للتطوير العقاري) — invented. Every name, number and person here is fictional. |
 
 **How to read this document.** Chapter 1 is the build contract: what v1 does, as user stories and
@@ -145,6 +146,19 @@ customer advances; v1 records no sales revenue.
 | BR-40 | A **post-dated cheque** is its own record, linked to one schedule line: cheque number, bank, cheque date, amount and status. A line can have several cheques over time, because a bounced cheque is replaced, so the history is kept. |
 | BR-41 | Cheque states: **held → deposited → cleared** or **bounced**. No other transitions. A bounced cheque can be replaced by a new held cheque on the same line. |
 | BR-42 | Cheque status is **information only**. It never changes whether a line is paid, overdue or accruing late fees — BR-24 alone decides that. v1 creates no accounting entries for cheques. |
+
+#### Reservations (v1.1)
+
+| ID | Rule |
+|---|---|
+| BR-47 | A **reservation** (حجز) is its own record, before any contract: customer, unit, the project's agent, reservation amount, expiry date and status, with a reference from a sequence, e.g. `RES/2027/00001`. It starts as a customer's **request**; staff may also enter one for a walk-in or phone customer. |
+| BR-48 | Reservation states: **requested → agent confirmed → reserved → converted**. A requested or agent-confirmed reservation can be **rejected**; a reserved one too, by a manager only. An agent-confirmed or reserved one **expires** (BR-53). No other transitions. Rejected, expired and converted are final. |
+| BR-49 | A request can be made only for an **available** unit. Several requests may wait on one unit, but a unit has **at most one held reservation** (agent confirmed or reserved) at a time, enforced in the database. A unit with a contract that is not cancelled cannot be held. |
+| BR-50 | Unit status (BR-03) in v1.1: a contract that is not cancelled decides it exactly as in v1. Without one, a unit with an agent-confirmed reservation is **on hold**, with a reserved one is **reserved**, otherwise **available**. An on-hold unit is offered to no other customer. |
+| BR-51 | Each project has **one sales agent**. A request goes to that agent, who gets an activity. A project with no agent leaves the request unassigned, for the sales managers. An agent sees only the reservations assigned to them. The agent (or a manager) confirms the request after agreeing terms with the customer. |
+| BR-52 | The **reservation amount** (جدية الحجز) defaults to the project's fixed amount and can be changed until the reservation is reserved. A manager moves it to **reserved** only once a posted **customer payment** from the same customer, of at least that amount, is linked to it by an accountant. One payment secures one reservation. The payment is an ordinary Odoo payment left as the customer's credit; the accountant later reconciles it with the down-payment invoice, so the down payment is paid in two parts. **The schedule is not changed** (BR-14–BR-20 hold as they are). |
+| BR-53 | A held reservation **expires** after a company-set number of days (**default 3**), counted from the agent's confirmation and counted again from the manager's. A manager can change the expiry date. The nightly job expires held reservations whose expiry date has passed, and the unit becomes available again. |
+| BR-54 | From a **reserved** reservation, its agent or a manager creates the **contract**: a draft for the reservation's customer, unit and agent, after which the reservation is **converted** and the v1 contract cycle runs unchanged. While a unit is held, the only contract allowed on it is the one its reservation creates, so a held reservation never sits beside a contract. |
 
 ### 1.3 User stories
 
@@ -339,6 +353,33 @@ Rules: BR-40–BR-42
   accounting does.
 - **AC-13.5** A "To deposit" list shows held cheques dated today or earlier.
 
+#### US-14 — Reserve a unit before the contract *(v1.1)*
+*As a **sales manager**, I want a customer's request for a unit to go through the project's agent and
+my approval, with the reservation amount paid, before a contract is made, so that a unit is never
+promised to two customers and every contract starts from a real commitment.*
+Rules: BR-47–BR-54
+
+- **AC-14.1** Given an available unit, a request for it starts **requested**, is assigned to the
+  project's agent with an activity, and leaves the unit **available**. A request for a unit that is
+  not available is refused.
+- **AC-14.2** When the agent confirms the request, the unit becomes **on hold** and the expiry date is
+  today + the hold days (3). A second request on the same unit cannot be confirmed.
+- **AC-14.3** An agent cannot see or act on a reservation assigned to another agent; a request on a
+  project with no agent is unassigned and handled by a manager.
+- **AC-14.4** The manager cannot reserve without a linked posted payment from the same customer of
+  at least the reservation amount, not already used by another reservation; with it, the reservation becomes **reserved**, the unit
+  **reserved**, and the expiry date moves to today + the hold days. Only an accountant links the
+  payment, and an agent cannot reserve.
+- **AC-14.5** **Create contract** on a reserved reservation makes a draft contract for its customer,
+  unit and agent, linked to it, and the reservation becomes **converted**.
+- **AC-14.6** While a unit is held, creating a contract on it any other way is refused, even for the
+  reservation's own customer; **Create contract** is the only way.
+- **AC-14.7** The nightly job expires held reservations past their expiry date and frees the unit;
+  others are untouched.
+- **AC-14.8** The agent rejects a requested or agent-confirmed reservation; only a manager rejects a
+  reserved one. Rejected, expired and converted reservations cannot move again.
+- **AC-14.9** A unit with no reservations behaves exactly as in v1 (the v1 suite passes unchanged).
+
 ### 1.4 Story → build story map
 
 | User story | Built in |
@@ -356,6 +397,7 @@ Rules: BR-40–BR-42
 | US-07 Bilingual PDF | Story 08 |
 | US-13 Post-dated cheques | Story 09 |
 | US-08 Import units | Story 10 |
+| US-14 Reservations *(v1.1)* | Story 11 |
 
 ---
 
@@ -489,6 +531,7 @@ rights.
 | Schedule lines | W (draft, own) | W | R | R |
 | Bill late fees | — | W | W | — |
 | Post-dated cheques | R (own) | W | W | R |
+| Reservations *(v1.1)* | W (assigned to them; confirm, reject before reserved, create contract) | W (reserve, reject, all) | R | R, and link the payment |
 
 ---
 
@@ -510,6 +553,23 @@ flowchart LR
     E --> H{All lines paid<br/>and delivered?}
     H -- yes --> I[Contract closed]
     D -. manager, with reason .-> X2[Cancelled<br/>retention + refund computed<br/>unit → available]
+```
+
+**v1.1 (US-14): a reservation comes first.** The v1 flow above starts at "Create Contract".
+
+```mermaid
+flowchart LR
+    R[Customer or agent<br/>creates a request<br/>unit stays available] --> AC{Project's agent<br/>agrees terms?}
+    AC -- yes --> H[Agent confirmed<br/>unit → on hold<br/>3-day hold]
+    AC -- no --> RJ[Rejected]
+    H --> P[Customer pays the reservation amount<br/>accountant links the payment]
+    P --> M{Manager reserves?}
+    M -- yes --> RS[Reserved<br/>unit → reserved<br/>hold restarts]
+    M -- no --> RJ
+    RS --> CC[Agent: Create Contract<br/>reservation → converted]
+    CC --> A[v1 flow: draft contract,<br/>schedule, confirm ...]
+    H -. hold date passed .-> EX[Expired<br/>unit → available]
+    RS -. hold date passed .-> EX
 ```
 
 ### 5.2 Contract states
@@ -560,6 +620,17 @@ stateDiagram-v2
     sold --> delivered: contract delivered
 ```
 
+v1.1 (BR-50), only while the unit has no contract that is not cancelled:
+
+```mermaid
+stateDiagram-v2
+    available --> on_hold: agent confirms a reservation
+    on_hold --> reserved: manager reserves (amount paid)
+    on_hold --> available: rejected or expired
+    reserved --> available: rejected or expired
+    reserved --> reserved: contract created (draft), as in v1
+```
+
 ### 5.5 Nightly job, in order
 
 1. Invoice every scheduled line of a confirmed contract whose due date (minus lead days) has arrived
@@ -569,6 +640,36 @@ stateDiagram-v2
 3. Flag contracts with a line more than 60 days past due as at risk; clear the flag when no such line
    remains (BR-31).
 4. Close delivered contracts whose lines are all paid and have no unbilled late fee (BR-12).
+
+v1.1: expiring held reservations (BR-53) is a **separate** nightly job, so this one is unchanged.
+
+### 5.6 Reservation states (v1.1, BR-48)
+
+Who moves each step is in brackets. Converted, rejected and expired are final.
+
+```mermaid
+stateDiagram-v2
+    [*] --> requested: customer or agent (project's agent assigned)
+    requested --> agent_confirmed: Confirm Request (agent or manager)
+    requested --> rejected: Reject (agent or manager)
+    agent_confirmed --> reserved: Reserve (manager, payment linked)
+    agent_confirmed --> rejected: Reject (agent or manager)
+    agent_confirmed --> expired: nightly job, hold date passed
+    reserved --> converted: Create Contract (agent or manager)
+    reserved --> rejected: Reject (manager only)
+    reserved --> expired: nightly job, hold date passed
+    converted --> [*]
+    rejected --> [*]
+    expired --> [*]
+```
+
+| Reservation state | Unit shows | Can another customer take the unit? |
+|---|---|---|
+| requested | available | Yes, other requests may wait |
+| agent_confirmed | **on hold** | No |
+| reserved | **reserved** | No |
+| converted | follows the contract (v1) | No while the contract is live |
+| rejected / expired | available | Yes |
 
 ---
 
@@ -682,7 +783,6 @@ Each item is deliberately out of v1. The question for each: *what would it touch
 | Item | Why it's deferred | What it would touch |
 |---|---|---|
 | **Post-dated cheque accounting** — v1 tracks status only (US-13) | Needs cheque journals and bank-side states (under collection, re-presented), bounced-cheque fees | Accounting journals for cheques under collection, entries on deposit and bounce |
-| **Reservation amount (جدية حجز)** | Adds a pre-contract state and credit-against-price logic | New state before draft, a payment credited to the down payment |
 | **Revenue recognition at delivery** (v1 books everything to advances — BR-43) | Needs agreed accounting treatment, including whether long plans carry a financing component (IFRS 15 / EAS 48) | A custom journal entry at delivery moving advances — including installments not yet invoiced — to revenue. Odoo's deferred revenue spreads an amount over dates, so it does not fit a delivery event |
 | **Importing existing contracts** | Means importing schedules, invoices and payment history, and references that clash with the sequence (BR-07) | A migration wizard per contract, with opening balances |
 | **Late-fee waiver** | v1 has none; developers do waive fees (NUCA has granted 70% exemptions on late-payment penalties) | A manager action with a reason, reducing a line's unbilled fee |

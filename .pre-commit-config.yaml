@@ -55,8 +55,9 @@ repos:
       # S10.4: every US-xx in the business document has a test naming it.
       - id: check-us-tests
         name: every user story has a test
-        entry: scripts/check_us_tests.sh
-        language: script
+        # Run through sh, so the hook also works on Windows (Git for Windows' sh).
+        entry: sh scripts/check_us_tests.sh
+        language: system
         pass_filenames: false
         always_run: true
   - repo: https://github.com/pre-commit/pre-commit-hooks

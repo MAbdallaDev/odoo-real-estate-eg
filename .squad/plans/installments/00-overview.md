@@ -21,6 +21,7 @@ and be read first.
 | 08 | `08-bilingual-pdf/plan.md` | Bilingual Arabic / English contract PDF | — | 03 |
 | 09 | `09-post-dated-cheques/plan.md` | Post-dated cheques | — | 04, 07 |
 | 10 | `10-ship/plan.md` | Ship v1.0.0: unit import, demo data, README | — | 01–09 |
+| 11 | `11-reservations/plan.md` | Reservations before the contract (v1.1) | — | 02, 04, 06 |
 
 ## Dependency notes
 

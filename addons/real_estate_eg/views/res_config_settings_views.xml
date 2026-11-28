@@ -83,6 +83,16 @@
                             <field name="re_at_risk_days" />
                         </setting>
                     </block>
+                    <block title="Reservations" name="real_estate_reservations">
+                        <!-- BR-53 (v1.1): how long a held reservation keeps its unit. -->
+                        <setting
+              string="Reservation Hold"
+              company_dependent="1"
+              help="Days a confirmed or reserved reservation keeps its unit before it expires."
+            >
+                            <field name="re_reservation_hold_days" />
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>

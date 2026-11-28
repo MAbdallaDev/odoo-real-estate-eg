@@ -16,6 +16,13 @@ class RealEstateProject(models.Model):
         "res.company", required=True, index=True, default=lambda self: self.env.company
     )
     currency_id = fields.Many2one(related="company_id.currency_id")
+    # BR-51 (v1.1): the agent who handles this project's reservation requests;
+    # empty sends them to the sales managers.
+    user_id = fields.Many2one(
+        "res.users", string="Sales Agent", domain=[("share", "=", False)]
+    )
+    # BR-52 (v1.1): the default reservation amount (جدية الحجز).
+    reservation_amount = fields.Monetary()
     unit_ids = fields.One2many("real.estate.unit", "project_id", string="Units")
     unit_count = fields.Integer(compute="_compute_unit_count")
 
